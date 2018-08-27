@@ -2,7 +2,7 @@
 riscv architecture for gem5
 
 ## Requirements 
-1. Clone this repository.
+1. Clone this repository (Prefered path "<user_home_dir>/workspace").
 2. gem5 required dependencies: 
 ```sudo apt install build-essential git m4 scons zlib1g zlib1g-dev libprotobuf-dev protobuf-compiler libprotoc-dev libgoogle-perftools-dev python-dev python```
 3. Install scons: ```sudo apt-get install scons```
@@ -12,4 +12,6 @@ riscv architecture for gem5
 ## IDE - QT Creator (optional)
 1. sudo apt-get update
 2. sudo apt install qtcreator 
-3. Open qtcreator->Import Existing Project
+3. Open qtcreator->Import Existing Project. 
+  <br> Name it (i.e gem5) and give the path to gem5 directory. 
+4. Add 
