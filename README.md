@@ -14,5 +14,10 @@ riscv architecture for gem5
 1. sudo apt-get update
 2. sudo apt install qtcreator 
 3. Open qtcreator->Import Existing Project. 
-  <br> Name it (i.e gem5) and give the path to gem5 directory. 
-4. Add 
+  <br> Name it (i.e gem5) and give the path to gem5 directory ("<user_home_dir>/workspace/bgu_riscv_proj/gem5"). 
+4. Add *.py to "Show files matching" list. (The ability watching py files from QT). 
+5. Exclude build folder. Hit finish. 
+6. On left side pane goto Projects->Build Settings. 
+7. Under build steps and clean steps sections remove make all. (put the cursor over it and choose delete). 
+8. Under build steps choose click on "add build step" and select "custom process step". 
+9. Fill the following: 
