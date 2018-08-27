@@ -8,6 +8,7 @@ riscv architecture for gem5
 3. Install scons: ```sudo apt-get install scons```
 4. Goto gem5 directory inside the repository and run ```scons build/RISCV/gem5.opt -j4```
 5. Build [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain).
+   Choose Installation (Newlib), in order to support the embedded riscv gem5 machine. 
 
 ## IDE - QT Creator (optional)
 1. sudo apt-get update
