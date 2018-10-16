@@ -20,4 +20,9 @@ riscv architecture for gem5
 6. On left side pane goto Projects->Build Settings. 
 7. Under build steps and clean steps sections remove make all. (put the cursor over it and choose delete). 
 8. Under build steps choose click on "add build step" and select "custom process step". 
-9. Fill the following: 
+9. Fill the following in the command bar: ```scons```
+10. Fill the following in the Arguments bar: ```build/RISCV/gem5.opt -j3```
+11. In Clean steps section click on Add Clean Step and fill: Command: ```scons``` Arguments: ```-c```
+12. Go to Run Settings (also located in Projects left side pane) 
+13. choose /gem5/build/RISCV/gem5.opt as executable 
+14. TODO complete those instructions (command line arguments should be added) 
