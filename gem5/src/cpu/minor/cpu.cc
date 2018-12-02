@@ -53,16 +53,18 @@ MinorCPU::MinorCPU(MinorCPUParams *params) :
 {
     /* This is only written for one thread at the moment */
     Minor::MinorThread *thread;
-
+    std::cout<<"MINOR CPU Line 56"<<std::endl;
     for (ThreadID i = 0; i < numThreads; i++) {
         if (FullSystem) {
             thread = new Minor::MinorThread(this, i, params->system,
                     params->itb, params->dtb, params->isa[i]);
             thread->setStatus(ThreadContext::Halted);
         } else {
+//            std::cout<<"params->workload[i]: "<<params->workload[i]<<std::endl;
             thread = new Minor::MinorThread(this, i, params->system,
                     params->workload[i], params->itb, params->dtb,
                     params->isa[i]);
+             std::cout<<"MINCPU create thread "<<i<<std::endl;
         }
 
         threads.push_back(thread);

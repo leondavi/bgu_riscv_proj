@@ -248,7 +248,7 @@ class Interrupts : public SimObject
             return std::make_shared<VirtualInterrupt>();
         if (interrupts[INT_FIQ] && take_fiq)
             return std::make_shared<FastInterrupt>();
-        if ((interrupts[INT_VIRT_FIQ] || hcr.vf) && allowVFiq)
+        if ((interrupts[NumInterruptTypesINT_VIRT_FIQ] || hcr.vf) && allowVFiq)
             return std::make_shared<VirtualFastInterrupt>();
         if (interrupts[INT_ABT] && take_ea)
             return std::make_shared<SystemError>();

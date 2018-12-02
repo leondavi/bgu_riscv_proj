@@ -44,6 +44,8 @@ import m5
 # import all of the SimObjects
 from m5.objects import *
 
+NUM_OF_THREADS = 2
+
 # create the system we are going to simulate
 system = System()
 
@@ -57,7 +59,11 @@ system.mem_mode = 'timing'               # Use timing accesses
 system.mem_ranges = [AddrRange('512MB')] # Create an address range
 
 # Create a simple CPU
-system.cpu = TimingSimpleCPU()
+#system.cpu = TimingSimpleCPU()
+system.cpu = MinorCPU()
+#system.cpu.fetch2ToDecodeForwardDelay = 100000
+
+system.multi_thread = True
 
 # Create a memory bus, a system crossbar, in this case
 system.membus = SystemXBar()
@@ -65,7 +71,7 @@ system.membus = SystemXBar()
 # Hook the CPU ports up to the membus
 system.cpu.icache_port = system.membus.slave
 system.cpu.dcache_port = system.membus.slave
-
+system.cpu.numThreads = NUM_OF_THREADS
 # create the interrupt controller for the CPU and connect to the membus
 system.cpu.createInterruptController()
 
@@ -84,20 +90,28 @@ system.mem_ctrl.port = system.membus.master
 # Connect the system up to the membus
 system.system_port = system.membus.slave
 
+
 # get ISA for the binary to run.
 isa = str(m5.defines.buildEnv['TARGET_ISA']).lower()
 
 # Run 'hello' and use the compiled ISA to find the binary
 binary = 'tests/test-progs/hello/bin/' + isa + '/linux/hello'
 
-# Create a process for a simple "Hello World" application
-process = Process()
-# Set the command
-# cmd is a list which begins with the executable (like argv)
-process.cmd = [binary]
-# Set the cpu to use the process as its workload and create thread contexts
-system.cpu.workload = process
 system.cpu.createThreads()
+print (system.cpu.workload)
+
+
+
+for i in range(0,NUM_OF_THREADS):
+    # Create a process for a simple "Hello World" application
+    process = Process()
+    # Set the command
+    # cmd is a list which begins with the executable (like argv)
+    process.cmd = [binary]
+    process.pid = 100+i
+    # Set the cpu to use the process as its workload and create thread contexts
+    #print(i)
+    system.cpu.workload.append(process)
 
 # set up the root SimObject and start the simulation
 root = Root(full_system = False, system = system)
