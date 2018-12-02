@@ -52,6 +52,12 @@ class BranchPredictor(SimObject):
         "Previous indirect targets to use for path history")
 
 
+class DummyBP(BranchPredictor):
+    type = 'BranchPredictor'
+    cxx_class = 'DummyBP'
+    cxx_header = "cpu/pred/dummy_pred.hh"
+
+    prediction = Param.Unsigned(1,"true or false - what to predict?")
 
 class LocalBP(BranchPredictor):
     type = 'LocalBP'

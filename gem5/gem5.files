@@ -4344,6 +4344,10 @@ src/cpu/pred/bpred_unit.cc
 src/cpu/pred/bpred_unit.hh
 src/cpu/pred/btb.cc
 src/cpu/pred/btb.hh
+src/cpu/pred/dummy_pred.cc
+src/cpu/pred/dummy_pred.cp
+src/cpu/pred/dummy_pred.h
+src/cpu/pred/dummy_pred.hh
 src/cpu/pred/indirect.cc
 src/cpu/pred/indirect.hh
 src/cpu/pred/ltage.cc

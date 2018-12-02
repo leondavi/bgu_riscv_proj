@@ -375,3 +375,5 @@ tests/test-progs/asmtest/src/riscv/isa/macros/scalar
 tests/test-progs/insttest/src/riscv
 util/m5
 util/statetrace/base
+src/cpu/pred
+build/RISCV/params
