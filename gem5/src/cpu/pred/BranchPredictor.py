@@ -53,11 +53,10 @@ class BranchPredictor(SimObject):
 
 
 class DummyBP(BranchPredictor):
-    type = 'BranchPredictor'
+    type = 'DummyBP'
     cxx_class = 'DummyBP'
     cxx_header = "cpu/pred/dummy_pred.hh"
-
-    prediction = Param.Unsigned(1,"true or false - what to predict?")
+    prediction = Param.Unsigned(1,"taken or not - what to predict?")
 
 class LocalBP(BranchPredictor):
     type = 'LocalBP'
