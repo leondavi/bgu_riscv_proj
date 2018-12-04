@@ -57,7 +57,8 @@ system.mem_mode = 'timing'               # Use timing accesses
 system.mem_ranges = [AddrRange('512MB')] # Create an address range
 
 # Create a simple CPU
-system.cpu = TimingSimpleCPU()
+system.cpu = MinorCPU()
+system.cpu.branchPred = DummyBP(numThreads = Parent.numThreads)
 
 # Create a memory bus, a system crossbar, in this case
 system.membus = SystemXBar()

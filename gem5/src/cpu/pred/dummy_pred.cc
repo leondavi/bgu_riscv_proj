@@ -37,6 +37,7 @@ void DummyBP::btbUpdate(ThreadID tid, Addr branch_addr, void * &bp_history)
 
 bool DummyBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 {
+    //std::cout<<"dummy lookup called"<<std::endl;
     return getPrediction();
 
     /*
