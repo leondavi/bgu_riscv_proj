@@ -47,33 +47,34 @@ from m5.params import *
 from m5.proxy import *
 from m5.SimObject import SimObject
 from BaseCPU import BaseCPU
+from MinorCPU import MinorCPU
 from DummyChecker import DummyChecker
 from BranchPredictor import *
 from TimingExpr import TimingExpr
 
 from FuncUnit import OpClass
 
-class MinorOpClass(SimObject):
+class MthreadsCPUOpClass(SimObject):
     """Boxing of OpClass to get around build problems and provide a hook for
     future additions to OpClass checks"""
 
-    type = 'MinorOpClass'
-    cxx_header = "cpu/minor/func_unit.hh"
+    type = 'MthreadsCPUOpClass'
+    cxx_header = "cpu/MthreadsCPU/func_unit.hh"
 
     opClass = Param.OpClass("op class to match")
 
-class MinorOpClassSet(SimObject):
+class MthreadsCPUOpClassSet(SimObject):
     """A set of matchable op classes"""
 
-    type = 'MinorOpClassSet'
-    cxx_header = "cpu/minor/func_unit.hh"
+    type = 'MthreadsCPUOpClassSet'
+    cxx_header = "cpu/MthreadsCPU/func_unit.hh"
 
-    opClasses = VectorParam.MinorOpClass([], "op classes to be matched."
+    opClasses = VectorParam.MthreadsCPUOpClass([], "op classes to be matched."
         "  An empty list means any class")
 
-class MinorFUTiming(SimObject):
-    type = 'MinorFUTiming'
-    cxx_header = "cpu/minor/func_unit.hh"
+class MthreadsCPUFUTiming(SimObject):
+    type = 'MthreadsCPUFUTiming'
+    cxx_header = "cpu/MthreadsCPU/func_unit.hh"
 
     mask = Param.UInt64(0, "mask for testing ExtMachInst")
     match = Param.UInt64(0, "match value for testing ExtMachInst:"
@@ -91,59 +92,59 @@ class MinorFUTiming(SimObject):
     srcRegsRelativeLats = VectorParam.Cycles("the maximum number of cycles"
         " after inst. issue that each src reg can be available for this"
         " inst. to issue")
-    opClasses = Param.MinorOpClassSet(MinorOpClassSet(),
+    opClasses = Param.MthreadsCPUOpClassSet(MthreadsCPUOpClassSet(),
         "op classes to be considered for this decode.  An empty set means any"
         " class")
     description = Param.String('', "description string of the decoding/inst."
         " class")
 
-def minorMakeOpClassSet(op_classes):
-    """Make a MinorOpClassSet from a list of OpClass enum value strings"""
+def MthreadsCPUMakeOpClassSet(op_classes):
+    """Make a MthreadsCPUOpClassSet from a list of OpClass enum value strings"""
     def boxOpClass(op_class):
-        return MinorOpClass(opClass=op_class)
+        return MthreadsCPUOpClass(opClass=op_class)
 
-    return MinorOpClassSet(opClasses=map(boxOpClass, op_classes))
+    return MthreadsCPUOpClassSet(opClasses=map(boxOpClass, op_classes))
 
-class MinorFU(SimObject):
-    type = 'MinorFU'
-    cxx_header = "cpu/minor/func_unit.hh"
+class MthreadsCPUFU(SimObject):
+    type = 'MthreadsCPUFU'
+    cxx_header = "cpu/MthreadsCPU/func_unit.hh"
 
-    opClasses = Param.MinorOpClassSet(MinorOpClassSet(), "type of operations"
+    opClasses = Param.MthreadsCPUOpClassSet(MthreadsCPUOpClassSet(), "type of operations"
         " allowed on this functional unit")
     opLat = Param.Cycles(1, "latency in cycles")
     issueLat = Param.Cycles(1, "cycles until another instruction can be"
         " issued")
-    timings = VectorParam.MinorFUTiming([], "extra decoding rules")
+    timings = VectorParam.MthreadsCPUFUTiming([], "extra decoding rules")
 
     cantForwardFromFUIndices = VectorParam.Unsigned([],
         "list of FU indices from which this FU can't receive and early"
         " (forwarded) result")
 
-class MinorFUPool(SimObject):
-    type = 'MinorFUPool'
-    cxx_header = "cpu/minor/func_unit.hh"
+class MthreadsCPUFUPool(SimObject):
+    type = 'MthreadsCPUFUPool'
+    cxx_header = "cpu/MthreadsCPU/func_unit.hh"
 
-    funcUnits = VectorParam.MinorFU("functional units")
+    funcUnits = VectorParam.MthreadsCPUFU("functional units")
 
-class MinorDefaultIntFU(MinorFU):
-    opClasses = minorMakeOpClassSet(['IntAlu'])
-    timings = [MinorFUTiming(description="Int",
+class MthreadsCPUDefaultIntFU(MthreadsCPUFU):
+    opClasses = MthreadsCPUMakeOpClassSet(['IntAlu'])
+    timings = [MthreadsCPUFUTiming(description="Int",
         srcRegsRelativeLats=[2])]
     opLat = 3
 
-class MinorDefaultIntMulFU(MinorFU):
-    opClasses = minorMakeOpClassSet(['IntMult'])
-    timings = [MinorFUTiming(description='Mul',
+class MthreadsCPUDefaultIntMulFU(MthreadsCPUFU):
+    opClasses = MthreadsCPUMakeOpClassSet(['IntMult'])
+    timings = [MthreadsCPUFUTiming(description='Mul',
         srcRegsRelativeLats=[0])]
     opLat = 3
 
-class MinorDefaultIntDivFU(MinorFU):
-    opClasses = minorMakeOpClassSet(['IntDiv'])
+class MthreadsCPUDefaultIntDivFU(MthreadsCPUFU):
+    opClasses = MthreadsCPUMakeOpClassSet(['IntDiv'])
     issueLat = 9
     opLat = 9
 
-class MinorDefaultFloatSimdFU(MinorFU):
-    opClasses = minorMakeOpClassSet([
+class MthreadsCPUDefaultFloatSimdFU(MthreadsCPUFU):
+    opClasses = MthreadsCPUMakeOpClassSet([
         'FloatAdd', 'FloatCmp', 'FloatCvt', 'FloatMisc', 'FloatMult',
         'FloatMultAcc', 'FloatDiv', 'FloatSqrt',
         'SimdAdd', 'SimdAddAcc', 'SimdAlu', 'SimdCmp', 'SimdCvt',
@@ -151,28 +152,28 @@ class MinorDefaultFloatSimdFU(MinorFU):
         'SimdSqrt', 'SimdFloatAdd', 'SimdFloatAlu', 'SimdFloatCmp',
         'SimdFloatCvt', 'SimdFloatDiv', 'SimdFloatMisc', 'SimdFloatMult',
         'SimdFloatMultAcc', 'SimdFloatSqrt'])
-    timings = [MinorFUTiming(description='FloatSimd',
+    timings = [MthreadsCPUFUTiming(description='FloatSimd',
         srcRegsRelativeLats=[2])]
     opLat = 6
 
-class MinorDefaultMemFU(MinorFU):
-    opClasses = minorMakeOpClassSet(['MemRead', 'MemWrite', 'FloatMemRead',
+class MthreadsCPUDefaultMemFU(MthreadsCPUFU):
+    opClasses = MthreadsCPUMakeOpClassSet(['MemRead', 'MemWrite', 'FloatMemRead',
                                      'FloatMemWrite'])
-    timings = [MinorFUTiming(description='Mem',
+    timings = [MthreadsCPUFUTiming(description='Mem',
         srcRegsRelativeLats=[1], extraAssumedLat=2)]
     opLat = 1
 
-class MinorDefaultMiscFU(MinorFU):
-    opClasses = minorMakeOpClassSet(['IprAccess', 'InstPrefetch'])
+class MthreadsCPUDefaultMiscFU(MthreadsCPUFU):
+    opClasses = MthreadsCPUMakeOpClassSet(['IprAccess', 'InstPrefetch'])
     opLat = 1
 
-class MinorDefaultFUPool(MinorFUPool):
-    funcUnits = [MinorDefaultIntFU(), MinorDefaultIntFU(),
-        MinorDefaultIntMulFU(), MinorDefaultIntDivFU(),
-        MinorDefaultFloatSimdFU(), MinorDefaultMemFU(),
-        MinorDefaultMiscFU()]
+class MthreadsCPUDefaultFUPool(MthreadsCPUFUPool):
+    funcUnits = [MthreadsCPUDefaultIntFU(), MthreadsCPUDefaultIntFU(),
+        MthreadsCPUDefaultIntMulFU(), MthreadsCPUDefaultIntDivFU(),
+        MthreadsCPUDefaultFloatSimdFU(), MthreadsCPUDefaultMemFU(),
+        MthreadsCPUDefaultMiscFU()]
 
-class ThreadPolicy(Enum): vals = ['SingleThreaded', 'RoundRobin', 'Random']
+#class ThreadPolicy(Enum): vals = ['SingleThreaded', 'RoundRobin', 'Random'] Check why not passing compile
 
 class MthreadsCPU(MinorCPU):
     type = 'MthreadsCPU'

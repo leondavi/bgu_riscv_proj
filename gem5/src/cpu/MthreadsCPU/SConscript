@@ -45,7 +45,7 @@ Import('*')
 
 if 'MthreadsCPU' in env['CPU_MODELS']:
     SimObject('MthreadsCPU.py')
-    TraceFlag('MthreadsCPU')
+    #TraceFlag('MthreadsCPU')
     Source('activity.cc')
     Source('cpu.cc')
     Source('decode.cc')
