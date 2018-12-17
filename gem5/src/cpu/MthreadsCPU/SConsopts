@@ -1,7 +1,7 @@
 # -*- mode:python -*-
 
-# Copyright (c) 2013-2014 ARM Limited
-# All rights reserved
+# Copyright (c) 2012-2014 ARM Limited
+# All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
 # not be construed as granting a license to any other intellectual
@@ -11,9 +11,6 @@
 # terms below provided that you ensure that this notice is replicated
 # unmodified and in its entirety in all distributions of the software,
 # modified or unmodified, in source code or in binary form.
-#
-# Copyright (c) 2006 The Regents of The University of Michigan
-# All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -38,36 +35,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Authors: Nathan Binkert
-#          Andrew Bardsley
+# Authors: Andrew Bardsley
 
 Import('*')
 
-if 'MthreadsCPU' in env['CPU_MODELS']:
-    SimObject('MthreadsCPU.py')
-    TraceFlag('MthreadsCPU')
-    Source('activity.cc')
-    Source('cpu.cc')
-    Source('decode.cc')
-    Source('dyn_inst.cc')
-    Source('execute.cc')
-    Source('fetch1.cc')
-    Source('fetch2.cc')
-    Source('func_unit.cc')
-    Source('lsq.cc')
-    Source('pipe_data.cc')
-    Source('pipeline.cc')
-    Source('scoreboard.cc')
-    Source('stats.cc')
+CpuModel('MthreadsCPU', default=True)
 
-   # DebugFlag('MinorCPU', 'Minor CPU-level events')
-   # DebugFlag('MinorExecute', 'Minor Execute stage')
-   # DebugFlag('MinorInterrupt', 'Minor interrupt handling')
-   # DebugFlag('MinorMem', 'Minor memory accesses')
-   # DebugFlag('MinorScoreboard', 'Minor Execute register scoreboard')
-   # DebugFlag('MinorTrace', 'MinorTrace cycle-by-cycle state trace')
-   # DebugFlag('MinorTiming', 'Extra timing for instructions')
-
-   # CompoundFlag('Minor', [
-   #     'MinorCPU', 'MinorExecute', 'MinorInterrupt', 'MinorMem',
-   #     'MinorScoreboard'])
