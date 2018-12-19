@@ -27,3 +27,36 @@ riscv architecture for gem5
 13. Go to Run Settings (also located in Projects left side pane) 
 14. choose /gem5/build/RISCV/gem5.opt as executable 
 15. TODO complete those instructions (command line arguments should be added) 
+
+## IDE - Visual Studio Code
+
+1. Add gem5 dir as workspace directory. 
+2. Open command search window ```CTRL+SHIFT+P```
+3. Select the Tasks:Conifgure Task command and click on Create tasks.json from templates. 
+4. Select others to create a task that runs an external command. 
+5. Paste the following json instead: 
+```
+{
+    
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build hello world",
+            "type": "shell",
+            "command": "scons build/RISCV/gem5.opt -j4",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "args": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+
+}
+```
+
+
+
