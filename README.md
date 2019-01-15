@@ -2,7 +2,7 @@
 riscv architecture for gem5
 
 ## Requirements 
-1. Clone this repository (Prefered path "<user_home_dir>/workspace").
+1. Clone this repository (Prefered path "<user_home_dir>/workspace")..
 2. gem5 required dependencies: 
 ```sudo apt install build-essential git m4 scons zlib1g zlib1g-dev libprotobuf-dev protobuf-compiler libprotoc-dev libgoogle-perftools-dev python-dev python```
 3. Install scons: ```sudo apt-get install scons```
