@@ -50,6 +50,8 @@
 #include "debug/MinorTrace.hh"
 #include "debug/Quiesce.hh"
 
+#include "debug/MinorMT.hh"
+
 namespace Minor
 {
 
@@ -103,6 +105,14 @@ Pipeline::Pipeline(MinorCPU &cpu_, MinorCPUParams &params) :
         fatal("%s: executeBranchDelay must be >= 1\n",
             cpu.name(), params.executeBranchDelay);
     }
+
+    DPRINTFR(MinorMT,"\nPipeline Params\n");
+    DPRINTFR(MinorMT,"Pipeline: fetch1ToFetch2ForwardDelay %d\n",params.fetch1ToFetch2ForwardDelay);
+    DPRINTFR(MinorMT,"Pipeline: fetch2ToDecodeForwardDelay %d\n",params.fetch2ToDecodeForwardDelay);
+    DPRINTFR(MinorMT,"Pipeline: decodeToExecuteForwardDelay %d\n",params.decodeToExecuteForwardDelay);
+    DPRINTFR(MinorMT,"Pipeline: executeBranchDelay %d\n",params.executeBranchDelay);
+
+
 }
 
 void

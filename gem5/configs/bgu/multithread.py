@@ -90,7 +90,43 @@ def buildCPU(options,system):
     system.cpu.createThreads()
     
     system.cpu.createInterruptController()
-    
+
+    # Pipeline params - cann't be set as 0, it makes issues
+    system.cpu.fetch1ToFetch2ForwardDelay = 1
+    system.cpu.fetch2ToDecodeForwardDelay = 1 
+    system.cpu.decodeToExecuteForwardDelay = 1
+    system.cpu.executeBranchDelay = 1
+
+    # Fetch 1 params
+    system.cpu.fetch1LineSnapWidth = 64
+    system.cpu.fetch1LineWidth = 64
+    system.cpu.fetch1FetchLimit = 1
+
+    # Fetch 2 params
+    system.cpu.decodeInputWidth = 2  
+    system.cpu.fetch2CycleInput = 1
+    system.cpu.fetch2InputBufferSize = 2 # can be changed to 1, since no delay expected here.
+
+    # Decode params
+    system.cpu.executeInputWidth = 2
+    system.cpu.decodeCycleInput = 1    
+    system.cpu.decodeInputBufferSize = 3
+
+    # Exexute
+    system.cpu.executeIssueLimit = 2
+    system.cpu.executeMemoryIssueLimit = 1
+    system.cpu.executeCommitLimit = 2
+    system.cpu.executeMemoryCommitLimit = 1
+    system.cpu.executeCycleInput = 1
+#    system.cpu.executeFuncUnits 0x55f45d6ea8c0
+    system.cpu.executeAllowEarlyMemoryIssue = 1
+    system.cpu.executeMaxAccessesInMemory = 2
+    system.cpu.executeMemoryWidth = 0
+    system.cpu.executeLSQRequestsQueueSize = 1
+    system.cpu.executeLSQTransfersQueueSize = 2
+    system.cpu.executeLSQStoreBufferSize = 5
+    system.cpu.executeLSQMaxStoreBufferStoresPerCycle = 2
+
     binary = 'tests/test-progs/hello/bin/riscv/linux/hello' # TODO - make it param
     
     for i in range(0,options.num_threads):

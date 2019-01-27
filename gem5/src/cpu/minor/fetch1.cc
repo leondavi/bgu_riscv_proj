@@ -49,6 +49,8 @@
 #include "debug/Fetch.hh"
 #include "debug/MinorTrace.hh"
 
+#include "debug/MinorMT.hh"
+
 namespace Minor
 {
 
@@ -110,6 +112,12 @@ Fetch1::Fetch1(const std::string &name_,
         fatal("%s: fetch1FetchLimit must be >= 1 (%d)\n", name_,
             fetchLimit);
     }
+
+    DPRINTFR(MinorMT,"\nFetch 1 Params\n");
+    DPRINTFR(MinorMT,"Fetch 1: fetch1LineSnapWidth %d\n",params.fetch1LineSnapWidth);
+    DPRINTFR(MinorMT,"Fetch 1: fetch1LineWidth %d\n",params.fetch1LineWidth);
+    DPRINTFR(MinorMT,"Fetch 1: fetch1FetchLimit %d\n",params.fetch1FetchLimit);
+
 }
 
 inline ThreadID
