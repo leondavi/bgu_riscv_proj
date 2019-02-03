@@ -284,6 +284,9 @@ Decode::evaluate()
         cpu.activityRecorder->activity();
         insts_out.threadId = tid;
         nextStageReserve[tid].reserve();
+        deInfo.vld = true;
+        deInfo.id = tid;
+        deInfo.pc = insts_out.insts[0]->pc;
     }
 
     /* If we still have input to process and somewhere to put it,

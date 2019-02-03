@@ -578,7 +578,12 @@ Fetch1::processResponse(Fetch1::FetchRequestPtr response,
         line.adoptPacketData(packet);
         /* Null the response's packet to prevent the response from trying to
          *  deallocate the packet */
+        fetch1Info.size = response->packet->getSize();
         response->packet = NULL;
+        fetch1Info.rsp = true;
+        fetch1Info.rspTid = response->id.threadId;
+        fetch1Info.rspPc = response->pc;
+//        fetch1Info.size = response->packet->getSize();
     }
 }
 

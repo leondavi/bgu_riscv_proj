@@ -156,6 +156,14 @@ class Decode : public Named
      *  into Decode and on to Execute which is responsible for
      *  actually killing instructions */
     bool isDrained();
+
+    struct DecodeTraceInfo {
+    	bool vld = false;
+    	ThreadID id;
+    	TheISA::PCState pc;
+    };
+
+   DecodeTraceInfo deInfo;
 };
 
 }

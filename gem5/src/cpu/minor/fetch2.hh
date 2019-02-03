@@ -219,6 +219,14 @@ class Fetch2 : public Named
      *  Execute halting Fetch1 causing Fetch2 to naturally drain.
      *  Branch predictions are ignored by Fetch1 during halt */
     bool isDrained();
+
+    struct Fetch2TraceInfo {
+    	bool vld = false;
+    	ThreadID id;
+    	TheISA::PCState pc;
+    };
+    Fetch2TraceInfo fetch2Info;
+
 };
 
 }

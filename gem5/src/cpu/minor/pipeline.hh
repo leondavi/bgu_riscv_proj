@@ -56,6 +56,9 @@
 #include "params/MinorCPU.hh"
 #include "sim/ticked_object.hh"
 
+#include <sstream>
+#include <iostream>
+
 namespace Minor
 {
 

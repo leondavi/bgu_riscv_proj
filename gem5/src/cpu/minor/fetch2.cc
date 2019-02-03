@@ -554,6 +554,9 @@ Fetch2::evaluate()
         cpu.activityRecorder->activity();
         insts_out.threadId = tid;
         nextStageReserve[tid].reserve();
+        fetch2Info.vld = true;
+        fetch2Info.id = tid;
+        fetch2Info.pc = insts_out.insts[0]->pc;
     }
 
     /* If we still have input to process and somewhere to put it,

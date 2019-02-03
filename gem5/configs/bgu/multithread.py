@@ -98,14 +98,14 @@ def buildCPU(options,system):
     system.cpu.executeBranchDelay = 1
 
     # Fetch 1 params
-    system.cpu.fetch1LineSnapWidth = 64
-    system.cpu.fetch1LineWidth = 64
+    system.cpu.fetch1LineSnapWidth = 8
+    system.cpu.fetch1LineWidth = 8
     system.cpu.fetch1FetchLimit = 1
 
     # Fetch 2 params
     system.cpu.decodeInputWidth = 2  
     system.cpu.fetch2CycleInput = 1
-    system.cpu.fetch2InputBufferSize = 2 # can be changed to 1, since no delay expected here.
+    system.cpu.fetch2InputBufferSize = 1 # can be changed to 1, since no delay expected here.
 
     # Decode params
     system.cpu.executeInputWidth = 2
@@ -128,7 +128,9 @@ def buildCPU(options,system):
     system.cpu.executeLSQMaxStoreBufferStoresPerCycle = 2
 
 #    binary = 'tests/test-progs/hello/bin/riscv/linux/hello' # TODO - make it param
-    binary = '/home/yossi/Desktop/test/sum.o'
+#    binary = '/home/yossi/Desktop/test/sum.o'
+    binary = '/home/yossi/projects/cpp_test/sum.o'
+#    binary = '/home/yossi/projects/cpp_test/hello.o'
     for i in range(0,options.num_threads):
         process = Process()
         process.cmd = [binary]

@@ -408,11 +408,13 @@ class Fetch1 : public Named
 
     /** BGU state trace info **/
     struct Fetch1TraceInfo {
-    	bool req;
-    	bool rsp;
+    	bool req = false;
+    	bool rsp = false;
     	ThreadID reqTid;
+    	ThreadID rspTid;
     	TheISA::PCState reqPc;
     	TheISA::PCState rspPc;
+    	int size;
     };
 
     Fetch1TraceInfo fetch1Info;
