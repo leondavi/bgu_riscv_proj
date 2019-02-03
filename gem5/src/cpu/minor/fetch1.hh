@@ -405,6 +405,18 @@ class Fetch1 : public Named
     /** Is this stage drained?  For Fetch1, draining is initiated by
      *  Execute signalling a branch with the reason HaltFetch */
     bool isDrained();
+
+    /** BGU state trace info **/
+    struct Fetch1TraceInfo {
+    	bool req;
+    	bool rsp;
+    	ThreadID reqTid;
+    	TheISA::PCState reqPc;
+    	TheISA::PCState rspPc;
+    };
+
+    Fetch1TraceInfo fetch1Info;
+
 };
 
 }

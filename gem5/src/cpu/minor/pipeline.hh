@@ -141,6 +141,16 @@ class Pipeline : public Ticked
 
     /** To give the activity recorder to the CPU */
     MinorActivityRecorder *getActivityRecorder() { return &activityRecorder; }
+
+    struct bguTraceInfo {
+    	TheISA::PCState fetch1ReqPc;
+    	TheISA::PCState fetch1RspPc;
+
+    };
+
+    bguTraceInfo traceInfo;
+
+    void bguTrace();
 };
 
 }

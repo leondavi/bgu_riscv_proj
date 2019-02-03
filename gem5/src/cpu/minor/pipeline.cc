@@ -51,6 +51,7 @@
 #include "debug/Quiesce.hh"
 
 #include "debug/MinorMT.hh"
+#include "debug/BGUTrace.hh"
 
 namespace Minor
 {
@@ -151,6 +152,9 @@ Pipeline::evaluate()
 
     if (DTRACE(MinorTrace))
         minorTrace();
+
+    if (DTRACE(BGUTrace))
+    	bguTrace();
 
     /* Update the time buffers after the stages */
     f1ToF2.evaluate();
@@ -270,5 +274,16 @@ Pipeline::isDrained()
 
     return ret;
 }
+
+void
+Pipeline::bguTrace()
+{
+	if(fetch1.fetch1Info.req)
+	{
+		DPRINTFN("FE1[%0d]: %d\n",fetch1.fetch1Info.reqTid,fetch1.fetch1Info.reqPc);
+		fetch1.fetch1Info.req = false;
+	}
+}
+
 
 }

@@ -50,6 +50,8 @@
 #include "debug/MinorTrace.hh"
 
 #include "debug/MinorMT.hh"
+#include "debug/BGUTrace.hh"
+
 
 namespace Minor
 {
@@ -333,6 +335,9 @@ Fetch1::moveFromRequestsToTransfers(FetchRequestPtr request)
 
     requests.pop();
     transfers.push(request);
+    fetch1Info.req = true;
+    fetch1Info.reqPc = request->pc;
+    fetch1Info.reqTid = request->id.threadId;
 }
 
 bool
