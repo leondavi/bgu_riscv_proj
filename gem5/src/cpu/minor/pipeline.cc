@@ -281,45 +281,63 @@ Pipeline::bguTrace()
 	// Fetch request
 	if(fetch1.fetch1Info.req)
 	{
-		DPRINTFN("FE1[%0d]: %30d ",fetch1.fetch1Info.reqTid,fetch1.fetch1Info.reqPc.instAddr() );
+		DPRINTFN("FE1[%0d]: %10d ",fetch1.fetch1Info.reqTid,fetch1.fetch1Info.reqPc.instAddr() );
 		fetch1.fetch1Info.req = false;
 	}
 	else
 	{
-		DPRINTFN("FE1[X]: %30s ","-");
+		DPRINTFN("FE1[X]: %10s ","-");
 
 	}
+
 	// Fetch Response
 	if(fetch1.fetch1Info.rsp)
 	{
-		DPRINTFN("FE1[%0d]: %30d(%d) ",fetch1.fetch1Info.rspTid,fetch1.fetch1Info.rspPc.instAddr(),fetch1.fetch1Info.size);
+		DPRINTFN("FE1[%0d]: %6d(%2d) ",fetch1.fetch1Info.rspTid,fetch1.fetch1Info.rspPc.instAddr(),fetch1.fetch1Info.size);
 		fetch1.fetch1Info.rsp = false;
 	}
 	else
 	{
-		DPRINTFN("FE1[X]: %30s ","-");
+		DPRINTFN("FE1[X]: %10s ","-");
 	}
 	if(fetch2.fetch2Info.vld)
 	{
-		DPRINTFN("FE2[%0d]: %30d ",fetch2.fetch2Info.id,fetch2.fetch2Info.pc.instAddr());
+		DPRINTFN("FE2[%0d]: %10d ",fetch2.fetch2Info.id,fetch2.fetch2Info.pc.instAddr());
 		fetch2.fetch2Info.vld = false;
 	}
 	else
 	{
-		DPRINTFN("FE2[X]: %30s","-");
+		DPRINTFN("FE2[X]: %10s ","-");
 	}
 
 	if(decode.deInfo.vld)
 	{
-		DPRINTFN("DE[%0d]: %30d ",decode.deInfo.id,decode.deInfo.pc.instAddr());
+		DPRINTFN("DE[%0d]: %10d ",decode.deInfo.id,decode.deInfo.pc.instAddr());
 		decode.deInfo.vld= false;
 	}
 	else
 	{
-		DPRINTFN("DE[X]: %30s","-");
+		DPRINTFN("DE[X]: %10s ","-");
 	}
 
-	DPRINTFN("\n");
+	if(execute.exInfo.issueVld)
+	{
+		DPRINTFN("EX[%0d]: %10d ",execute.exInfo.issueId,0);
+		execute.exInfo.issueVld= false;
+	}
+	else
+	{
+		DPRINTFN("EX[X]: %10s ","-");
+	}
+	if(execute.exInfo.commitVld)
+	{
+		DPRINTFN("EX[%0d]: %10d \n",execute.exInfo.commitId,0);
+		execute.exInfo.commitVld= false;
+	}
+	else
+	{
+		DPRINTFN("EX[X]: %10s \n","-");
+	}
 
 }
 

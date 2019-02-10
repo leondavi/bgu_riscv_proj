@@ -350,6 +350,19 @@ class Execute : public Named
     /** Like the drain interface on SimObject */
     unsigned int drain();
     void drainResume();
+
+    struct ExecuteTraceInfo {
+    	bool issueVld = false;
+    	ThreadID issueId;
+    	TheISA::PCState issuePc;
+
+    	bool commitVld = false;
+    	ThreadID commitId;
+    	TheISA::PCState commitPc;
+    };
+
+    ExecuteTraceInfo exInfo;
+
 };
 
 }

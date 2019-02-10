@@ -44,6 +44,7 @@ import sys
 import m5
 # import all of the SimObjects
 from m5.objects import *
+from caches import *
 
 ###############################################################################
 ###############################################################################
@@ -98,8 +99,8 @@ def buildCPU(options,system):
     system.cpu.executeBranchDelay = 1
 
     # Fetch 1 params
-    system.cpu.fetch1LineSnapWidth = 8
-    system.cpu.fetch1LineWidth = 8
+    system.cpu.fetch1LineSnapWidth = 64
+    system.cpu.fetch1LineWidth = 64
     system.cpu.fetch1FetchLimit = 1
 
     # Fetch 2 params
@@ -145,9 +146,19 @@ def buildMem(options,system):
     # Create a memory bus, a system crossbar, in this case
     system.membus = SystemXBar()
     
-    # Hook the CPU ports up to the membus
-    system.cpu.icache_port = system.membus.slave
-    system.cpu.dcache_port = system.membus.slave
+    if (options.cache_enable):
+        system.cpu.icache = L1ICache()
+        system.cpu.dcache = L1DCache()
+        system.cpu.icache.connectCPU(system.cpu)
+        system.cpu.dcache.connectCPU(system.cpu)
+
+        system.cpu.icache.connectBus(system.membus) #.slave)
+        system.cpu.dcache.connectBus(system.membus) #.slave)
+    else :
+        # Hook the CPU ports up to the membus
+        system.cpu.icache_port = system.membus.slave
+        system.cpu.dcache_port = system.membus.slave
+    
     # create the interrupt controller for the CPU and connect to the membus
     
     # Create a DDR3 memory controller and connect it to the membus
@@ -189,7 +200,13 @@ def getOptions():
                       default="512MB",
                       help="Specify the physical memory size (single memory)")
     #CPU
-    parser.add_option("-t", "--num-threads", type="int", default=1)
+    parser.add_option("-t", "--num-threads", type="int", default=1,
+                     help = "Number of threads that running on the CPU")
+    
+
+    # Cachce
+    parser.add_option("-c", "--cache-enable", type="int",default=1,
+                     help = "NOT supprted - by deault connected to cache")
 
     (options, args) = parser.parse_args()    
     return options
