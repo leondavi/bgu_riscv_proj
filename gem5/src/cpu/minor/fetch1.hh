@@ -415,6 +415,20 @@ class Fetch1 : public Named
     	TheISA::PCState reqPc;
     	TheISA::PCState rspPc;
     	int size;
+
+    	std::string to_str(bool request = true) //choose request or response
+		{
+    		std::ostringstream stream;
+    		if(request)
+    		{
+    			stream<<"reqTid "<<this->reqTid<<" reqPC "<<this->reqPc;
+    		}
+    		else
+    		{
+    			stream<<"rspTid "<<rspTid<<" rspPC "<<rspPc;
+    		}
+    		return stream.str();
+		}
     };
 
     Fetch1TraceInfo fetch1Info;

@@ -59,6 +59,8 @@
 #include <sstream>
 #include <iostream>
 
+#include "minorMTtracer.h"
+
 namespace Minor
 {
 
