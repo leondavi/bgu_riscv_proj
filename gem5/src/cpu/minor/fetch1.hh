@@ -52,6 +52,7 @@
 #include "cpu/minor/pipe_data.hh"
 #include "cpu/base.hh"
 #include "mem/packet.hh"
+#include "BGUMTtracer.h"
 
 namespace Minor
 {
@@ -407,14 +408,36 @@ class Fetch1 : public Named
     bool isDrained();
 
     /** BGU state trace info **/
-    struct Fetch1TraceInfo {
-    	bool req = false;
-    	bool rsp = false;
-    	ThreadID reqTid;
-    	ThreadID rspTid;
-    	TheISA::PCState reqPc;
-    	TheISA::PCState rspPc;
-    	int size;
+    class Fetch1TraceInfo : bgu::BguInfo
+    {
+    public:
+    	bool req;
+		bool rsp;
+		ThreadID reqTid;
+		ThreadID rspTid;
+		TheISA::PCState reqPc;
+		TheISA::PCState rspPc;
+		int size;
+
+    	Fetch1TraceInfo() : bgu::BguInfo(bgu::pipe_stage::FE1)
+    	{
+    		req = false;
+    		rsp = false;
+    		size = 0;
+
+    	}
+
+    	~Fetch1TraceInfo()
+    	{
+
+    	}
+
+
+    	inline std::vector<bgu::var_attr_t> get_vars()
+		{
+    		std::vector<bgu::var_attr_t> A;
+    		return A;
+		}
 
     	std::string to_str(bool request = true) //choose request or response
 		{

@@ -59,7 +59,7 @@ if 'MinorCPU' in env['CPU_MODELS']:
     Source('pipeline.cc')
     Source('scoreboard.cc')
     Source('stats.cc')
-    Source('minorMTtracer.cpp')
+    Source('BGUMTtracer.cpp')
     Source('fort.c')
 
     DebugFlag('MinorCPU', 'Minor CPU-level events')

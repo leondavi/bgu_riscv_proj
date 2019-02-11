@@ -59,7 +59,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "minorMTtracer.h"
+#include "BGUMTtracer.h"
 
 namespace Minor
 {
@@ -135,6 +135,8 @@ class Pipeline : public Ticked
 
     /** Stats registering */
     void regStats();
+
+    bgu::BGUMtTracer tracer;
 
     /** Functions below here are BaseCPU operations passed on to pipeline
      *  stages */
