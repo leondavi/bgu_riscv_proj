@@ -43,12 +43,13 @@ void BGUMtTracer::clear_line()
 	}
 }
 
-void BGUMtTracer::update_stage(BguInfo &bgu_info)
+void BGUMtTracer::update_stage(BguInfo *bgu_info)
 {
-	this->pipe_trace_line[bgu_info.get_stage()] = "";
-	for(var_attr_t &var : bgu_info.get_vars())
+	this->pipe_trace_line[bgu_info->get_stage()] = "";
+	std::vector<var_attr_t> vars = bgu_info->get_vars();
+	for(var_attr_t &var : vars)
 	{
-		this->pipe_trace_line[bgu_info.get_stage()] = this->pipe_trace_line[bgu_info.get_stage()] + var.first+"="+var.second+" ";
+		this->pipe_trace_line[bgu_info->get_stage()] = this->pipe_trace_line[bgu_info->get_stage()] + var.first+"="+var.second+" ";
 	}
 }
 

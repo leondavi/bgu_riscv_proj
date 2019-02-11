@@ -17,6 +17,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdio>
+#include <typeinfo>
 
 
 
@@ -24,10 +25,19 @@
 #define TRACE_WORKSPACE_DIR "/home/david/workspace/bgu_riscv_proj"
 #define FILE_NAME "output"
 
+#define STRING_VAR(name) var_to_string((char*) #name)
+
+inline std::string var_to_string(char* name)
+{
+	std::stringstream ss;
+	ss<<name;
+    return ss.str();
+}
+
 namespace bgu
 {
 
-typedef enum pipe_stage {FE1,FE2,DE,EX} pipe_stage;
+typedef enum pipe_stage_t {FE1,FE2,DE,EX} pipe_stage;
 
 //--------------------------------//
 typedef std::pair <std::string,std::string> var_attr_t;//first is varname second is str(var)
@@ -37,11 +47,8 @@ class BguInfo
 protected:
 	pipe_stage stage;
 public:
-	BguInfo(pipe_stage stage)
-	{
-			this->stage = stage;
-	}
-	virtual ~BguInfo();
+	BguInfo(pipe_stage stage) {this->stage = stage;}
+	virtual ~BguInfo() {}
 	/**
 	 * returns strings of headers and params of BguInfo class
 	 */
@@ -69,7 +76,7 @@ public:
 	BGUMtTracer(bool generate_table = false);
 	~BGUMtTracer();
 
-	void update_stage(BguInfo &bgu_info);
+	void update_stage(BguInfo* bgu_info);
 	void update_pipe_tick();
 
 

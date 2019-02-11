@@ -278,6 +278,9 @@ Pipeline::isDrained()
 void
 Pipeline::bguTrace()
 {
+
+	bgu_pipeline_tracer.update_stage(&fetch1.fetch1Info);
+
 	// Fetch request
 	if(fetch1.fetch1Info.req)
 	{

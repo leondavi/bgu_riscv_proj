@@ -136,7 +136,7 @@ class Pipeline : public Ticked
     /** Stats registering */
     void regStats();
 
-    bgu::BGUMtTracer tracer;
+    bgu::BGUMtTracer bgu_pipeline_tracer;
 
     /** Functions below here are BaseCPU operations passed on to pipeline
      *  stages */

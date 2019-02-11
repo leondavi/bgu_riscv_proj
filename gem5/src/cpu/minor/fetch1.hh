@@ -408,7 +408,7 @@ class Fetch1 : public Named
     bool isDrained();
 
     /** BGU state trace info **/
-    class Fetch1TraceInfo : bgu::BguInfo
+    class Fetch1TraceInfo : public bgu::BguInfo
     {
     public:
     	bool req;
@@ -419,12 +419,11 @@ class Fetch1 : public Named
 		TheISA::PCState rspPc;
 		int size;
 
-    	Fetch1TraceInfo() : bgu::BguInfo(bgu::pipe_stage::FE1)
+    	Fetch1TraceInfo() : bgu::BguInfo(bgu::FE1)
     	{
     		req = false;
     		rsp = false;
     		size = 0;
-
     	}
 
     	~Fetch1TraceInfo()
@@ -435,22 +434,36 @@ class Fetch1 : public Named
 
     	inline std::vector<bgu::var_attr_t> get_vars()
 		{
-    		std::vector<bgu::var_attr_t> A;
-    		return A;
-		}
+    		bgu::var_attr_t tmp_attr;
+    		std::vector<bgu::var_attr_t> res;
 
-    	std::string to_str(bool request = true) //choose request or response
-		{
-    		std::ostringstream stream;
-    		if(request)
-    		{
-    			stream<<"reqTid "<<this->reqTid<<" reqPC "<<this->reqPc;
-    		}
+    		if(this->req)
+			{
+    			//reqTid create attributes
+    			tmp_attr.first = STRING_VAR(reqTid);
+    			tmp_attr.second = std::to_string(reqTid);
+    			res.push_back(tmp_attr);
+    			//reqPc create attributes
+    			tmp_attr.first = STRING_VAR(reqPc);
+				tmp_attr.second = std::to_string(reqPc.instAddr());
+				res.push_back(tmp_attr);
+			}
     		else
     		{
-    			stream<<"rspTid "<<rspTid<<" rspPC "<<rspPc;
+    			//rspTid create attributes
+				tmp_attr.first = STRING_VAR(rspTid);
+				tmp_attr.second = std::to_string(rspTid);
+				res.push_back(tmp_attr);
+				//rspPc create attributes
+				tmp_attr.first = STRING_VAR(rspPc);
+				tmp_attr.second = std::to_string(rspPc.instAddr());
+				res.push_back(tmp_attr);
     		}
-    		return stream.str();
+
+    		tmp_attr.first = STRING_VAR(size);
+			tmp_attr.second = std::to_string(size);
+			res.push_back(tmp_attr);
+    		return res;
 		}
     };
 
