@@ -26,6 +26,8 @@ BGUMtTracer::BGUMtTracer(bool generate_table)
 
 	logfile.open(path_log.str());
 	tablefile.open(path_table.str());
+
+	clear_line();
 }
 
 BGUMtTracer::~BGUMtTracer()
@@ -39,7 +41,7 @@ void BGUMtTracer::clear_line()
 {
 	for(auto &element: this->pipe_trace_line)
 	{
-		element = "x";
+		element = X_ATTRIBUTE;
 	}
 }
 
@@ -51,20 +53,26 @@ void BGUMtTracer::update_stage(BguInfo *bgu_info)
 	{
 		this->pipe_trace_line[bgu_info->get_stage()] = this->pipe_trace_line[bgu_info->get_stage()] + var.first+"="+var.second+" ";
 	}
+	if(this->pipe_trace_line[bgu_info->get_stage()].empty())
+	{
+		this->pipe_trace_line[bgu_info->get_stage()] = X_ATTRIBUTE;
+	}
 }
 
-void BGUMtTracer::update_pipe_tick()
+void BGUMtTracer::end_pipe_tick()
 {
 	std::stringstream pipe_tick_line;
 	std::string tick_str = std::to_string(curTick());
-	pipe_tick_line<<tick_str<<" "<<std::endl;
+	pipe_tick_line<<tick_str<<" ";
 	for(int l=0; l<pipe_trace_line.size(); l++)
 	{
 		pipe_tick_line<<pipe_trace_line[l];
 	}
 	pipe_tick_line<<std::endl;
 
-	logfile<<pipe_tick_line.str();
+	std::string line = pipe_tick_line.str();
+	logfile<<line;
+	std::cout<<line;
 
 	clear_line();
 }

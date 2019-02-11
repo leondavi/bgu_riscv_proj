@@ -324,6 +324,8 @@ Pipeline::bguTrace()
 
 	DPRINTFN("\n");
 
+	bgu_pipeline_tracer.end_pipe_tick();
+
 }
 
 

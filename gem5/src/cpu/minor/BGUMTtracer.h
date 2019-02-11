@@ -24,6 +24,7 @@
 #define TOTAL_NUM_OF_PIPE_STAGES 4
 #define TRACE_WORKSPACE_DIR "/home/david/workspace/bgu_riscv_proj"
 #define FILE_NAME "output"
+#define X_ATTRIBUTE " x "
 
 #define STRING_VAR(name) var_to_string((char*) #name)
 
@@ -66,6 +67,8 @@ private:
 	std::fstream logfile;
 	std::fstream tablefile;
 
+	fort::table summary_table;
+
 	bool first_time_print_header;
 	bool generate_table;
 
@@ -77,7 +80,7 @@ public:
 	~BGUMtTracer();
 
 	void update_stage(BguInfo* bgu_info);
-	void update_pipe_tick();
+	void end_pipe_tick();
 
 
 };
