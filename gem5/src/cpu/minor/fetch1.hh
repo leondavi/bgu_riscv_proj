@@ -426,11 +426,13 @@ class Fetch1 : public Named
     		size = 0;
     	}
 
-    	~Fetch1TraceInfo()
+    	~Fetch1TraceInfo()//%TODO remove
     	{
 
     	}
 
+    	inline int req_ended() { this->req = false; return 1; }
+    	inline int rsp_ended() { this->rsp = false; return 1; }
 
     	inline std::vector<bgu::var_attr_t> get_vars()
 		{
