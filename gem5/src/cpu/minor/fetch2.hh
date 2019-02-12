@@ -235,7 +235,7 @@ class Fetch2 : public Named
 		ThreadID tid;
 		TheISA::PCState pc;
 
-		Fetch2TraceInfo() : bgu::BguInfo(bgu::FE1)
+		Fetch2TraceInfo() : bgu::BguInfo(bgu::FE2)
     	{
     		vld = false;
     	}
