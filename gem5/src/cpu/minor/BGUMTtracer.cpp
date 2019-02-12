@@ -15,7 +15,8 @@ BGUMtTracer::BGUMtTracer(bool generate_table)
 	// TODO Auto-generated constructor stub
 	this->first_time_print_header = false;
 	this->generate_table = generate_table;
-	pipe_trace_line.resize(TOTAL_NUM_OF_PIPE_STAGES);
+	this->pipe_trace_line.resize(TOTAL_NUM_OF_PIPE_STAGES);
+	this->pipe_stages_str_vec = PIPE_STAGES_VEC;
 
 	std::stringstream path_log,path_table;
 	path_log<<TRACE_WORKSPACE_DIR<<"/"<<FILE_NAME<<"_log.txt";
@@ -26,12 +27,17 @@ BGUMtTracer::BGUMtTracer(bool generate_table)
 
 	logfile.open(path_log.str());
 	tablefile.open(path_table.str());
-
+	if(generate_table)
+	{
+		generate_table_headers();
+	}
 	clear_line();
 }
 
 BGUMtTracer::~BGUMtTracer()
 {
+	tablefile<<summary_table.to_string()<<std::endl;
+
 	logfile.close();
 	tablefile.close();
 	// TODO Auto-generated destructor stub
@@ -59,6 +65,28 @@ void BGUMtTracer::update_stage(BguInfo *bgu_info)
 	}
 }
 
+void BGUMtTracer::generate_table_headers()
+{
+	summary_table << fort::header;
+	summary_table[summary_table_headers_row][simtime_col] = "simtime";
+
+	for(int col = simtime_col+1,vec_idx=0; col < this->pipe_stages_str_vec.size(); vec_idx++,col++)
+	{
+		summary_table[summary_table_headers_row][col] = pipe_stages_str_vec[vec_idx];
+	}
+	summary_table<<fort::endr;
+}
+
+void BGUMtTracer::update_row_in_table(std::string sim_time,std::vector <std::string> &pipe_trace_line)
+{
+	summary_table<<sim_time;
+	for(auto &cur_string : pipe_trace_line)
+	{
+		summary_table<<cur_string;
+	}
+	summary_table<<fort::endr;
+}
+
 void BGUMtTracer::end_pipe_tick()
 {
 	std::stringstream pipe_tick_line;
@@ -73,6 +101,13 @@ void BGUMtTracer::end_pipe_tick()
 	std::string line = pipe_tick_line.str();
 	logfile<<line;
 	std::cout<<line;
+
+	//----------- table update --------//
+	if(generate_table)
+	{
+		update_row_in_table(tick_str, pipe_trace_line);
+		std::cout<<summary_table.to_string()<<std::endl<<std::endl;
+	}
 
 	clear_line();
 }
