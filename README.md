@@ -10,7 +10,7 @@ riscv architecture for gem5
 5. Build [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain).
    Choose Installation (Newlib), in order to support the embedded riscv gem5 machine. 
    
-## ODE Eclipse 
+## IDE Eclipse 
 1. Install eclipse throguh Ubuntu Software or apt-get. 
 2. Open eclipse and go to help->install new software
 3. Choose in work with tab one of eclipse distribution and search for c++.
