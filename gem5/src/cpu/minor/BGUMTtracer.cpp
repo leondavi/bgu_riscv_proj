@@ -106,7 +106,7 @@ void BGUMtTracer::end_pipe_tick()
 	if(generate_table)
 	{
 		update_row_in_table(tick_str, pipe_trace_line);
-		std::cout<<summary_table.to_string()<<std::endl<<std::endl;
+		//std::cout<<summary_table.to_string()<<std::endl<<std::endl;
 	}
 
 	clear_line();
