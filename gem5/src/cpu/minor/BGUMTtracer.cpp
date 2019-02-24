@@ -25,8 +25,8 @@ BGUMtTracer::BGUMtTracer(bool generate_table)
 	std::remove(path_log.str().c_str());
 	std::remove(path_table.str().c_str());
 
-	logfile.open(path_log.str());
-	tablefile.open(path_table.str());
+	logfile.open(path_log.str(),std::ofstream::out | std::ofstream::app);
+	tablefile.open(path_table.str(),std::ofstream::out | std::ofstream::app);
 	if(generate_table)
 	{
 		generate_table_headers();
