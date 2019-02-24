@@ -62,6 +62,9 @@ public:
 
 
 //--------------------------------//
+/**
+ * Singleton class
+ */
 class BGUMtTracer {
 private:
 	std::vector<std::string> pipe_trace_line;
@@ -70,6 +73,7 @@ private:
 
 	std::fstream logfile;
 	std::fstream tablefile;
+	std::string diff_str;
 
 	const int summary_table_headers_row = 0;
 	const int simtime_col = 0;
@@ -81,19 +85,34 @@ private:
 	void clear_line();
 	void generate_table_headers();
 
+	static BGUMtTracer *inst_;
+
+	BGUMtTracer();
+
+
 public:
 
-	BGUMtTracer(bool generate_table = true);
+	void init(bool generate_table = true);
+	BGUMtTracer* get_instance()
+	{
+		if(this->inst_ == NULL)
+		{
+			this->inst_ = new BGUMtTracer();
+		}
+		return(inst_);
+	}
 	~BGUMtTracer();
 
 
 	void update_stage(BguInfo* bgu_info);
 	void update_row_in_table(std::string sim_time,std::vector <std::string> &pipe_trace_line);
 	void end_pipe_tick();
+	void save_table_to_file();
 
 
 };
 //--------------------------------//
+
 
 }//end of namespace
 

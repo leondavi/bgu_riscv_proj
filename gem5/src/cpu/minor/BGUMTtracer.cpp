@@ -9,12 +9,13 @@
 
 namespace bgu
 {
+BGUMtTracer *BGUMtTracer::inst_ = 0; //Singlton pointer definition
 
-BGUMtTracer::BGUMtTracer(bool generate_table)
+BGUMtTracer::BGUMtTracer()
 {
 	// TODO Auto-generated constructor stub
+	this->diff_str = "";
 	this->first_time_print_header = false;
-	this->generate_table = generate_table;
 	this->pipe_trace_line.resize(TOTAL_NUM_OF_PIPE_STAGES);
 	this->pipe_stages_str_vec = PIPE_STAGES_VEC;
 
@@ -34,13 +35,26 @@ BGUMtTracer::BGUMtTracer(bool generate_table)
 	clear_line();
 }
 
+void BGUMtTracer::init(bool generate_table)
+{
+	this->generate_table = generate_table;
+}
+
 BGUMtTracer::~BGUMtTracer()
 {
-	tablefile<<summary_table.to_string()<<std::endl;
+	std::cout<<"Destructor called ******";
+	//tablefile<<summary_table.to_string()<<std::endl;
 
+//	logfile.close();
+//	tablefile.close();
+	// TODO Auto-generated destructor stub
+}
+
+void BGUMtTracer::save_table_to_file()
+{
+	tablefile<<summary_table.to_string()<<std::endl;
 	logfile.close();
 	tablefile.close();
-	// TODO Auto-generated destructor stub
 }
 
 void BGUMtTracer::clear_line()
@@ -108,7 +122,6 @@ void BGUMtTracer::end_pipe_tick()
 		update_row_in_table(tick_str, pipe_trace_line);
 		//std::cout<<summary_table.to_string()<<std::endl<<std::endl;
 	}
-
 	clear_line();
 }
 
