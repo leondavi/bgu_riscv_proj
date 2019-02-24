@@ -100,7 +100,7 @@ void BGUMtTracer::end_pipe_tick()
 
 	std::string line = pipe_tick_line.str();
 	logfile<<line;
-	std::cout<<line;
+	//std::cout<<line;
 
 	//----------- table update --------//
 	if(generate_table)
