@@ -304,17 +304,35 @@ Pipeline::bguTrace()
 
 	if(decode.deInfo.vld)
 	{
-		DPRINTFN("DE[%0d]: %30d ",decode.deInfo.id,decode.deInfo.pc.instAddr());
+		DPRINTFN("DE[%0d]: %10d ",decode.deInfo.id,decode.deInfo.pc.instAddr());
 		decode.deInfo.vld= false;
 	}
 	else
 	{
-		DPRINTFN("DE[X]: %30s","-");
+		DPRINTFN("DE[X]: %10s ","-");
 	}
+	
+	if(execute.exInfo.issueVld)
+	{
+		DPRINTFN("EX[%0d]: %10d ",execute.exInfo.issueId,0);
 
-	DPRINTFN("\n");
-
-	bgu_pipeline_tracer->end_pipe_tick();
+	
+		execute.exInfo.issueVld= false;
+	}
+	else
+	{
+		DPRINTFN("EX[X]: %10s ","-");
+	}
+	if(execute.exInfo.commitVld)
+	{
+		DPRINTFN("EX[%0d]: %10d \n",execute.exInfo.commitId,0);
+		execute.exInfo.commitVld= false;
+	}
+	else
+	{
+		DPRINTFN("EX[X]: %10s \n","-");
+	}
+	bgu_pipeline_tracer->en
 
 }
 
