@@ -44,6 +44,7 @@ import sys
 import m5
 # import all of the SimObjects
 from m5.objects import *
+from caches import *
 
 ###############################################################################
 ###############################################################################
@@ -90,9 +91,48 @@ def buildCPU(options,system):
     system.cpu.createThreads()
     
     system.cpu.createInterruptController()
-    
-    binary = 'tests/test-progs/hello/bin/riscv/linux/hello' # TODO - make it param
-    
+
+    # Pipeline params - cann't be set as 0, it makes issues
+    system.cpu.fetch1ToFetch2ForwardDelay = 1
+    system.cpu.fetch2ToDecodeForwardDelay = 1 
+    system.cpu.decodeToExecuteForwardDelay = 1
+    system.cpu.executeBranchDelay = 1
+
+    # Fetch 1 params
+    system.cpu.fetch1LineSnapWidth = 64
+    system.cpu.fetch1LineWidth = 64
+    system.cpu.fetch1FetchLimit = 1
+
+    # Fetch 2 params
+    system.cpu.decodeInputWidth = 2  
+    system.cpu.fetch2CycleInput = 1
+    system.cpu.fetch2InputBufferSize = 1 # can be changed to 1, since no delay expected here.
+
+    # Decode params
+    system.cpu.executeInputWidth = 2
+    system.cpu.decodeCycleInput = 1    
+    system.cpu.decodeInputBufferSize = 3
+
+    # Exexute
+    system.cpu.executeIssueLimit = 2
+    system.cpu.executeMemoryIssueLimit = 1
+    system.cpu.executeCommitLimit = 2
+    system.cpu.executeMemoryCommitLimit = 1
+    system.cpu.executeCycleInput = 1
+#    system.cpu.executeFuncUnits 0x55f45d6ea8c0
+    system.cpu.executeAllowEarlyMemoryIssue = 1
+    system.cpu.executeMaxAccessesInMemory = 2
+    system.cpu.executeMemoryWidth = 0
+    system.cpu.executeLSQRequestsQueueSize = 1
+    system.cpu.executeLSQTransfersQueueSize = 2
+    system.cpu.executeLSQStoreBufferSize = 5
+    system.cpu.executeLSQMaxStoreBufferStoresPerCycle = 2
+
+   # binary = 'tests/test-progs/hello/bin/riscv/linux/hello' # TODO - make it param
+    binary = '/home/david/workspace/bgu_riscv_proj/gem5/tests/test-progs/sum/sum.o' # TODO - make it param
+#    binary = '/home/yossi/Desktop/test/sum.o'
+#   binary = '/home/yossi/projects/cpp_test/sum.o'
+#    binary = '/home/yossi/projects/cpp_test/hello.o'
     for i in range(0,options.num_threads):
         process = Process()
         process.cmd = [binary]
@@ -107,9 +147,19 @@ def buildMem(options,system):
     # Create a memory bus, a system crossbar, in this case
     system.membus = SystemXBar()
     
-    # Hook the CPU ports up to the membus
-    system.cpu.icache_port = system.membus.slave
-    system.cpu.dcache_port = system.membus.slave
+    if (options.cache_enable):
+        system.cpu.icache = L1ICache()
+        system.cpu.dcache = L1DCache()
+        system.cpu.icache.connectCPU(system.cpu)
+        system.cpu.dcache.connectCPU(system.cpu)
+
+        system.cpu.icache.connectBus(system.membus) #.slave)
+        system.cpu.dcache.connectBus(system.membus) #.slave)
+    else :
+        # Hook the CPU ports up to the membus
+        system.cpu.icache_port = system.membus.slave
+        system.cpu.dcache_port = system.membus.slave
+    
     # create the interrupt controller for the CPU and connect to the membus
     
     # Create a DDR3 memory controller and connect it to the membus
@@ -151,7 +201,13 @@ def getOptions():
                       default="512MB",
                       help="Specify the physical memory size (single memory)")
     #CPU
-    parser.add_option("-t", "--num-threads", type="int", default=1)
+    parser.add_option("-t", "--num-threads", type="int", default=1,
+                     help = "Number of threads that running on the CPU")
+    
+
+    # Cachce
+    parser.add_option("-c", "--cache-enable", type="int",default=1,
+                     help = "NOT supprted - by deault connected to cache")
 
     (options, args) = parser.parse_args()    
     return options

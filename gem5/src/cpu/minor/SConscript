@@ -59,6 +59,8 @@ if 'MinorCPU' in env['CPU_MODELS']:
     Source('pipeline.cc')
     Source('scoreboard.cc')
     Source('stats.cc')
+    Source('BGUMTtracer.cpp')
+    Source('fort.c')
 
     DebugFlag('MinorCPU', 'Minor CPU-level events')
     DebugFlag('MinorExecute', 'Minor Execute stage')
@@ -67,7 +69,10 @@ if 'MinorCPU' in env['CPU_MODELS']:
     DebugFlag('MinorScoreboard', 'Minor Execute register scoreboard')
     DebugFlag('MinorTrace', 'MinorTrace cycle-by-cycle state trace')
     DebugFlag('MinorTiming', 'Extra timing for instructions')
+    
+    DebugFlag('MinorMT','Multithread debug')
+    DebugFlag('BGUTrace','new pipe trace format')
 
     CompoundFlag('Minor', [
         'MinorCPU', 'MinorExecute', 'MinorInterrupt', 'MinorMem',
-        'MinorScoreboard'])
+        'MinorScoreboard','MinorMT','BGUTrace'])
