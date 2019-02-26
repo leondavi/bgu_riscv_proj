@@ -281,6 +281,7 @@ Pipeline::bguTrace()
 	// Fetch request
 	if(fetch1.fetch1Info.req)
 	{
+
 		DPRINTFN("FE1[%0d]: %30d ",fetch1.fetch1Info.reqTid,fetch1.fetch1Info.reqPc.instAddr() );
 		fetch1.fetch1Info.req = false;
 	}
