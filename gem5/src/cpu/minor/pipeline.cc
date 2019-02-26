@@ -281,8 +281,6 @@ void
 Pipeline::bguTrace()
 {
 
-
-
 	//---------------- FETCH I --------------------//
 	bgu_pipeline_tracer->update_stage(&fetch1.fetch1Info);
 	//update in case request or response were ended
@@ -297,26 +295,11 @@ Pipeline::bguTrace()
 	bgu_pipeline_tracer->update_stage(&decode.deInfo);
 	decode.deInfo.vld ? decode.deInfo.update_state_invalid() : 0 ;
 	
-	if(execute.exInfo.issueVld)
-	{
-		DPRINTFN("EX[%0d]: %10d ",execute.exInfo.issueId,0);
+	//---------------- EXECUTE ---------------------//
+	bgu_pipeline_tracer->update_stage(&execute.exInfo);
+	execute.exInfo.issueVld ? execute.exInfo.issue_invalid() : 0;
+	execute.exInfo.commitVld ? execute.exInfo.commit_invalid() : 0;
 
-	
-		execute.exInfo.issueVld= false;
-	}
-	else
-	{
-		DPRINTFN("EX[X]: %10s ","-");
-	}
-	if(execute.exInfo.commitVld)
-	{
-		DPRINTFN("EX[%0d]: %10d \n",execute.exInfo.commitId,0);
-		execute.exInfo.commitVld= false;
-	}
-	else
-	{
-		DPRINTFN("EX[X]: %10s \n","-");
-	}
 	bgu_pipeline_tracer->end_pipe_tick();
 
 }
