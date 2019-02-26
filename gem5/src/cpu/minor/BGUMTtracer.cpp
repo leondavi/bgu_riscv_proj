@@ -11,7 +11,7 @@ namespace bgu
 {
 BGUMtTracer *BGUMtTracer::inst_ = 0; //Singlton pointer definition
 
-BGUMtTracer::BGUMtTracer()
+BGUMtTracer::BGUMtTracer(bool generate_table)
 {
 	// TODO Auto-generated constructor stub
 	this->diff_str = "";
@@ -25,19 +25,14 @@ BGUMtTracer::BGUMtTracer()
 	//remove if exists
 	std::remove(path_log.str().c_str());
 	std::remove(path_table.str().c_str());
-
 	logfile.open(path_log.str(),std::ofstream::out | std::ofstream::app);
 	tablefile.open(path_table.str(),std::ofstream::out | std::ofstream::app);
+	this->generate_table = generate_table;
 	if(generate_table)
 	{
 		generate_table_headers();
 	}
 	clear_line();
-}
-
-void BGUMtTracer::init(bool generate_table)
-{
-	this->generate_table = generate_table;
 }
 
 BGUMtTracer::~BGUMtTracer()
@@ -53,6 +48,7 @@ BGUMtTracer::~BGUMtTracer()
 void BGUMtTracer::save_table_to_file()
 {
 	tablefile<<summary_table.to_string()<<std::endl;
+	//std::cout<<summary_table.to_string()<<std::endl;
 	logfile.close();
 	tablefile.close();
 }

@@ -292,25 +292,10 @@ Pipeline::bguTrace()
 	//update vld
 	bgu_pipeline_tracer->update_stage(&fetch2.fetch2Info);
 	fetch2.fetch2Info.vld ? fetch2.fetch2Info.update_fetch2_invalid() : 0;
-//	if(fetch2.fetch2Info.vld)
-//	{
-//		DPRINTFN("FE2[%0d]: %30d ",fetch2.fetch2Info.tid,fetch2.fetch2Info.pc.instAddr());
-//		fetch2.fetch2Info.vld = false;
-//	}
-//	else
-//	{
-//		DPRINTFN("FE2[X]: %30s","-");
-//	}
 
-	if(decode.deInfo.vld)
-	{
-		DPRINTFN("DE[%0d]: %10d ",decode.deInfo.id,decode.deInfo.pc.instAddr());
-		decode.deInfo.vld= false;
-	}
-	else
-	{
-		DPRINTFN("DE[X]: %10s ","-");
-	}
+	//---------------- DECODE ----------------------//
+	bgu_pipeline_tracer->update_stage(&decode.deInfo);
+	decode.deInfo.vld ? decode.deInfo.update_state_invalid() : 0 ;
 	
 	if(execute.exInfo.issueVld)
 	{
@@ -332,7 +317,7 @@ Pipeline::bguTrace()
 	{
 		DPRINTFN("EX[X]: %10s \n","-");
 	}
-	bgu_pipeline_tracer->en
+	bgu_pipeline_tracer->end_pipe_tick();
 
 }
 

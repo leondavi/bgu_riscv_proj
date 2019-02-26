@@ -87,17 +87,16 @@ private:
 
 	static BGUMtTracer *inst_;
 
-	BGUMtTracer();
+	BGUMtTracer(bool generate_table = true);
 
 
 public:
 
-	void init(bool generate_table = true);
-	BGUMtTracer* get_instance()
+	BGUMtTracer* get_instance(bool generate_table = true)
 	{
 		if(this->inst_ == NULL)
 		{
-			this->inst_ = new BGUMtTracer();
+			this->inst_ = new BGUMtTracer(generate_table);
 		}
 		return(inst_);
 	}
