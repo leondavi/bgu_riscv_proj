@@ -52,6 +52,7 @@
 #include "cpu/minor/pipe_data.hh"
 #include "cpu/base.hh"
 #include "mem/packet.hh"
+#include "BGUMTtracer.h"
 
 namespace Minor
 {
@@ -407,27 +408,64 @@ class Fetch1 : public Named
     bool isDrained();
 
     /** BGU state trace info **/
-    struct Fetch1TraceInfo {
-    	bool req = false;
-    	bool rsp = false;
-    	ThreadID reqTid;
-    	ThreadID rspTid;
-    	TheISA::PCState reqPc;
-    	TheISA::PCState rspPc;
-    	int size;
+    class Fetch1TraceInfo : public bgu::BguInfo
+    {
+    public:
+    	bool req;
+		bool rsp;
+		ThreadID reqTid;
+		ThreadID rspTid;
+		TheISA::PCState reqPc;
+		TheISA::PCState rspPc;
+		int size;
 
-    	std::string to_str(bool request = true) //choose request or response
+    	Fetch1TraceInfo() : bgu::BguInfo(bgu::FE1)
+    	{
+    		req = false;
+    		rsp = false;
+    		size = 0;
+    	}
+
+    	~Fetch1TraceInfo()//%TODO remove
+    	{
+
+    	}
+
+    	inline int req_ended() { this->req = false; return 1; }
+    	inline int rsp_ended() { this->rsp = false; return 1; }
+
+    	inline std::vector<bgu::var_attr_t> get_vars()
 		{
-    		std::ostringstream stream;
-    		if(request)
-    		{
-    			stream<<"reqTid "<<this->reqTid<<" reqPC "<<this->reqPc;
-    		}
+    		bgu::var_attr_t tmp_attr;
+    		std::vector<bgu::var_attr_t> res;
+
+    		if(this->req)
+			{
+    			//reqTid create attributes
+    			tmp_attr.first = STRING_VAR(reqTid);
+    			tmp_attr.second = std::to_string(reqTid);
+    			res.push_back(tmp_attr);
+    			//reqPc create attributes
+    			tmp_attr.first = STRING_VAR(reqPc);
+				tmp_attr.second = std::to_string(reqPc.instAddr());
+				res.push_back(tmp_attr);
+			}
     		else
     		{
-    			stream<<"rspTid "<<rspTid<<" rspPC "<<rspPc;
+    			//rspTid create attributes
+				tmp_attr.first = STRING_VAR(rspTid);
+				tmp_attr.second = std::to_string(rspTid);
+				res.push_back(tmp_attr);
+				//rspPc create attributes
+				tmp_attr.first = STRING_VAR(rspPc);
+				tmp_attr.second = std::to_string(rspPc.instAddr());
+				res.push_back(tmp_attr);
     		}
-    		return stream.str();
+
+    		tmp_attr.first = STRING_VAR(size);
+			tmp_attr.second = std::to_string(size);
+			res.push_back(tmp_attr);
+    		return res;
 		}
     };
 
