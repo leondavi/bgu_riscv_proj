@@ -80,7 +80,7 @@ void BGUMtTracer::generate_table_headers()
 	summary_table << fort::header;
 	summary_table[summary_table_headers_row][simtime_col] = "simtime";
 
-	for(int col = simtime_col+1,vec_idx=0; col < this->pipe_stages_str_vec.size(); vec_idx++,col++)
+	for(int col = simtime_col+1,vec_idx=0; vec_idx < this->pipe_stages_str_vec.size(); vec_idx++,col++)
 	{
 		summary_table[summary_table_headers_row][col] = pipe_stages_str_vec[vec_idx];
 	}
