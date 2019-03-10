@@ -9,6 +9,8 @@ riscv architecture for gem5
 4. Goto gem5 directory inside the repository and run ```scons build/RISCV/gem5.opt -j4```
 5. Build [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain).
    Choose Installation (Newlib), in order to support the embedded riscv gem5 machine. 
+6. Cross compile using riscv gcc or g++ using the following commands: ```/opt/riscv/bin/riscv64-unknown-elf-gcc```
+   or ```/opt/riscv/bin/riscv64-unknown-elf-gcc```
    
 ## IDE Eclipse 
 1. Install eclipse throguh Ubuntu Software or apt-get. 
