@@ -9,6 +9,8 @@ riscv architecture for gem5
 4. Goto gem5 directory inside the repository and run ```scons build/RISCV/gem5.opt -j4```
 5. Build [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain).
    Choose Installation (Newlib), in order to support the embedded riscv gem5 machine. 
+6. Cross compile using riscv gcc or g++ using the following commands: ```/opt/riscv/bin/riscv64-unknown-elf-gcc```
+   or ```/opt/riscv/bin/riscv64-unknown-elf-g++```
    
 ## IDE Eclipse 
 1. Install eclipse throguh Ubuntu Software or apt-get. 
@@ -76,5 +78,12 @@ riscv architecture for gem5
 }
 ```
 
-
-
+## Bash Recommended Aliases 
+It's recommended to make a workspace folder as in those alias configuration. 
+Add the following to ~/.bashrc:
+```
+GEM5_FOLDER=$(echo "$HOME/workspace/bgu_riscv_proj/gem5" | tr -d '\r')
+alias cdws='cd ~/workspace'
+alias cdgem='cd ~/workspace/bgu_riscv_proj/gem5'
+alias g5gui='cd $GEM5_FOLDER/g5gui/src ; python3 main.py'
+```
