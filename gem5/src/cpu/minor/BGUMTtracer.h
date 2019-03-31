@@ -61,6 +61,8 @@ public:
 };
 
 
+enum file_t {E_TABLE,E_CSV,E_LOGFILE};
+
 //--------------------------------//
 /**
  * Singleton class
@@ -72,6 +74,7 @@ private:
 	std::vector <std::string> pipe_stages_str_vec;
 
 	std::fstream logfile;
+	std::fstream csvfile;
 	std::fstream tablefile;
 	std::string diff_str;
 
@@ -80,23 +83,24 @@ private:
 	fort::table summary_table;
 
 	bool first_time_print_header;
-	bool generate_table;
+	int file_to_generate;
 
 	void clear_line();
 	void generate_table_headers();
+	void generate_csv_headers();
 
 	static BGUMtTracer *inst_;
 
-	BGUMtTracer(bool generate_table = true);
+	BGUMtTracer(int file_to_generate = E_CSV);
 
 
 public:
 
-	BGUMtTracer* get_instance(bool generate_table = true)
+	BGUMtTracer* get_instance(int file_to_generate = E_CSV)
 	{
 		if(this->inst_ == NULL)
 		{
-			this->inst_ = new BGUMtTracer(generate_table);
+			this->inst_ = new BGUMtTracer(file_to_generate);
 		}
 		return(inst_);
 	}
@@ -105,6 +109,7 @@ public:
 
 	void update_stage(BguInfo* bgu_info);
 	void update_row_in_table(std::string sim_time,std::vector <std::string> &pipe_trace_line);
+	void update_row_in_csv_file(std::string sim_time,std::vector <std::string> &pipe_trace_line);
 	void end_pipe_tick();
 	void save_table_to_file();
 

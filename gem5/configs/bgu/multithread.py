@@ -130,7 +130,7 @@ def buildCPU(options,system):
 
     #binary = 'tests/test-progs/hello/bin/riscv/linux/a.out' # TODO - make it param
     #binary = '/home/david/workspace/bgu_riscv_proj/gem5/tests/test-progs/sum/sum.o' # TODO - make it param
-    binary = '/home/david/workspace/bgu_riscv_proj/gem5/tests/test-progs/bgu_riscv_compiled_tests/bitcnts 8'
+    binary = '/home/david/workspace/bgu_riscv_proj/gem5/tests/test-progs/bgu_riscv_compiled_tests/bitcnts'
 #    binary = '/home/yossi/Desktop/test/sum.o'
 #   binary = '/home/yossi/projects/cpp_test/sum.o'
 #    binary = '/home/yossi/projects/cpp_test/hello.o'
