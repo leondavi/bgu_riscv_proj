@@ -52,12 +52,12 @@ BGUMtTracer::~BGUMtTracer()
 
 void BGUMtTracer::save_table_to_file()
 {
-	tablefile<<summary_table.to_string()<<std::endl;
+	//tablefile<<summary_table.to_string()<<std::endl;
 	//std::cout<<summary_table.to_string()<<std::endl;
 	switch (file_to_generate)
 	{
 		case E_CSV: {csvfile.close(); break;}
-		case E_TABLE: {tablefile.close(); break;}
+		case E_TABLE: {tablefile<<summary_table.to_string()<<std::endl; tablefile.close(); break;}
 		case E_LOGFILE: {logfile.close(); break;}
 	}
 }
