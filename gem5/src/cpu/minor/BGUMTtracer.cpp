@@ -28,6 +28,8 @@ BGUMtTracer::BGUMtTracer(int file_to_generate)
 	std::remove(path_table.str().c_str());
 	std::remove(path_csv.str().c_str());
 
+	this->file_to_generate = file_to_generate;
+
 	switch (file_to_generate)
 	{
 		case E_CSV: {csvfile.open(path_csv.str(),std::ofstream::out | std::ofstream::app);
@@ -101,7 +103,7 @@ void BGUMtTracer::generate_csv_headers()
 	for(int vec_idx=0; vec_idx < this->pipe_stages_str_vec.size(); vec_idx++)
 	{
 		this->csvfile<<pipe_stages_str_vec[vec_idx];
-		if(vec_idx+1 < this->pipe_stages_str_vec.size()-1)
+		if(vec_idx < this->pipe_stages_str_vec.size()-1)
 		{
 			this->csvfile<<",";//adding the delimeter
 		}
