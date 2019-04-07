@@ -87,6 +87,8 @@ Pipeline::Pipeline(MinorCPU &cpu_, MinorCPUParams &params) :
         params.executeBranchDelay)))),
     needToSignalDrained(false)
 {
+	this->bgu_pipeline_tracer = bgu_pipeline_tracer->get_instance();
+
     if (params.fetch1ToFetch2ForwardDelay < 1) {
         fatal("%s: fetch1ToFetch2ForwardDelay must be >= 1 (%d)\n",
             cpu.name(), params.fetch1ToFetch2ForwardDelay);
@@ -278,66 +280,27 @@ Pipeline::isDrained()
 void
 Pipeline::bguTrace()
 {
-	// Fetch request
-	if(fetch1.fetch1Info.req)
-	{
-		DPRINTFN("FE1[%0d]: %10d ",fetch1.fetch1Info.reqTid,fetch1.fetch1Info.reqPc.instAddr() );
-		fetch1.fetch1Info.req = false;
-	}
-	else
-	{
-		DPRINTFN("FE1[X]: %10s ","-");
 
-	}
+	//---------------- FETCH I --------------------//
+	bgu_pipeline_tracer->update_stage(&fetch1.fetch1Info);
+	//update in case request or response were ended
+	fetch1.fetch1Info.req ? fetch1.fetch1Info.req_ended() : 0;
+	fetch1.fetch1Info.rsp ? fetch1.fetch1Info.rsp_ended() : 0;
+	//---------------- FETCH II --------------------//
+	//update vld
+	bgu_pipeline_tracer->update_stage(&fetch2.fetch2Info);
+	fetch2.fetch2Info.vld ? fetch2.fetch2Info.update_fetch2_invalid() : 0;
 
-	// Fetch Response
-	if(fetch1.fetch1Info.rsp)
-	{
-		DPRINTFN("FE1[%0d]: %6d(%2d) ",fetch1.fetch1Info.rspTid,fetch1.fetch1Info.rspPc.instAddr(),fetch1.fetch1Info.size);
-		fetch1.fetch1Info.rsp = false;
-	}
-	else
-	{
-		DPRINTFN("FE1[X]: %10s ","-");
-	}
-	if(fetch2.fetch2Info.vld)
-	{
-		DPRINTFN("FE2[%0d]: %10d ",fetch2.fetch2Info.id,fetch2.fetch2Info.pc.instAddr());
-		fetch2.fetch2Info.vld = false;
-	}
-	else
-	{
-		DPRINTFN("FE2[X]: %10s ","-");
-	}
+	//---------------- DECODE ----------------------//
+	bgu_pipeline_tracer->update_stage(&decode.deInfo);
+	decode.deInfo.vld ? decode.deInfo.update_state_invalid() : 0 ;
+	
+	//---------------- EXECUTE ---------------------//
+	bgu_pipeline_tracer->update_stage(&execute.exInfo);
+	execute.exInfo.issueVld ? execute.exInfo.issue_invalid() : 0;
+	execute.exInfo.commitVld ? execute.exInfo.commit_invalid() : 0;
 
-	if(decode.deInfo.vld)
-	{
-		DPRINTFN("DE[%0d]: %10d ",decode.deInfo.id,decode.deInfo.pc.instAddr());
-		decode.deInfo.vld= false;
-	}
-	else
-	{
-		DPRINTFN("DE[X]: %10s ","-");
-	}
-
-	if(execute.exInfo.issueVld)
-	{
-		DPRINTFN("EX[%0d]: %10d ",execute.exInfo.issueId,0);
-		execute.exInfo.issueVld= false;
-	}
-	else
-	{
-		DPRINTFN("EX[X]: %10s ","-");
-	}
-	if(execute.exInfo.commitVld)
-	{
-		DPRINTFN("EX[%0d]: %10d \n",execute.exInfo.commitId,0);
-		execute.exInfo.commitVld= false;
-	}
-	else
-	{
-		DPRINTFN("EX[X]: %10s \n","-");
-	}
+	bgu_pipeline_tracer->end_pipe_tick();
 
 }
 

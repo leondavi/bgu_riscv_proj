@@ -54,6 +54,8 @@
 #include "cpu/minor/pipe_data.hh"
 #include "cpu/minor/scoreboard.hh"
 
+#include "BGUMTtracer.h"
+
 namespace Minor
 {
 
@@ -351,15 +353,69 @@ class Execute : public Named
     unsigned int drain();
     void drainResume();
 
-    struct ExecuteTraceInfo {
-    	bool issueVld = false;
-    	ThreadID issueId;
-    	TheISA::PCState issuePc;
+    /** BGU state trace info **/
+   class ExecuteTraceInfo : public bgu::BguInfo
+   {
+   public:
+		bool issueVld;
+		ThreadID issueId;
+		TheISA::PCState issuePc;
 
-    	bool commitVld = false;
-    	ThreadID commitId;
-    	TheISA::PCState commitPc;
-    };
+		bool commitVld;
+		ThreadID commitId;
+		TheISA::PCState commitPc;
+
+		ExecuteTraceInfo() : bgu::BguInfo(bgu::EX)
+		{
+			issueVld = false;
+			commitVld = false;
+		}
+
+		~ExecuteTraceInfo() {	}
+
+		inline std::vector<bgu::var_attr_t> get_vars()
+		{
+			bgu::var_attr_t tmp_attr;
+			std::vector<bgu::var_attr_t> res;
+
+			//----- issue -----//
+			//issueVld
+			tmp_attr.first = STRING_VAR(issueVld);
+			tmp_attr.second = std::to_string(issueVld);
+			res.push_back(tmp_attr);
+			//issueId
+			tmp_attr.first = STRING_VAR(issueId);
+			tmp_attr.second = std::to_string(issueId);
+			res.push_back(tmp_attr);
+			//issuePc
+			tmp_attr.first = STRING_VAR(issuePc);
+			tmp_attr.second = std::to_string(issuePc.instAddr());
+			res.push_back(tmp_attr);
+
+			//----- commit -----//
+
+			//issueVld
+			tmp_attr.first = STRING_VAR(commitVld);
+			tmp_attr.second = std::to_string(commitVld);
+			res.push_back(tmp_attr);
+			//issueId
+			tmp_attr.first = STRING_VAR(commitId);
+			tmp_attr.second = std::to_string(commitId);
+			res.push_back(tmp_attr);
+			//issuePc
+			tmp_attr.first = STRING_VAR(commitPc);
+			tmp_attr.second = std::to_string(commitPc.instAddr());
+			res.push_back(tmp_attr);
+
+			return res;
+		}
+		inline bool commit_valid() { this->commitVld = true; return true; }
+		inline bool commit_invalid() { this->commitVld = false; return false; }
+		inline bool issue_valid() { this->issueVld = true; return true; }
+		inline bool issue_invalid() { this->issueVld = false; return false; }
+
+   };
+
 
     ExecuteTraceInfo exInfo;
 

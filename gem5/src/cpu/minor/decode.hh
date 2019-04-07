@@ -51,6 +51,7 @@
 #include "cpu/minor/cpu.hh"
 #include "cpu/minor/dyn_inst.hh"
 #include "cpu/minor/pipe_data.hh"
+#include "BGUMTtracer.h"
 
 namespace Minor
 {
@@ -157,11 +158,45 @@ class Decode : public Named
      *  actually killing instructions */
     bool isDrained();
 
-    struct DecodeTraceInfo {
-    	bool vld = false;
-    	ThreadID id;
-    	TheISA::PCState pc;
-    };
+    /** BGU state trace info **/
+	class DecodeTraceInfo : public bgu::BguInfo
+	{
+	public:
+		bool vld = false;
+		ThreadID tid;
+		TheISA::PCState pc;
+
+		DecodeTraceInfo() : bgu::BguInfo(bgu::DE)
+		{
+			vld = false;
+		}
+
+		~DecodeTraceInfo() {	}
+
+		inline std::vector<bgu::var_attr_t> get_vars()
+		{
+			bgu::var_attr_t tmp_attr;
+			std::vector<bgu::var_attr_t> res;
+
+			//vld
+			tmp_attr.first = STRING_VAR(vld);
+			tmp_attr.second = std::to_string(vld);
+			res.push_back(tmp_attr);
+			//id
+			tmp_attr.first = STRING_VAR(tid);
+			tmp_attr.second = std::to_string(tid);
+			res.push_back(tmp_attr);
+			//pc
+			tmp_attr.first = STRING_VAR(pc);
+			tmp_attr.second = std::to_string(pc.instAddr());
+			res.push_back(tmp_attr);
+
+			return res;
+		}
+
+		inline bool update_state_valid() { this->vld = true; return true; }
+		inline bool update_state_invalid() { this->vld = false; return false; }
+	};
 
    DecodeTraceInfo deInfo;
 };

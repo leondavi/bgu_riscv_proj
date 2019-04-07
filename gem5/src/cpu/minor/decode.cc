@@ -285,7 +285,7 @@ Decode::evaluate()
         insts_out.threadId = tid;
         nextStageReserve[tid].reserve();
         deInfo.vld = true;
-        deInfo.id = tid;
+        deInfo.tid = tid;
         deInfo.pc = insts_out.insts[0]->pc;
     }
 
