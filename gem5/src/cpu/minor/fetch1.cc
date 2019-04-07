@@ -167,7 +167,7 @@ Fetch1::fetchLine(ThreadID tid)
     unsigned int line_offset = aligned_pc % lineSnap;
 //    unsigned int line_offset = thread.pc.instAddr() % lineSnap;
     unsigned int request_size = maxLineWidth - line_offset;
-    std::cout<<"pc  "<< thread.pc.instAddr()<<" aligned_pc  "<<aligned_pc <<" line_offset "<<line_offset <<" request_size "<<request_size<<"\n";
+//    std::cout<<"pc  "<< thread.pc.instAddr()<<" aligned_pc  "<<aligned_pc <<" line_offset "<<line_offset <<" request_size "<<request_size<<"\n";
     /* Fill in the line's id */
     InstId request_id(tid,
         thread.streamSeqNum, thread.predictionSeqNum,
@@ -573,7 +573,7 @@ Fetch1::processResponse(Fetch1::FetchRequestPtr response,
     /* Set the lineBase, which is a sizeof(MachInst) aligned address <=
      *  pc.instAddr() */
     line.lineBaseAddr = response->request->getVaddr();
-    std::cout<<"lineBaseAddr " <<line.lineBaseAddr<<" ID " << response->request->masterId()<<"\n";
+//    std::cout<<"lineBaseAddr " <<line.lineBaseAddr<<" ID " << response->request->masterId()<<"\n";
     if (response->fault != NoFault) {
         /* Stop fetching if there was a fault */
         /* Should probably try to flush the queues as well, but we

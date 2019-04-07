@@ -53,7 +53,7 @@ MinorCPU::MinorCPU(MinorCPUParams *params) :
 {
     /* This is only written for one thread at the moment */
     Minor::MinorThread *thread;
-    std::cout<<"MINOR CPU Line 56"<<std::endl;
+
     for (ThreadID i = 0; i < numThreads; i++) {
         if (FullSystem) {
             thread = new Minor::MinorThread(this, i, params->system,
