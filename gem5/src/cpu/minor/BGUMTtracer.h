@@ -18,8 +18,9 @@
 #include <fstream>
 #include <cstdio>
 #include <typeinfo>
+#include "base/output.hh"
 
-
+extern OutputDirectory simout;
 
 #define TOTAL_NUM_OF_PIPE_STAGES 4
 #define TRACE_WORKSPACE_DIR "/home/david/workspace/bgu_riscv_proj"
@@ -84,13 +85,17 @@ private:
 	fort::table summary_table;
 
 	bool first_time_print_header;
+	bool after_sim_initialized;
 	int file_to_generate;
+
+	std::string output_dir;
 
 	bool output_flag = false;
 
 	void clear_line();
 	void generate_table_headers();
 	void generate_csv_headers();
+	void init_after_simulation_start();
 
 	static BGUMtTracer *inst_;
 
@@ -108,7 +113,6 @@ public:
 		return(inst_);
 	}
 	~BGUMtTracer();
-
 
 	void update_stage(BguInfo* bgu_info);
 	void update_row_in_table(std::string sim_time,std::vector <std::string> &pipe_trace_line);

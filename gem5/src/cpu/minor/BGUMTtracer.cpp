@@ -18,28 +18,37 @@ BGUMtTracer::BGUMtTracer(int file_to_generate)
 	this->first_time_print_header = false;
 	this->pipe_trace_line.resize(TOTAL_NUM_OF_PIPE_STAGES);
 	this->pipe_stages_str_vec = PIPE_STAGES_VEC;
-
-
-	path_log<<TRACE_WORKSPACE_DIR<<"/"<<FILE_NAME<<"_log.txt";
-	path_table<<TRACE_WORKSPACE_DIR<<"/"<<FILE_NAME<<"_table.txt";
-	path_csv<<TRACE_WORKSPACE_DIR<<"/"<<FILE_NAME<<"_table.csv";
-	//remove if exists
-	std::remove(path_log.str().c_str());
-	std::remove(path_table.str().c_str());
-	std::remove(path_csv.str().c_str());
-
 	this->file_to_generate = file_to_generate;
+	this->after_sim_initialized = false;
+}
 
-	switch (file_to_generate)
+void BGUMtTracer::init_after_simulation_start()
+{
+	if(!after_sim_initialized)
 	{
-		case E_CSV: {csvfile.open(path_csv.str(),std::ofstream::out | std::ofstream::app);
-					 generate_csv_headers(); break;}
-		case E_TABLE: {tablefile.open(path_table.str(),std::ofstream::out | std::ofstream::app);
-						generate_table_headers(); break;}
-		case E_LOGFILE: {logfile.open(path_log.str(),std::ofstream::out | std::ofstream::app); break;}
-	}
+		this->output_dir = simout.directory();
 
-	clear_line();
+		path_log<<this->output_dir<<"/"<<FILE_NAME<<"_log.txt";
+		path_table<<this->output_dir<<"/"<<FILE_NAME<<"_table.txt";
+		path_csv<<this->output_dir<<"/"<<FILE_NAME<<"_table.csv";
+		//remove if exists
+		std::remove(path_log.str().c_str());
+		std::remove(path_table.str().c_str());
+		std::remove(path_csv.str().c_str());
+
+		//generating headers
+		switch (file_to_generate)
+		{
+			case E_CSV: {csvfile.open(path_csv.str(),std::ofstream::out | std::ofstream::app);
+						 generate_csv_headers(); break;}
+			case E_TABLE: {tablefile.open(path_table.str(),std::ofstream::out | std::ofstream::app);
+							generate_table_headers(); break;}
+			case E_LOGFILE: {logfile.open(path_log.str(),std::ofstream::out | std::ofstream::app); break;}
+		}
+
+		clear_line();
+	}
+	this->after_sim_initialized = true;
 }
 
 BGUMtTracer::~BGUMtTracer()
@@ -74,6 +83,7 @@ void BGUMtTracer::clear_line()
 
 void BGUMtTracer::update_stage(BguInfo *bgu_info)
 {
+	init_after_simulation_start();//first initialization
 	this->pipe_trace_line[bgu_info->get_stage()] = "";
 	std::vector<var_attr_t> vars = bgu_info->get_vars();
 	for(var_attr_t &var : vars)
