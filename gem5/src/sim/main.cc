@@ -56,10 +56,10 @@ main(int argc, char **argv)
 
     if (ret == 0) {
         // start m5
-        ret = m5Main(argc, argv);
         bgu::BGUMtTracer* bgu_tracer_p; //pointer to singleton in order to print the table at the end
         bgu_tracer_p = bgu_tracer_p->get_instance();
-        bgu_tracer_p->set_output(false);
+        bgu_tracer_p->set_output(true);
+        ret = m5Main(argc, argv);
         bgu_tracer_p->save_table_to_file();
     }
     // clean up Python intepreter.
