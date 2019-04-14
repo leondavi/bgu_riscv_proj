@@ -58,7 +58,7 @@ main(int argc, char **argv)
         // start m5
         bgu::BGUMtTracer* bgu_tracer_p; //pointer to singleton in order to print the table at the end
         bgu_tracer_p = bgu_tracer_p->get_instance();
-        bgu_tracer_p->set_output(true);
+        bgu_tracer_p->set_output(false);
         ret = m5Main(argc, argv);
         bgu_tracer_p->save_table_to_file();
     }
