@@ -42,6 +42,8 @@
 #include "cpu/minor/pipeline.hh"
 #include "debug/Decode.hh"
 
+#include "debug/MinorMT.hh"
+
 namespace Minor
 {
 
@@ -76,6 +78,12 @@ Decode::Decode(const std::string &name,
                 name + ".inputBuffer" + std::to_string(tid), "insts",
                 params.decodeInputBufferSize));
     }
+
+    DPRINTFR(MinorMT,"\nDecode Params\n");
+    DPRINTFR(MinorMT,"Decode: executeInputWidth %d\n",params.executeInputWidth);
+    DPRINTFR(MinorMT,"Decode: decodeCycleInput %d\n",params.decodeCycleInput);
+    DPRINTFR(MinorMT,"Decode: decodeInputBufferSize %d\n",params.decodeInputBufferSize);
+
 }
 
 const ForwardInstData *
@@ -276,6 +284,9 @@ Decode::evaluate()
         cpu.activityRecorder->activity();
         insts_out.threadId = tid;
         nextStageReserve[tid].reserve();
+        deInfo.vld = true;
+        deInfo.tid = tid;
+        deInfo.pc = insts_out.insts[0]->pc;
     }
 
     /* If we still have input to process and somewhere to put it,

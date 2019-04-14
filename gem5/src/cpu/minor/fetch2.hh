@@ -52,6 +52,7 @@
 #include "cpu/minor/pipe_data.hh"
 #include "cpu/pred/bpred_unit.hh"
 #include "params/MinorCPU.hh"
+#include "BGUMTtracer.h"
 
 namespace Minor
 {
@@ -219,6 +220,55 @@ class Fetch2 : public Named
      *  Execute halting Fetch1 causing Fetch2 to naturally drain.
      *  Branch predictions are ignored by Fetch1 during halt */
     bool isDrained();
+
+//    struct Fetch2TraceInfo {
+//    	bool vld = false;
+//    	ThreadID id;
+//    	TheISA::PCState pc;
+//    };
+
+    /** BGU state trace info **/
+    class Fetch2TraceInfo : public bgu::BguInfo
+    {
+    public:
+    	bool vld = false;
+		ThreadID tid;
+		TheISA::PCState pc;
+
+		Fetch2TraceInfo() : bgu::BguInfo(bgu::FE2)
+    	{
+    		vld = false;
+    	}
+
+    	~Fetch2TraceInfo() {	}
+
+    	inline std::vector<bgu::var_attr_t> get_vars()
+		{
+    		bgu::var_attr_t tmp_attr;
+    		std::vector<bgu::var_attr_t> res;
+
+			//vld
+			tmp_attr.first = STRING_VAR(vld);
+			tmp_attr.second = std::to_string(vld);
+			res.push_back(tmp_attr);
+			//id
+			tmp_attr.first = STRING_VAR(tid);
+			tmp_attr.second = std::to_string(tid);
+			res.push_back(tmp_attr);
+			//pc
+			tmp_attr.first = STRING_VAR(pc);
+			tmp_attr.second = std::to_string(pc.instAddr());
+			res.push_back(tmp_attr);
+
+    		return res;
+		}
+    	inline bool update_fetch2_valid() { this->vld = true; return true; }
+    	inline bool update_fetch2_invalid() { this->vld = false; return false; }
+    };
+
+
+    Fetch2TraceInfo fetch2Info;
+
 };
 
 }

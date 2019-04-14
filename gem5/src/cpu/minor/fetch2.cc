@@ -49,6 +49,8 @@
 #include "debug/Fetch.hh"
 #include "debug/MinorTrace.hh"
 
+#include "debug/MinorMT.hh"
+
 namespace Minor
 {
 
@@ -88,6 +90,13 @@ Fetch2::Fetch2(const std::string &name,
                 name + ".inputBuffer" + std::to_string(tid), "lines",
                 params.fetch2InputBufferSize));
     }
+
+    DPRINTFR(MinorMT,"\nFetch 2 Params\n");
+    DPRINTFR(MinorMT,"Fetch 2: decodeInputWidth %d\n",params.decodeInputWidth);
+    DPRINTFR(MinorMT,"Fetch 2: fetch2CycleInput %d\n",params.fetch2CycleInput);
+    DPRINTFR(MinorMT,"Fetch 2: fetch2InputBufferSize %d\n",params.fetch2InputBufferSize);
+
+
 }
 
 const ForwardLineData *
@@ -545,6 +554,9 @@ Fetch2::evaluate()
         cpu.activityRecorder->activity();
         insts_out.threadId = tid;
         nextStageReserve[tid].reserve();
+        fetch2Info.update_fetch2_valid();
+        fetch2Info.tid = tid;
+        fetch2Info.pc = insts_out.insts[0]->pc;
     }
 
     /* If we still have input to process and somewhere to put it,

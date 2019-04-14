@@ -56,6 +56,11 @@
 #include "params/MinorCPU.hh"
 #include "sim/ticked_object.hh"
 
+#include <sstream>
+#include <iostream>
+
+#include "BGUMTtracer.h"
+
 namespace Minor
 {
 
@@ -131,6 +136,8 @@ class Pipeline : public Ticked
     /** Stats registering */
     void regStats();
 
+    bgu::BGUMtTracer* bgu_pipeline_tracer;
+
     /** Functions below here are BaseCPU operations passed on to pipeline
      *  stages */
 
@@ -141,6 +148,16 @@ class Pipeline : public Ticked
 
     /** To give the activity recorder to the CPU */
     MinorActivityRecorder *getActivityRecorder() { return &activityRecorder; }
+
+    struct bguTraceInfo {
+    	TheISA::PCState fetch1ReqPc;
+    	TheISA::PCState fetch1RspPc;
+
+    };
+
+    bguTraceInfo traceInfo;
+
+    void bguTrace();
 };
 
 }

@@ -50,6 +50,9 @@
 #include "debug/MinorTrace.hh"
 #include "debug/Quiesce.hh"
 
+#include "debug/MinorMT.hh"
+#include "debug/BGUTrace.hh"
+
 namespace Minor
 {
 
@@ -84,6 +87,8 @@ Pipeline::Pipeline(MinorCPU &cpu_, MinorCPUParams &params) :
         params.executeBranchDelay)))),
     needToSignalDrained(false)
 {
+	this->bgu_pipeline_tracer = bgu_pipeline_tracer->get_instance();
+
     if (params.fetch1ToFetch2ForwardDelay < 1) {
         fatal("%s: fetch1ToFetch2ForwardDelay must be >= 1 (%d)\n",
             cpu.name(), params.fetch1ToFetch2ForwardDelay);
@@ -103,6 +108,14 @@ Pipeline::Pipeline(MinorCPU &cpu_, MinorCPUParams &params) :
         fatal("%s: executeBranchDelay must be >= 1\n",
             cpu.name(), params.executeBranchDelay);
     }
+
+    DPRINTFR(MinorMT,"\nPipeline Params\n");
+    DPRINTFR(MinorMT,"Pipeline: fetch1ToFetch2ForwardDelay %d\n",params.fetch1ToFetch2ForwardDelay);
+    DPRINTFR(MinorMT,"Pipeline: fetch2ToDecodeForwardDelay %d\n",params.fetch2ToDecodeForwardDelay);
+    DPRINTFR(MinorMT,"Pipeline: decodeToExecuteForwardDelay %d\n",params.decodeToExecuteForwardDelay);
+    DPRINTFR(MinorMT,"Pipeline: executeBranchDelay %d\n",params.executeBranchDelay);
+
+
 }
 
 void
@@ -141,6 +154,9 @@ Pipeline::evaluate()
 
     if (DTRACE(MinorTrace))
         minorTrace();
+
+    if (DTRACE(BGUTrace))
+    	bguTrace();
 
     /* Update the time buffers after the stages */
     f1ToF2.evaluate();
@@ -260,5 +276,33 @@ Pipeline::isDrained()
 
     return ret;
 }
+
+void
+Pipeline::bguTrace()
+{
+
+	//---------------- FETCH I --------------------//
+	bgu_pipeline_tracer->update_stage(&fetch1.fetch1Info);
+	//update in case request or response were ended
+	fetch1.fetch1Info.req ? fetch1.fetch1Info.req_ended() : 0;
+	fetch1.fetch1Info.rsp ? fetch1.fetch1Info.rsp_ended() : 0;
+	//---------------- FETCH II --------------------//
+	//update vld
+	bgu_pipeline_tracer->update_stage(&fetch2.fetch2Info);
+	fetch2.fetch2Info.vld ? fetch2.fetch2Info.update_fetch2_invalid() : 0;
+
+	//---------------- DECODE ----------------------//
+	bgu_pipeline_tracer->update_stage(&decode.deInfo);
+	decode.deInfo.vld ? decode.deInfo.update_state_invalid() : 0 ;
+	
+	//---------------- EXECUTE ---------------------//
+	bgu_pipeline_tracer->update_stage(&execute.exInfo);
+	execute.exInfo.issueVld ? execute.exInfo.issue_invalid() : 0;
+	execute.exInfo.commitVld ? execute.exInfo.commit_invalid() : 0;
+
+	bgu_pipeline_tracer->end_pipe_tick();
+
+}
+
 
 }
