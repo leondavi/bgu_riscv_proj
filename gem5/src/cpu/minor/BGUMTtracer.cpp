@@ -144,7 +144,10 @@ void BGUMtTracer::end_pipe_tick()
 	}
 	pipe_tick_line<<std::endl;
 
-	//std::cout<<line;
+	if(output_flag)
+	{
+	   std::cout<<pipe_tick_line.str();
+	}
 
 	switch (file_to_generate)
 	{

@@ -86,6 +86,8 @@ private:
 	bool first_time_print_header;
 	int file_to_generate;
 
+	bool output_flag = false;
+
 	void clear_line();
 	void generate_table_headers();
 	void generate_csv_headers();
@@ -113,6 +115,7 @@ public:
 	void update_row_in_csv_file(std::string sim_time,std::vector <std::string> &pipe_trace_line);
 	void end_pipe_tick();
 	void save_table_to_file();
+	inline void set_output(bool state = true) { this->output_flag = state; }
 
 
 };
