@@ -62,7 +62,7 @@ def getOptions():
     parser.add_option("-b", "--binary",
                       action = "store",
                       type = "string",
-                      default = '/home/yossi/Desktop/test/sum.o',
+                      default = '../mibench/sum.o',
                       help = "Execute code")
 
     (options, args) = parser.parse_args()    
