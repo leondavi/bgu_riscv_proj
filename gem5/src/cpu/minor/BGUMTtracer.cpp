@@ -19,7 +19,7 @@ BGUMtTracer::BGUMtTracer(int file_to_generate)
 	this->pipe_trace_line.resize(TOTAL_NUM_OF_PIPE_STAGES);
 	this->pipe_stages_str_vec = PIPE_STAGES_VEC;
 
-	std::stringstream path_log,path_table,path_csv;
+
 	path_log<<TRACE_WORKSPACE_DIR<<"/"<<FILE_NAME<<"_log.txt";
 	path_table<<TRACE_WORKSPACE_DIR<<"/"<<FILE_NAME<<"_table.txt";
 	path_csv<<TRACE_WORKSPACE_DIR<<"/"<<FILE_NAME<<"_table.csv";

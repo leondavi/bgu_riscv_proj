@@ -77,6 +77,7 @@ private:
 	std::fstream csvfile;
 	std::fstream tablefile;
 	std::string diff_str;
+	std::stringstream path_log,path_table,path_csv;
 
 	const int summary_table_headers_row = 0;
 	const int simtime_col = 0;
