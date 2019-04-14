@@ -1,0 +1,55 @@
+test status:
+
+automotive
+    - basicmath - working, run make and:
+        cp automotive/basicmath/basicmath_large rv64gcc_obj/automotive_basicmath_large
+        cp automotive/basicmath/basicmath_small rv64gcc_obj/automotive_basicmath_small     
+    - bitcount - using operation system, not supposet to work 
+    - qsort  - working, run make, input data can be also changed.
+        cp automotive/qsort/qsort_large rv64gcc_obj/automotive_qsort_large
+        cp automotive/qsort/qsort_small rv64gcc_obj/automotive_qsort_small     
+    - susan - not working
+
+consumer - skipped - almost all are using files and hence system calls
+    - jpeg
+    - lame  
+    - mad  
+    - tiff2bw  
+    - tiff2rgba  
+    - tiff-data  
+    - tiffdither  
+    - tiffmedian  
+    - tiff-v3.5.4  
+    - typeset
+
+network
+    - dijkstra - working
+        cp network/dijkstra/dijkstra_small rv64gcc_obj/network_dijkstra_small
+        cp network/dijkstra/dijkstra_large rv64gcc_obj/network_dijkstra_large
+    - patricia - can be done. requires alot of affort
+
+office - skipped - almost all are using files and hence system calls
+    - ghostscript  
+    - ispell  
+    - rsynth  
+    - sphinx  
+    - stringsearch
+
+security
+    - blowfish -not working/ requires system calls
+    - pgp -not working /requires system call
+    - rijndael  
+    - sha
+
+telecomm
+    - adpcm  
+    - CRC32  
+    - FFT - working, execute:
+        make small
+        make large
+    - gsm
+
+
+-----------------------
+rv64gcc_obj
+

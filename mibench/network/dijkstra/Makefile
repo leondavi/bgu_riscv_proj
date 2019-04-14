@@ -1,0 +1,14 @@
+CC = /opt/riscv/bin/riscv64-unknown-elf-c++
+#CC = gcc
+FLAGS = -D DEBUG
+
+all:  dijkstra_large dijkstra_small
+
+dijkstra_large: dijkstra_large.c Makefile
+	${CC} -static dijkstra_large.c -O3 -o dijkstra_large
+
+dijkstra_small: dijkstra_small.c Makefile
+	${CC} -static dijkstra_small.c -O3 -o dijkstra_small 
+
+clean:
+	rm -rf dijkstra_large dijkstra_small output*
