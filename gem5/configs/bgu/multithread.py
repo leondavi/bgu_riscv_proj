@@ -118,8 +118,8 @@ def buildCPU(options,system):
     system.cpu.executeBranchDelay = 1
 
     # Fetch 1 params
-    system.cpu.fetch1LineSnapWidth = 64
-    system.cpu.fetch1LineWidth = 64
+    system.cpu.fetch1LineSnapWidth = 4
+    system.cpu.fetch1LineWidth = 4 
     system.cpu.fetch1FetchLimit = 1
 
     # Fetch 2 params

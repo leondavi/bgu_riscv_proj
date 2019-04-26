@@ -230,40 +230,27 @@ class Fetch2 : public Named
     /** BGU state trace info **/
     class Fetch2TraceInfo : public bgu::BguInfo
     {
+    protected:
+    	int inst_num;
     public:
-    	bool vld = false;
-		ThreadID tid;
-		TheISA::PCState pc;
-
-		Fetch2TraceInfo() : bgu::BguInfo(bgu::FE2)
-    	{
-    		vld = false;
-    	}
+		Fetch2TraceInfo() : bgu::BguInfo(bgu::FE2) 	{}
 
     	~Fetch2TraceInfo() {	}
 
     	inline std::vector<bgu::var_attr_t> get_vars()
 		{
-    		bgu::var_attr_t tmp_attr;
-    		std::vector<bgu::var_attr_t> res;
+			bgu::var_attr_t tmp_attr;
+			clear_and_add_default_vars();
 
-			//vld
-			tmp_attr.first = STRING_VAR(vld);
-			tmp_attr.second = std::to_string(vld);
-			res.push_back(tmp_attr);
-			//id
-			tmp_attr.first = STRING_VAR(tid);
-			tmp_attr.second = std::to_string(tid);
-			res.push_back(tmp_attr);
-			//pc
-			tmp_attr.first = STRING_VAR(pc);
-			tmp_attr.second = std::to_string(pc.instAddr());
-			res.push_back(tmp_attr);
+			tmp_attr.first = STRING_VAR(inst_num);
+			tmp_attr.second = std::to_string(inst_num);
+			vars_pairs.push_back(tmp_attr);
 
-    		return res;
+			return vars_pairs;
 		}
-    	inline bool update_fetch2_valid() { this->vld = true; return true; }
-    	inline bool update_fetch2_invalid() { this->vld = false; return false; }
+
+		inline void set_inst_num(int new_inst_num) {this->inst_num = new_inst_num;}
+		inline int get_inst_num(){return this->inst_num;}
     };
 
 

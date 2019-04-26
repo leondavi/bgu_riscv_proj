@@ -20,6 +20,8 @@
 #include <typeinfo>
 #include "base/output.hh"
 #include "cpu/base.hh"
+//#include "cpu/minor/cpu.hh"
+#include "cpu/minor/dyn_inst.hh"
 
 extern OutputDirectory simout;
 
@@ -50,6 +52,7 @@ class BguInfo
 {
 protected:
 	bool vld;//valid flag - if operation has been done
+	Minor::InstId id;
 	ThreadID Tid;
 	TheISA::PCState Pc;
 	pipe_stage stage;
@@ -90,10 +93,13 @@ public:
 	inline bool set_valid_value(bool value=false) { this->vld = value; return this->vld;}
 	inline void set_pc(TheISA::PCState new_pc) {this->Pc = new_pc;}
 	inline void set_tid(ThreadID tid_val) { this->Tid = tid_val;}
+	inline void set_id(Minor::InstId new_id) {this->id = new_id;}
+
 	//getters
 	inline bool is_valid() { return this->vld;}
 	inline ThreadID get_tid() { return this->Tid;}
 	inline TheISA::PCState get_pc() {return this->Pc;}
+	inline Minor::InstId get_id() {return this->id;}
 
 };
 

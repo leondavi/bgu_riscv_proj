@@ -286,6 +286,8 @@ Decode::evaluate()
         nextStageReserve[tid].reserve();
         deInfo.set_valid_value(true);
         deInfo.set_tid(tid);
+        deInfo.set_id(insts_out.insts[0]->id);
+        deInfo.set_inst_num(insts_out.numInsts);
         deInfo.set_pc(insts_out.insts[0]->pc);
     }
 
