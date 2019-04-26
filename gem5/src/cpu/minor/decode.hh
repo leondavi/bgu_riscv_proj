@@ -162,40 +162,23 @@ class Decode : public Named
 	class DecodeTraceInfo : public bgu::BguInfo
 	{
 	public:
-		bool vld = false;
-		ThreadID tid;
-		TheISA::PCState pc;
 
 		DecodeTraceInfo() : bgu::BguInfo(bgu::DE)
 		{
 			vld = false;
 		}
 
-		~DecodeTraceInfo() {	}
+		~DecodeTraceInfo()//%TODO remove
+		{
+
+		}
 
 		inline std::vector<bgu::var_attr_t> get_vars()
 		{
-			bgu::var_attr_t tmp_attr;
-			std::vector<bgu::var_attr_t> res;
-
-			//vld
-			tmp_attr.first = STRING_VAR(vld);
-			tmp_attr.second = std::to_string(vld);
-			res.push_back(tmp_attr);
-			//id
-			tmp_attr.first = STRING_VAR(tid);
-			tmp_attr.second = std::to_string(tid);
-			res.push_back(tmp_attr);
-			//pc
-			tmp_attr.first = STRING_VAR(pc);
-			tmp_attr.second = std::to_string(pc.instAddr());
-			res.push_back(tmp_attr);
-
-			return res;
+			clear_and_add_default_vars();
+			return vars_pairs;
 		}
 
-		inline bool update_state_valid() { this->vld = true; return true; }
-		inline bool update_state_invalid() { this->vld = false; return false; }
 	};
 
    DecodeTraceInfo deInfo;
