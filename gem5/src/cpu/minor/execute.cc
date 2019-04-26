@@ -1424,8 +1424,8 @@ Execute::evaluate()
 
             DPRINTF(MinorExecute, "Attempting to commit [tid:%d]\n",
                     commit_tid);
-            exInfo.commitVld = true;
-            exInfo.commitId = commit_tid;
+            exCommitInfo.commitVld = true;
+            exCommitInfo.commitId = commit_tid;
 
             /* commit can set stalled flags observable to issue and so *must* be
              *  called first */
@@ -1472,8 +1472,8 @@ Execute::evaluate()
             DPRINTF(MinorExecute, "Attempting to issue [tid:%d]\n",
                     issue_tid);
             num_issued = issue(issue_tid);
-            exInfo.issueVld = true;
-            exInfo.issueId = issue_tid;
+            exIssueInfo.issueVld = true;
+            exIssueInfo.issueId = issue_tid;
         }
 
     }

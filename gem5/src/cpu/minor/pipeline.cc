@@ -297,8 +297,8 @@ Pipeline::bguTrace()
 	
 	//---------------- EXECUTE ---------------------//
 	bgu_pipeline_tracer->update_stage(&execute.exInfo);
-	execute.exInfo.issueVld ? execute.exInfo.issue_invalid() : 0;
-	execute.exInfo.commitVld ? execute.exInfo.commit_invalid() : 0;
+	execute.exIssueInfo.issueVld ? execute.exIssueInfo.issue_invalid() : 0;
+	execute.exCommitInfo.commitVld ? execute.exCommitInfo.commit_invalid() : 0;
 
 	bgu_pipeline_tracer->end_pipe_tick();
 
