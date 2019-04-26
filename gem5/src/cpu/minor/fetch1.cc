@@ -351,7 +351,7 @@ Fetch1::tryToSend(FetchRequestPtr request)
     if (icachePort.sendTimingReq(request->packet)) {
     	// Used for BGU debug[YE]
     	// One the transaction is sent to memory hierarchy
-        fetch1Info.req = true;
+        fetch1Info.req_valid = true;
         fetch1Info.reqPc = request->pc;
         fetch1Info.reqTid = request->id.threadId;
         /* Invalidate the fetch_requests packet so we don't
@@ -588,7 +588,7 @@ Fetch1::processResponse(Fetch1::FetchRequestPtr response,
          *  deallocate the packet */
         fetch1Info.size = response->packet->getSize();
         response->packet = NULL;
-        fetch1Info.rsp = true;
+        fetch1Info.rsp_valid = true;
         fetch1Info.rspTid = response->id.threadId;
         fetch1Info.rspPc = response->pc;
 //        fetch1Info.size = response->packet->getSize();

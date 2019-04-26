@@ -284,8 +284,8 @@ Pipeline::bguTrace()
 	//---------------- FETCH I --------------------//
 	bgu_pipeline_tracer->update_stage(&fetch1.fetch1Info);
 	//update in case request or response were ended
-	fetch1.fetch1Info.req ? fetch1.fetch1Info.req_ended() : 0;
-	fetch1.fetch1Info.rsp ? fetch1.fetch1Info.rsp_ended() : 0;
+	fetch1.fetch1Info.req_valid ? fetch1.fetch1Info.req_ended() : 0;
+	fetch1.fetch1Info.rsp_valid ? fetch1.fetch1Info.rsp_ended() : 0;
 	//---------------- FETCH II --------------------//
 	//update vld
 	bgu_pipeline_tracer->update_stage(&fetch2.fetch2Info);

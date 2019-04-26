@@ -411,8 +411,8 @@ class Fetch1 : public Named
     class Fetch1TraceInfo : public bgu::BguInfo
     {
     public:
-    	bool req;
-		bool rsp;
+    	bool req_valid;
+		bool rsp_valid;
 		ThreadID reqTid;
 		ThreadID rspTid;
 		TheISA::PCState reqPc;
@@ -421,8 +421,8 @@ class Fetch1 : public Named
 
     	Fetch1TraceInfo() : bgu::BguInfo(bgu::FE1)
     	{
-    		req = false;
-    		rsp = false;
+    		req_valid = false;
+    		rsp_valid = false;
     		size = 0;
     	}
 
@@ -431,40 +431,47 @@ class Fetch1 : public Named
 
     	}
 
-    	inline int req_ended() { this->req = false; return 1; }
-    	inline int rsp_ended() { this->rsp = false; return 1; }
+    	inline int req_ended() { this->req_valid = false; return 1; }
+    	inline int rsp_ended() { this->rsp_valid = false; return 1; }
 
     	inline std::vector<bgu::var_attr_t> get_vars()
 		{
     		bgu::var_attr_t tmp_attr;
     		std::vector<bgu::var_attr_t> res;
 
-    		if(this->req)
-			{
-    			//reqTid create attributes
-    			tmp_attr.first = STRING_VAR(reqTid);
-    			tmp_attr.second = std::to_string(reqTid);
-    			res.push_back(tmp_attr);
-    			//reqPc create attributes
-    			tmp_attr.first = STRING_VAR(reqPc);
-				tmp_attr.second = std::to_string(reqPc.instAddr());
-				res.push_back(tmp_attr);
-			}
-    		else
-    		{
-    			//rspTid create attributes
-				tmp_attr.first = STRING_VAR(rspTid);
-				tmp_attr.second = std::to_string(rspTid);
-				res.push_back(tmp_attr);
-				//rspPc create attributes
-				tmp_attr.first = STRING_VAR(rspPc);
-				tmp_attr.second = std::to_string(rspPc.instAddr());
-				res.push_back(tmp_attr);
-    		}
+			//------ Request -------//
 
-    		tmp_attr.first = STRING_VAR(size);
-			tmp_attr.second = std::to_string(size);
+			//reqTid create attributes
+			tmp_attr.first = STRING_VAR(reqTid);
+			tmp_attr.second = std::to_string(reqTid);
 			res.push_back(tmp_attr);
+			//reqPc create attributes
+			tmp_attr.first = STRING_VAR(reqPc);
+			tmp_attr.second = std::to_string(reqPc.instAddr());
+			res.push_back(tmp_attr);
+			//req_valid create attributes
+			tmp_attr.first = STRING_VAR(req_valid);
+			tmp_attr.second = std::to_string(req_valid);
+			res.push_back(tmp_attr);
+
+			//------ Response -------//
+
+			//rspTid create attributes
+			tmp_attr.first = STRING_VAR(rspTid);
+			tmp_attr.second = std::to_string(rspTid);
+			res.push_back(tmp_attr);
+			//rspPc create attributes
+			tmp_attr.first = STRING_VAR(rspPc);
+			tmp_attr.second = std::to_string(rspPc.instAddr());
+			res.push_back(tmp_attr);
+			//rsp_valid create attributes
+			tmp_attr.first = STRING_VAR(rsp_valid);
+			tmp_attr.second = std::to_string(rsp_valid);
+			res.push_back(tmp_attr);
+
+//    		tmp_attr.first = STRING_VAR(size);
+//			tmp_attr.second = std::to_string(size);
+//			res.push_back(tmp_attr);
     		return res;
 		}
     };
