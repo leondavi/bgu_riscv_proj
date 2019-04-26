@@ -40,8 +40,8 @@ inline std::string var_to_string(char* name)
 namespace bgu
 {
 
-#define PIPE_STAGES_VEC {"Fetch1","Fetch2","Decode","Execute"}
-typedef enum pipe_stage_t {FE1,FE2,DE,EX} pipe_stage;
+#define PIPE_STAGES_VEC {"Fetch1_rqt","Fetch1_rsp","Fetch2","Decode","Execute_Issued","Execute_Commited"}
+typedef enum pipe_stage_t {FE1_RQT,FE1_RSP,FE2,DE,EX_IS,EX_COM} pipe_stage;
 
 //--------------------------------//
 typedef std::pair <std::string,std::string> var_attr_t;//first is varname second is str(var)
