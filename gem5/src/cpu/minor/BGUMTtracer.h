@@ -22,7 +22,6 @@
 
 extern OutputDirectory simout;
 
-#define TOTAL_NUM_OF_PIPE_STAGES 4
 #define TRACE_WORKSPACE_DIR "/home/david/workspace/bgu_riscv_proj"
 #define FILE_NAME "output"
 #define X_ATTRIBUTE " x "
@@ -41,7 +40,7 @@ namespace bgu
 {
 
 #define PIPE_STAGES_VEC {"Fetch1_rqt","Fetch1_rsp","Fetch2","Decode","Execute_Issued","Execute_Commited"}
-typedef enum pipe_stage_t {FE1_RQT,FE1_RSP,FE2,DE,EX_IS,EX_COM} pipe_stage;
+typedef enum pipe_stage_t {FE1_RQT,FE1_RSP,FE2,DE,EX_IS,EX_COM,TOTAL_NUM_OF_PIPE_STAGES} pipe_stage;
 
 //--------------------------------//
 typedef std::pair <std::string,std::string> var_attr_t;//first is varname second is str(var)
@@ -49,6 +48,9 @@ typedef std::pair <std::string,std::string> var_attr_t;//first is varname second
 class BguInfo
 {
 protected:
+	bool vld;//valid flag - if operation has been done
+	ThreadID Tid;
+	TheISA::PCState Pc;
 	pipe_stage stage;
 public:
 	BguInfo(pipe_stage stage) {this->stage = stage;}

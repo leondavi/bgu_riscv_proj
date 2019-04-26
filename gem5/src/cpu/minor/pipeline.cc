@@ -296,7 +296,9 @@ Pipeline::bguTrace()
 	decode.deInfo.vld ? decode.deInfo.update_state_invalid() : 0 ;
 	
 	//---------------- EXECUTE ---------------------//
-	bgu_pipeline_tracer->update_stage(&execute.exInfo);
+	bgu_pipeline_tracer->update_stage(&execute.exIssueInfo);
+	bgu_pipeline_tracer->update_stage(&execute.exCommitInfo);
+
 	execute.exIssueInfo.issueVld ? execute.exIssueInfo.issue_invalid() : 0;
 	execute.exCommitInfo.commitVld ? execute.exCommitInfo.commit_invalid() : 0;
 
