@@ -61,422 +61,445 @@ namespace Minor
  *  them to Fetch2 */
 class Fetch1 : public Named
 {
-  protected:
-    /** Exposable fetch port */
-    class IcachePort : public MinorCPU::MinorCPUPort
-    {
-      protected:
-        /** My owner */
-        Fetch1 &fetch;
+protected:
+	/** Exposable fetch port */
+	class IcachePort : public MinorCPU::MinorCPUPort
+	{
+	protected:
+		/** My owner */
+		Fetch1 &fetch;
 
-      public:
-        IcachePort(std::string name, Fetch1 &fetch_, MinorCPU &cpu) :
-            MinorCPU::MinorCPUPort(name, cpu), fetch(fetch_)
-        { }
+	public:
+		IcachePort(std::string name, Fetch1 &fetch_, MinorCPU &cpu) :
+			MinorCPU::MinorCPUPort(name, cpu), fetch(fetch_)
+		{ }
 
-      protected:
-        bool recvTimingResp(PacketPtr pkt)
-        { return fetch.recvTimingResp(pkt); }
+	protected:
+		bool recvTimingResp(PacketPtr pkt)
+		{ return fetch.recvTimingResp(pkt); }
 
-        void recvReqRetry() { fetch.recvReqRetry(); }
-    };
+		void recvReqRetry() { fetch.recvReqRetry(); }
+	};
 
-    /** Memory access queuing.
-     *
-     *  A request can be submitted by pushing it onto the requests queue after
-     *  issuing an ITLB lookup (state becomes InTranslation) with a
-     *  FetchSenderState senderState containing the current lineSeqNum and
-     *  stream/predictionSeqNum.
-     *
-     *  Translated packets (state becomes Translation) are then passed to the
-     *  memory system and the transfers queue (state becomes RequestIssuing).
-     *  Retries are handled by leaving the packet on the requests queue and
-     *  changing the state to IcacheNeedsRetry).
-     *
-     *  Responses from the memory system alter the request object (state
-     *  become Complete).  Responses can be picked up from the head of the
-     *  transfers queue to pass on to Fetch2. */
+	/** Memory access queuing.
+	 *
+	 *  A request can be submitted by pushing it onto the requests queue after
+	 *  issuing an ITLB lookup (state becomes InTranslation) with a
+	 *  FetchSenderState senderState containing the current lineSeqNum and
+	 *  stream/predictionSeqNum.
+	 *
+	 *  Translated packets (state becomes Translation) are then passed to the
+	 *  memory system and the transfers queue (state becomes RequestIssuing).
+	 *  Retries are handled by leaving the packet on the requests queue and
+	 *  changing the state to IcacheNeedsRetry).
+	 *
+	 *  Responses from the memory system alter the request object (state
+	 *  become Complete).  Responses can be picked up from the head of the
+	 *  transfers queue to pass on to Fetch2. */
 
-    /** Structure to hold SenderState info through
-     *  translation and memory accesses. */
-    class FetchRequest :
-        public BaseTLB::Translation, /* For TLB lookups */
-        public Packet::SenderState /* For packing into a Packet */
-    {
-      protected:
-        /** Owning fetch unit */
-        Fetch1 &fetch;
+	/** Structure to hold SenderState info through
+	 *  translation and memory accesses. */
+	class FetchRequest :
+			public BaseTLB::Translation, /* For TLB lookups */
+			public Packet::SenderState /* For packing into a Packet */
+			{
+			protected:
+		/** Owning fetch unit */
+		Fetch1 &fetch;
 
-      public:
-        /** Progress of this request through address translation and
-         *  memory */
-        enum FetchRequestState
-        {
-            NotIssued, /* Just been made */
-            InTranslation, /* Issued to ITLB, must wait for reqply */
-            Translated, /* Translation complete */
-            RequestIssuing, /* Issued to memory, must wait for response */
-            Complete /* Complete.  Either a fault, or a fetched line */
-        };
+			public:
+		/** Progress of this request through address translation and
+		 *  memory */
+		enum FetchRequestState
+		{
+			NotIssued, /* Just been made */
+			InTranslation, /* Issued to ITLB, must wait for reqply */
+			Translated, /* Translation complete */
+			RequestIssuing, /* Issued to memory, must wait for response */
+			Complete /* Complete.  Either a fault, or a fetched line */
+		};
 
-        FetchRequestState state;
+		FetchRequestState state;
 
-        /** Identity of the line that this request will generate */
-        InstId id;
+		/** Identity of the line that this request will generate */
+		InstId id;
 
-        /** FetchRequests carry packets while they're in the requests and
-         * transfers responses queues.  When a Packet returns from the memory
-         * system, its request needs to have its packet updated as this may
-         * have changed in flight */
-        PacketPtr packet;
+		/** FetchRequests carry packets while they're in the requests and
+		 * transfers responses queues.  When a Packet returns from the memory
+		 * system, its request needs to have its packet updated as this may
+		 * have changed in flight */
+		PacketPtr packet;
 
-        /** The underlying request that this fetch represents */
-        RequestPtr request;
+		/** The underlying request that this fetch represents */
+		RequestPtr request;
 
-        /** PC to fixup with line address */
-        TheISA::PCState pc;
+		/** PC to fixup with line address */
+		TheISA::PCState pc;
 
-        /** Fill in a fault if one happens during fetch, check this by
-         *  picking apart the response packet */
-        Fault fault;
+		/** Fill in a fault if one happens during fetch, check this by
+		 *  picking apart the response packet */
+		Fault fault;
 
-        /** Make a packet to use with the memory transaction */
-        void makePacket();
+		/** Make a packet to use with the memory transaction */
+		void makePacket();
 
-        /** Report interface */
-        void reportData(std::ostream &os) const;
+		/** Report interface */
+		void reportData(std::ostream &os) const;
 
-        /** Is this line out of date with the current stream/prediction
-         *  sequence and can it be discarded without orphaning in flight
-         *  TLB lookups/memory accesses? */
-        bool isDiscardable() const;
+		/** Is this line out of date with the current stream/prediction
+		 *  sequence and can it be discarded without orphaning in flight
+		 *  TLB lookups/memory accesses? */
+		bool isDiscardable() const;
 
-        /** Is this a complete read line or fault */
-        bool isComplete() const { return state == Complete; }
+		/** Is this a complete read line or fault */
+		bool isComplete() const { return state == Complete; }
 
-      protected:
-        /** BaseTLB::Translation interface */
+			protected:
+		/** BaseTLB::Translation interface */
 
-        /** Interface for ITLB responses.  We can handle delay, so don't
-         *  do anything */
-        void markDelayed() { }
+		/** Interface for ITLB responses.  We can handle delay, so don't
+		 *  do anything */
+		void markDelayed() { }
 
-        /** Interface for ITLB responses.  Populates self and then passes
-         *  the request on to the ports' handleTLBResponse member
-         *  function */
-        void finish(const Fault &fault_, const RequestPtr &request_,
-                    ThreadContext *tc, BaseTLB::Mode mode);
+		/** Interface for ITLB responses.  Populates self and then passes
+		 *  the request on to the ports' handleTLBResponse member
+		 *  function */
+		void finish(const Fault &fault_, const RequestPtr &request_,
+				ThreadContext *tc, BaseTLB::Mode mode);
 
-      public:
-        FetchRequest(Fetch1 &fetch_, InstId id_, TheISA::PCState pc_) :
-            SenderState(),
-            fetch(fetch_),
-            state(NotIssued),
-            id(id_),
-            packet(NULL),
-            request(),
-            pc(pc_),
-            fault(NoFault)
-        {
-            request = std::make_shared<Request>();
-        }
+			public:
+		FetchRequest(Fetch1 &fetch_, InstId id_, TheISA::PCState pc_) :
+			SenderState(),
+			fetch(fetch_),
+			state(NotIssued),
+			id(id_),
+			packet(NULL),
+			request(),
+			pc(pc_),
+			fault(NoFault)
+			{
+			request = std::make_shared<Request>();
+			}
 
-        ~FetchRequest();
-    };
+		~FetchRequest();
+			};
 
-    typedef FetchRequest *FetchRequestPtr;
+	typedef FetchRequest *FetchRequestPtr;
 
-  protected:
-    /** Construction-assigned data members */
+			protected:
+	/** Construction-assigned data members */
 
-    /** Pointer back to the containing CPU */
-    MinorCPU &cpu;
+	/** Pointer back to the containing CPU */
+	MinorCPU &cpu;
 
-    /** Input port carrying branch requests from Execute */
-    Latch<BranchData>::Output inp;
-    /** Output port carrying read lines to Fetch2 */
-    Latch<ForwardLineData>::Input out;
-    /** Input port carrying branch predictions from Fetch2 */
-    Latch<BranchData>::Output prediction;
+	/** Input port carrying branch requests from Execute */
+	Latch<BranchData>::Output inp;
+	/** Output port carrying read lines to Fetch2 */
+	Latch<ForwardLineData>::Input out;
+	/** Input port carrying branch predictions from Fetch2 */
+	Latch<BranchData>::Output prediction;
 
-    /** Interface to reserve space in the next stage */
-    std::vector<InputBuffer<ForwardLineData>> &nextStageReserve;
+	/** Interface to reserve space in the next stage */
+	std::vector<InputBuffer<ForwardLineData>> &nextStageReserve;
 
-    /** IcachePort to pass to the CPU.  Fetch1 is the only module that uses
-     *  it. */
-    IcachePort icachePort;
+	/** IcachePort to pass to the CPU.  Fetch1 is the only module that uses
+	 *  it. */
+	IcachePort icachePort;
 
-    /** Line snap size in bytes.  All fetches clip to make their ends not
-     *  extend beyond this limit.  Setting this to the machine L1 cache line
-     *  length will result in fetches never crossing line boundaries. */
-    unsigned int lineSnap;
+	/** Line snap size in bytes.  All fetches clip to make their ends not
+	 *  extend beyond this limit.  Setting this to the machine L1 cache line
+	 *  length will result in fetches never crossing line boundaries. */
+	unsigned int lineSnap;
 
-    /** Maximum fetch width in bytes.  Setting this (and lineSnap) to the
-     *  machine L1 cache line length will result in fetches of whole cache
-     *  lines.  Setting this to sizeof(MachInst) will result it fetches of
-     *  single instructions (except near the end of lineSnap lines) */
-    unsigned int maxLineWidth;
+	/** Maximum fetch width in bytes.  Setting this (and lineSnap) to the
+	 *  machine L1 cache line length will result in fetches of whole cache
+	 *  lines.  Setting this to sizeof(MachInst) will result it fetches of
+	 *  single instructions (except near the end of lineSnap lines) */
+	unsigned int maxLineWidth;
 
-    /** Maximum number of fetches allowed in flight (in queues or memory) */
-    unsigned int fetchLimit;
+	/** Maximum number of fetches allowed in flight (in queues or memory) */
+	unsigned int fetchLimit;
 
-  protected:
-    /** Cycle-by-cycle state */
+			protected:
+	/** Cycle-by-cycle state */
 
-    /** State of memory access for head instruction fetch */
-    enum FetchState
-    {
-        FetchHalted, /* Not fetching, waiting to be woken by transition
+	/** State of memory access for head instruction fetch */
+	enum FetchState
+	{
+		FetchHalted, /* Not fetching, waiting to be woken by transition
             to FetchWaitingForPC.  The PC is not valid in this state */
-        FetchWaitingForPC, /* Not fetching, waiting for stream change.
+		FetchWaitingForPC, /* Not fetching, waiting for stream change.
             This doesn't stop issued fetches from being returned and
             processed or for branches to change the state to Running. */
-        FetchRunning /* Try to fetch, when possible */
-    };
+		FetchRunning /* Try to fetch, when possible */
+	};
 
-    /** Stage cycle-by-cycle state */
+	/** Stage cycle-by-cycle state */
 
-    struct Fetch1ThreadInfo {
+	struct Fetch1ThreadInfo {
 
-        /** Consturctor to initialize all fields. */
-        Fetch1ThreadInfo() :
-            state(FetchWaitingForPC),
-            pc(TheISA::PCState(0)),
-            streamSeqNum(InstId::firstStreamSeqNum),
-            predictionSeqNum(InstId::firstPredictionSeqNum),
-            blocked(false),
-            wakeupGuard(false)
-        { }
+		/** Consturctor to initialize all fields. */
+		Fetch1ThreadInfo() :
+			state(FetchWaitingForPC),
+			pc(TheISA::PCState(0)),
+			streamSeqNum(InstId::firstStreamSeqNum),
+			predictionSeqNum(InstId::firstPredictionSeqNum),
+			blocked(false),
+			wakeupGuard(false)
+		{ }
 
-        Fetch1ThreadInfo(const Fetch1ThreadInfo& other) :
-            state(other.state),
-            pc(other.pc),
-            streamSeqNum(other.streamSeqNum),
-            predictionSeqNum(other.predictionSeqNum),
-            blocked(other.blocked)
-        { }
+		Fetch1ThreadInfo(const Fetch1ThreadInfo& other) :
+			state(other.state),
+			pc(other.pc),
+			streamSeqNum(other.streamSeqNum),
+			predictionSeqNum(other.predictionSeqNum),
+			blocked(other.blocked)
+		{ }
 
-        FetchState state;
+		FetchState state;
 
-        /** Fetch PC value. This is updated by branches from Execute, branch
-         *  prediction targets from Fetch2 and by incrementing it as we fetch
-         *  lines subsequent to those two sources. */
-        TheISA::PCState pc;
+		/** Fetch PC value. This is updated by branches from Execute, branch
+		 *  prediction targets from Fetch2 and by incrementing it as we fetch
+		 *  lines subsequent to those two sources. */
+		TheISA::PCState pc;
 
-        /** Stream sequence number.  This changes on request from Execute and is
-         *  used to tag instructions by the fetch stream to which they belong.
-         *  Execute originates new prediction sequence numbers. */
-        InstSeqNum streamSeqNum;
+		/** Stream sequence number.  This changes on request from Execute and is
+		 *  used to tag instructions by the fetch stream to which they belong.
+		 *  Execute originates new prediction sequence numbers. */
+		InstSeqNum streamSeqNum;
 
-        /** Prediction sequence number.  This changes when requests from Execute
-         *  or Fetch2 ask for a change of fetch address and is used to tag lines
-         *  by the prediction to which they belong.  Fetch2 originates
-         *  prediction sequence numbers. */
-        InstSeqNum predictionSeqNum;
+		/** Prediction sequence number.  This changes when requests from Execute
+		 *  or Fetch2 ask for a change of fetch address and is used to tag lines
+		 *  by the prediction to which they belong.  Fetch2 originates
+		 *  prediction sequence numbers. */
+		InstSeqNum predictionSeqNum;
 
-        /** Blocked indication for report */
-        bool blocked;
+		/** Blocked indication for report */
+		bool blocked;
 
-        /** Signal to guard against sleeping first cycle of wakeup */
-        bool wakeupGuard;
-    };
+		/** Signal to guard against sleeping first cycle of wakeup */
+		bool wakeupGuard;
+	};
 
-    std::vector<Fetch1ThreadInfo> fetchInfo;
-    ThreadID threadPriority;
+	std::vector<Fetch1ThreadInfo> fetchInfo;
+	ThreadID threadPriority;
 
-    /** State of memory access for head instruction fetch */
-    enum IcacheState
-    {
-        IcacheRunning, /* Default. Step icache queues when possible */
-        IcacheNeedsRetry /* Request rejected, will be asked to retry */
-    };
+	/** State of memory access for head instruction fetch */
+	enum IcacheState
+	{
+		IcacheRunning, /* Default. Step icache queues when possible */
+		IcacheNeedsRetry /* Request rejected, will be asked to retry */
+	};
 
-    typedef Queue<FetchRequestPtr,
-        ReportTraitsPtrAdaptor<FetchRequestPtr>,
-        NoBubbleTraits<FetchRequestPtr> >
-        FetchQueue;
+	typedef Queue<FetchRequestPtr,
+			ReportTraitsPtrAdaptor<FetchRequestPtr>,
+			NoBubbleTraits<FetchRequestPtr> >
+	FetchQueue;
 
-    /** Queue of address translated requests from Fetch1 */
-    FetchQueue requests;
+	/** Queue of address translated requests from Fetch1 */
+	FetchQueue requests;
 
-    /** Queue of in-memory system requests and responses */
-    FetchQueue transfers;
+	/** Queue of in-memory system requests and responses */
+	FetchQueue transfers;
 
-    /** Retry state of icache_port */
-    IcacheState icacheState;
+	/** Retry state of icache_port */
+	IcacheState icacheState;
 
-    /** Sequence number for line fetch used for ordering lines to flush */
-    InstSeqNum lineSeqNum;
+	/** Sequence number for line fetch used for ordering lines to flush */
+	InstSeqNum lineSeqNum;
 
-    /** Count of the number fetches which have left the transfers queue
-     *  and are in the 'wild' in the memory system.  Try not to rely on
-     *  this value, it's better to code without knowledge of the number
-     *  of outstanding accesses */
-    unsigned int numFetchesInMemorySystem;
-    /** Number of requests inside the ITLB rather than in the queues.
-     *  All requests so located *must* have reserved space in the
-     *  transfers queue */
-    unsigned int numFetchesInITLB;
+	/** Count of the number fetches which have left the transfers queue
+	 *  and are in the 'wild' in the memory system.  Try not to rely on
+	 *  this value, it's better to code without knowledge of the number
+	 *  of outstanding accesses */
+	unsigned int numFetchesInMemorySystem;
+	/** Number of requests inside the ITLB rather than in the queues.
+	 *  All requests so located *must* have reserved space in the
+	 *  transfers queue */
+	unsigned int numFetchesInITLB;
 
-  protected:
-    friend std::ostream &operator <<(std::ostream &os,
-        Fetch1::FetchState state);
+			protected:
+	friend std::ostream &operator <<(std::ostream &os,
+			Fetch1::FetchState state);
 
-    /** Start fetching from a new address. */
-    void changeStream(const BranchData &branch);
+	/** Start fetching from a new address. */
+	void changeStream(const BranchData &branch);
 
-    /** Update streamSeqNum and predictionSeqNum from the given branch (and
-     *  assume these have changed and discard (on delivery) all lines in
-     *  flight) */
-    void updateExpectedSeqNums(const BranchData &branch);
+	/** Update streamSeqNum and predictionSeqNum from the given branch (and
+	 *  assume these have changed and discard (on delivery) all lines in
+	 *  flight) */
+	void updateExpectedSeqNums(const BranchData &branch);
 
-    /** Convert a response to a ForwardLineData */
-    void processResponse(FetchRequestPtr response,
-        ForwardLineData &line);
+	/** Convert a response to a ForwardLineData */
+	void processResponse(FetchRequestPtr response,
+			ForwardLineData &line);
 
-    friend std::ostream &operator <<(std::ostream &os,
-        IcacheState state);
+	friend std::ostream &operator <<(std::ostream &os,
+			IcacheState state);
 
 
-    /** Use the current threading policy to determine the next thread to
-     *  fetch from. */
-    ThreadID getScheduledThread();
+	/** Use the current threading policy to determine the next thread to
+	 *  fetch from. */
+	ThreadID getScheduledThread();
 
-    /** Insert a line fetch into the requests.  This can be a partial
-     *  line request where the given address has a non-0 offset into a
-     *  line. */
-    void fetchLine(ThreadID tid);
+	/** Insert a line fetch into the requests.  This can be a partial
+	 *  line request where the given address has a non-0 offset into a
+	 *  line. */
+	void fetchLine(ThreadID tid);
 
-    /** Try and issue a fetch for a translated request at the
-     *  head of the requests queue.  Also tries to move the request
-     *  between queues */
-    void tryToSendToTransfers(FetchRequestPtr request);
+	/** Try and issue a fetch for a translated request at the
+	 *  head of the requests queue.  Also tries to move the request
+	 *  between queues */
+	void tryToSendToTransfers(FetchRequestPtr request);
 
-    /** Try to send (or resend) a memory request's next/only packet to
-     *  the memory system.  Returns true if the fetch was successfully
-     *  sent to memory */
-    bool tryToSend(FetchRequestPtr request);
+	/** Try to send (or resend) a memory request's next/only packet to
+	 *  the memory system.  Returns true if the fetch was successfully
+	 *  sent to memory */
+	bool tryToSend(FetchRequestPtr request);
 
-    /** Move a request between queues */
-    void moveFromRequestsToTransfers(FetchRequestPtr request);
+	/** Move a request between queues */
+	void moveFromRequestsToTransfers(FetchRequestPtr request);
 
-    /** Step requests along between requests and transfers queues */
-    void stepQueues();
+	/** Step requests along between requests and transfers queues */
+	void stepQueues();
 
-    /** Pop a request from the given queue and correctly deallocate and
-     *  discard it. */
-    void popAndDiscard(FetchQueue &queue);
+	/** Pop a request from the given queue and correctly deallocate and
+	 *  discard it. */
+	void popAndDiscard(FetchQueue &queue);
 
-    /** Handle pushing a TLB response onto the right queue */
-    void handleTLBResponse(FetchRequestPtr response);
+	/** Handle pushing a TLB response onto the right queue */
+	void handleTLBResponse(FetchRequestPtr response);
 
-    /** Returns the total number of queue occupancy, in-ITLB and
-     *  in-memory system fetches */
-    unsigned int numInFlightFetches();
+	/** Returns the total number of queue occupancy, in-ITLB and
+	 *  in-memory system fetches */
+	unsigned int numInFlightFetches();
 
-    /** Print the appropriate MinorLine line for a fetch response */
-    void minorTraceResponseLine(const std::string &name,
-        FetchRequestPtr response) const;
+	/** Print the appropriate MinorLine line for a fetch response */
+	void minorTraceResponseLine(const std::string &name,
+			FetchRequestPtr response) const;
 
-    /** Memory interface */
-    virtual bool recvTimingResp(PacketPtr pkt);
-    virtual void recvReqRetry();
+	/** Memory interface */
+	virtual bool recvTimingResp(PacketPtr pkt);
+	virtual void recvReqRetry();
 
-  public:
-    Fetch1(const std::string &name_,
-        MinorCPU &cpu_,
-        MinorCPUParams &params,
-        Latch<BranchData>::Output inp_,
-        Latch<ForwardLineData>::Input out_,
-        Latch<BranchData>::Output prediction_,
-        std::vector<InputBuffer<ForwardLineData>> &next_stage_input_buffer);
+			public:
+	Fetch1(const std::string &name_,
+			MinorCPU &cpu_,
+			MinorCPUParams &params,
+			Latch<BranchData>::Output inp_,
+			Latch<ForwardLineData>::Input out_,
+			Latch<BranchData>::Output prediction_,
+			std::vector<InputBuffer<ForwardLineData>> &next_stage_input_buffer);
 
-  public:
-    /** Returns the IcachePort owned by this Fetch1 */
-    MinorCPU::MinorCPUPort &getIcachePort() { return icachePort; }
+			public:
+	/** Returns the IcachePort owned by this Fetch1 */
+	MinorCPU::MinorCPUPort &getIcachePort() { return icachePort; }
 
-    /** Pass on input/buffer data to the output if you can */
-    void evaluate();
+	/** Pass on input/buffer data to the output if you can */
+	void evaluate();
 
-    /** Initiate fetch1 fetching */
-    void wakeupFetch(ThreadID tid);
+	/** Initiate fetch1 fetching */
+	void wakeupFetch(ThreadID tid);
 
-    void minorTrace() const;
+	void minorTrace() const;
 
-    /** Is this stage drained?  For Fetch1, draining is initiated by
-     *  Execute signalling a branch with the reason HaltFetch */
-    bool isDrained();
+	/** Is this stage drained?  For Fetch1, draining is initiated by
+	 *  Execute signalling a branch with the reason HaltFetch */
+	bool isDrained();
 
-    /** BGU state trace info **/
-    class Fetch1TraceInfo : public bgu::BguInfo
-    {
-    public:
-    	bool req_valid;
-		bool rsp_valid;
-		ThreadID reqTid;
-		ThreadID rspTid;
-		TheISA::PCState reqPc;
-		TheISA::PCState rspPc;
+
+
+
+	/** BGU state trace info **/
+
+	// Fetch Request class
+	class fetch_req_binfo : public bgu::BguInfo
+	{
+	public:
+		bool vld;//valid flag - if operation has been done
+		ThreadID Tid;
+		TheISA::PCState Pc;
 		int size;
 
-    	Fetch1TraceInfo() : bgu::BguInfo(bgu::FE1)
-    	{
-    		req_valid = false;
-    		rsp_valid = false;
-    		size = 0;
-    	}
-
-    	~Fetch1TraceInfo()//%TODO remove
-    	{
-
-    	}
-
-    	inline int req_ended() { this->req_valid = false; return 1; }
-    	inline int rsp_ended() { this->rsp_valid = false; return 1; }
-
-    	inline std::vector<bgu::var_attr_t> get_vars()
+		fetch_req_binfo() : bgu::BguInfo(bgu::FE1_RQT)
 		{
-    		bgu::var_attr_t tmp_attr;
-    		std::vector<bgu::var_attr_t> res;
+			vld = false;
+			size = 0;
+		}
 
-			//------ Request -------//
+		~fetch_req_binfo()//%TODO remove
+				{
+
+				}
+
+		inline int set_invalid() { this->vld = false; return 1; }
+
+		inline std::vector<bgu::var_attr_t> get_vars()
+    	{
+			bgu::var_attr_t tmp_attr;
+			std::vector<bgu::var_attr_t> res;
 
 			//reqTid create attributes
-			tmp_attr.first = STRING_VAR(reqTid);
-			tmp_attr.second = std::to_string(reqTid);
+			tmp_attr.first = STRING_VAR(Tid);
+			tmp_attr.second = std::to_string(Tid);
 			res.push_back(tmp_attr);
 			//reqPc create attributes
-			tmp_attr.first = STRING_VAR(reqPc);
-			tmp_attr.second = std::to_string(reqPc.instAddr());
+			tmp_attr.first = STRING_VAR(Pc);
+			tmp_attr.second = std::to_string(Pc.instAddr());
 			res.push_back(tmp_attr);
 			//req_valid create attributes
-			tmp_attr.first = STRING_VAR(req_valid);
-			tmp_attr.second = std::to_string(req_valid);
+			tmp_attr.first = STRING_VAR(vld);
+			tmp_attr.second = std::to_string(vld);
 			res.push_back(tmp_attr);
+			return res;
+    	}
+	};
 
-			//------ Response -------//
+	// Fetch Response class
+	class fetch_rsp_binfo : public bgu::BguInfo
+	{
+	public:
+		bool vld;//valid flag - if operation has been done
+		ThreadID Tid;
+		TheISA::PCState Pc;
+		int size;
 
-			//rspTid create attributes
-			tmp_attr.first = STRING_VAR(rspTid);
-			tmp_attr.second = std::to_string(rspTid);
-			res.push_back(tmp_attr);
-			//rspPc create attributes
-			tmp_attr.first = STRING_VAR(rspPc);
-			tmp_attr.second = std::to_string(rspPc.instAddr());
-			res.push_back(tmp_attr);
-			//rsp_valid create attributes
-			tmp_attr.first = STRING_VAR(rsp_valid);
-			tmp_attr.second = std::to_string(rsp_valid);
-			res.push_back(tmp_attr);
-
-//    		tmp_attr.first = STRING_VAR(size);
-//			tmp_attr.second = std::to_string(size);
-//			res.push_back(tmp_attr);
-    		return res;
+		fetch_rsp_binfo() : bgu::BguInfo(bgu::FE1_RSP)
+		{
+			vld = false;
+			size = 0;
 		}
-    };
 
-    Fetch1TraceInfo fetch1Info;
+		~fetch_rsp_binfo()//%TODO remove
+		{
+
+		}
+
+		inline int set_invalid() { this->vld = false; return 1; }
+
+		inline std::vector<bgu::var_attr_t> get_vars()
+    	{
+			bgu::var_attr_t tmp_attr;
+			std::vector<bgu::var_attr_t> res;
+
+			//reqTid create attributes
+			tmp_attr.first = STRING_VAR(Tid);
+			tmp_attr.second = std::to_string(Tid);
+			res.push_back(tmp_attr);
+			//reqPc create attributes
+			tmp_attr.first = STRING_VAR(Pc);
+			tmp_attr.second = std::to_string(Pc.instAddr());
+			res.push_back(tmp_attr);
+			//req_valid create attributes
+			tmp_attr.first = STRING_VAR(vld);
+			tmp_attr.second = std::to_string(vld);
+			res.push_back(tmp_attr);
+			return res;
+    	}
+	};
+
+	fetch_req_binfo fetch1_rqt_info;
+	fetch_rsp_binfo fetch1_rsp_info;
 
 };
 

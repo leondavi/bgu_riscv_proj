@@ -280,12 +280,12 @@ Pipeline::isDrained()
 void
 Pipeline::bguTrace()
 {
-
 	//---------------- FETCH I --------------------//
-	bgu_pipeline_tracer->update_stage(&fetch1.fetch1Info);
+	bgu_pipeline_tracer->update_stage(&fetch1.fetch1_rqt_info);
+	bgu_pipeline_tracer->update_stage(&fetch1.fetch1_rsp_info);
 	//update in case request or response were ended
-	fetch1.fetch1Info.req_valid ? fetch1.fetch1Info.req_ended() : 0;
-	fetch1.fetch1Info.rsp_valid ? fetch1.fetch1Info.rsp_ended() : 0;
+	fetch1.fetch1_rqt_info.vld ? fetch1.fetch1_rqt_info.set_invalid() : 0;
+	fetch1.fetch1_rsp_info.vld ? fetch1.fetch1_rsp_info.set_invalid() : 0;
 	//---------------- FETCH II --------------------//
 	//update vld
 	bgu_pipeline_tracer->update_stage(&fetch2.fetch2Info);
