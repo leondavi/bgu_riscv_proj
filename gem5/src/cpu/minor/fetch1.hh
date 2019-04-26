@@ -416,58 +416,31 @@ protected:
 	class fetch_req_binfo : public bgu::BguInfo
 	{
 	public:
-		bool vld;//valid flag - if operation has been done
-		ThreadID Tid;
-		TheISA::PCState Pc;
-		int size;
-
 		fetch_req_binfo() : bgu::BguInfo(bgu::FE1_RQT)
 		{
 			vld = false;
-			size = 0;
 		}
 
 		~fetch_req_binfo()//%TODO remove
-				{
+		{
 
-				}
-
-		inline int set_invalid() { this->vld = false; return 1; }
+		}
 
 		inline std::vector<bgu::var_attr_t> get_vars()
-    	{
-			bgu::var_attr_t tmp_attr;
-			std::vector<bgu::var_attr_t> res;
-
-			//reqTid create attributes
-			tmp_attr.first = STRING_VAR(Tid);
-			tmp_attr.second = std::to_string(Tid);
-			res.push_back(tmp_attr);
-			//reqPc create attributes
-			tmp_attr.first = STRING_VAR(Pc);
-			tmp_attr.second = std::to_string(Pc.instAddr());
-			res.push_back(tmp_attr);
-			//req_valid create attributes
-			tmp_attr.first = STRING_VAR(vld);
-			tmp_attr.second = std::to_string(vld);
-			res.push_back(tmp_attr);
-			return res;
-    	}
+		{
+			clear_and_add_default_vars();
+			return vars_pairs;
+		}
 	};
 
 	// Fetch Response class
 	class fetch_rsp_binfo : public bgu::BguInfo
 	{
 	public:
-		bool vld;//valid flag - if operation has been done
-		ThreadID Tid;
-		TheISA::PCState Pc;
-		int size;
 
 		fetch_rsp_binfo() : bgu::BguInfo(bgu::FE1_RSP)
 		{
 			vld = false;
-			size = 0;
 		}
 
 		~fetch_rsp_binfo()//%TODO remove
@@ -475,26 +448,11 @@ protected:
 
 		}
 
-		inline int set_invalid() { this->vld = false; return 1; }
 
 		inline std::vector<bgu::var_attr_t> get_vars()
     	{
-			bgu::var_attr_t tmp_attr;
-			std::vector<bgu::var_attr_t> res;
-
-			//reqTid create attributes
-			tmp_attr.first = STRING_VAR(Tid);
-			tmp_attr.second = std::to_string(Tid);
-			res.push_back(tmp_attr);
-			//reqPc create attributes
-			tmp_attr.first = STRING_VAR(Pc);
-			tmp_attr.second = std::to_string(Pc.instAddr());
-			res.push_back(tmp_attr);
-			//req_valid create attributes
-			tmp_attr.first = STRING_VAR(vld);
-			tmp_attr.second = std::to_string(vld);
-			res.push_back(tmp_attr);
-			return res;
+			clear_and_add_default_vars();
+			return vars_pairs;
     	}
 	};
 

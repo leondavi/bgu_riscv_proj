@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <typeinfo>
 #include "base/output.hh"
+#include "cpu/base.hh"
 
 extern OutputDirectory simout;
 
@@ -52,15 +53,48 @@ protected:
 	ThreadID Tid;
 	TheISA::PCState Pc;
 	pipe_stage stage;
+	std::vector<bgu::var_attr_t> vars_pairs;
 public:
-	BguInfo(pipe_stage stage) {this->stage = stage;}
+	BguInfo(pipe_stage stage) {this->stage = stage; vld = false;}
 	virtual ~BguInfo() {}
 	/**
 	 * returns strings of headers and params of BguInfo class
 	 */
 
 	inline pipe_stage get_stage() {return this->stage;}
+
 	virtual std::vector<var_attr_t> get_vars() = 0; //pure virtual - derived classes have to implement
+
+	inline std::vector<bgu::var_attr_t> clear_and_add_default_vars()
+	{
+		bgu::var_attr_t tmp_attr;
+		vars_pairs.clear();
+		//valid create attributes
+		tmp_attr.first = STRING_VAR(vld);
+		tmp_attr.second = std::to_string(vld);
+		vars_pairs.push_back(tmp_attr);
+		//Tid create attributes
+		tmp_attr.first = STRING_VAR(Tid);
+		tmp_attr.second = std::to_string(Tid);
+		vars_pairs.push_back(tmp_attr);
+		//Pc create attributes
+		tmp_attr.first = STRING_VAR(Pc);
+		tmp_attr.second = std::to_string(Pc.instAddr());
+		vars_pairs.push_back(tmp_attr);
+
+		return vars_pairs;
+	}
+
+
+	//setters
+	inline bool set_valid_value(bool value=false) { this->vld = value; return this->vld;}
+	inline void set_pc(TheISA::PCState new_pc) {this->Pc = new_pc;}
+	inline void set_tid(ThreadID tid_val) { this->Tid = tid_val;}
+	//getters
+	inline bool is_valid() { return this->vld;}
+	inline ThreadID get_tid() { return this->Tid;}
+	inline TheISA::PCState get_pc() {return this->Pc;}
+
 };
 
 
