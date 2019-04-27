@@ -495,7 +495,7 @@ Fetch2::evaluate()
                 /* Pack the generated dynamic instruction into the output */
                 insts_out.insts[output_index] = dyn_inst;
                 output_index++;
-
+                fetch2Info.set_inst_num(output_index);
                 /* Output MinorTrace instruction info for
                  *  pre-microop decomposition macroops */
                 if (DTRACE(MinorTrace) && !dyn_inst->isFault() &&
@@ -558,7 +558,6 @@ Fetch2::evaluate()
         fetch2Info.set_valid_value(true);
         fetch2Info.set_tid(tid);
         fetch2Info.set_id(insts_out.insts[0]->id);
-        fetch2Info.set_inst_num(insts_out.numInsts);
         fetch2Info.set_pc(insts_out.insts[0]->pc);
     }
 
