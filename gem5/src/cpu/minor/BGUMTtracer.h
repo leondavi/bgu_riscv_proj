@@ -85,6 +85,29 @@ public:
 		tmp_attr.second = std::to_string(Pc.instAddr());
 		vars_pairs.push_back(tmp_attr);
 
+
+		tmp_attr.first = STRING_VAR(S);
+		tmp_attr.second = std::to_string(id.streamSeqNum);
+		vars_pairs.push_back(tmp_attr);
+
+
+		tmp_attr.first = STRING_VAR(P);
+		tmp_attr.second = std::to_string(id.predictionSeqNum);
+		vars_pairs.push_back(tmp_attr);
+
+		tmp_attr.first = STRING_VAR(L);
+		tmp_attr.second = std::to_string(id.lineSeqNum);
+		vars_pairs.push_back(tmp_attr);
+
+
+		tmp_attr.first = STRING_VAR(F);
+		tmp_attr.second = std::to_string(id.fetchSeqNum);
+		vars_pairs.push_back(tmp_attr);
+
+		tmp_attr.first = STRING_VAR(E);
+		tmp_attr.second = std::to_string(id.execSeqNum);
+		vars_pairs.push_back(tmp_attr);
+
 		return vars_pairs;
 	}
 

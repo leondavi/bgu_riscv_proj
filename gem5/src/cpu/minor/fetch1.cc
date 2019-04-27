@@ -590,10 +590,10 @@ Fetch1::processResponse(Fetch1::FetchRequestPtr response,
          *  deallocate the packet */
         //fetch1_rqt_info.size = response->packet->getSize();
         response->packet = NULL;
-        fetch1_rqt_info.set_valid_value(true);
-        fetch1_rqt_info.set_tid(response->id.threadId);
-        fetch1_rqt_info.set_id(response->id);
-        fetch1_rqt_info.set_pc(response->pc);
+        fetch1_rsp_info.set_valid_value(true);
+        fetch1_rsp_info.set_tid(response->id.threadId);
+        fetch1_rsp_info.set_id(response->id);
+        fetch1_rsp_info.set_pc(response->pc);
 //        fetch1Info.size = response->packet->getSize();
     }
 }
