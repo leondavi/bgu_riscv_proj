@@ -352,9 +352,8 @@ Fetch1::tryToSend(FetchRequestPtr request)
     	// Used for BGU debug[YE]
     	// One the transaction is sent to memory hierarchy
         fetch1_rqt_info.set_valid_value(true);
-        fetch1_rqt_info.set_pc(request->pc);
-        fetch1_rqt_info.set_tid(request->id.threadId);
         fetch1_rqt_info.set_id(request->id);
+        fetch1_rqt_info.set_pc(request->pc);
 
         /* Invalidate the fetch_requests packet so we don't
          *  accidentally fail to deallocate it (or use it!)
@@ -591,7 +590,6 @@ Fetch1::processResponse(Fetch1::FetchRequestPtr response,
         //fetch1_rqt_info.size = response->packet->getSize();
         response->packet = NULL;
         fetch1_rsp_info.set_valid_value(true);
-        fetch1_rsp_info.set_tid(response->id.threadId);
         fetch1_rsp_info.set_id(response->id);
         fetch1_rsp_info.set_pc(response->pc);
 //        fetch1Info.size = response->packet->getSize();

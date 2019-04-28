@@ -48,8 +48,8 @@ class L1Cache(Cache):
     """Simple L1 Cache with default values"""
 
     assoc = 2
-    tag_latency = 2
-    data_latency = 2
+    tag_latency = 1
+    data_latency = 1
     response_latency = 2
     mshrs = 4
     tgts_per_mshr = 20
