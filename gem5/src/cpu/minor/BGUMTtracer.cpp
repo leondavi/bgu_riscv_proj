@@ -122,11 +122,14 @@ void BGUMtTracer::update_row_in_csv_file(std::string sim_time)
 			std::vector<var_attr_t> vars = this->pipe_info_trace[s]->get_vars();
 			for(int i=0 ; i<vars.size(); i++)
 			{
-				this->csvfile<<vars[i].first;
-				if(i<vars.size()-1)
+				if(vars[i].first.find("vld") == std::string::npos)
 				{
-					//print comma separator in csv
-					this->csvfile<<",";
+					this->csvfile<<vars[i].first;
+					if(i<vars.size()-1)
+					{
+						//print comma separator in csv
+						this->csvfile<<",";
+					}
 				}
 			}
 			this->csvfile<<"\"";//in order to print the comma in tuple
@@ -146,11 +149,14 @@ void BGUMtTracer::update_row_in_csv_file(std::string sim_time)
 			std::vector<var_attr_t> vars = this->pipe_info_trace[s]->get_vars();
 			for(int i=0 ; i<vars.size(); i++)
 			{
-				this->csvfile<<vars[i].second;
-				if(i<vars.size()-1)
+				if(vars[i].first.find("vld") == std::string::npos)
 				{
-					//print comma separator in csv
-					this->csvfile<<",";
+					this->csvfile<<vars[i].second;
+					if(i<vars.size()-1)
+					{
+						//print comma separator in csv
+						this->csvfile<<",";
+					}
 				}
 			}
 		}
@@ -202,7 +208,7 @@ void BGUMtTracer::update_row_in_table(std::string sim_time,std::vector <std::str
 void BGUMtTracer::end_pipe_tick()
 {
 	std::stringstream pipe_tick_line;
-	std::string tick_str = std::to_string(curTick());
+	std::string tick_str = std::to_string(curTick()/1000);
 	pipe_tick_line<<tick_str<<" ";
 	for(int l=0; l<pipe_trace_line.size(); l++)
 	{
