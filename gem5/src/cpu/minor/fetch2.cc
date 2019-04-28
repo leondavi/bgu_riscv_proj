@@ -556,7 +556,6 @@ Fetch2::evaluate()
         nextStageReserve[tid].reserve();
 
         fetch2Info.set_valid_value(true);
-        fetch2Info.set_tid(tid);
         fetch2Info.set_id(insts_out.insts[0]->id);
         fetch2Info.set_pc(insts_out.insts[0]->pc);
     }
