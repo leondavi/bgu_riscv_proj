@@ -20,6 +20,8 @@
 #include <typeinfo>
 #include "base/output.hh"
 #include "cpu/base.hh"
+//#include "cpu/minor/cpu.hh"
+#include "cpu/minor/dyn_inst.hh"
 
 extern OutputDirectory simout;
 
@@ -37,6 +39,13 @@ inline std::string var_to_string(char* name)
     return ss.str();
 }
 
+inline std::string dec_to_hex_str(unsigned dec)
+{
+	std::stringstream stream;
+	stream << std::hex << dec;
+	return stream.str();
+}
+
 namespace bgu
 {
 
@@ -50,6 +59,7 @@ class BguInfo
 {
 protected:
 	bool vld;//valid flag - if operation has been done
+	Minor::InstId id;
 	ThreadID Tid;
 	TheISA::PCState Pc;
 	pipe_stage stage;
@@ -79,7 +89,30 @@ public:
 		vars_pairs.push_back(tmp_attr);
 		//Pc create attributes
 		tmp_attr.first = STRING_VAR(Pc);
-		tmp_attr.second = std::to_string(Pc.instAddr());
+		tmp_attr.second = "0x"+dec_to_hex_str(Pc.instAddr());
+		vars_pairs.push_back(tmp_attr);
+
+
+		tmp_attr.first = STRING_VAR(S);
+		tmp_attr.second = std::to_string(id.streamSeqNum);
+		vars_pairs.push_back(tmp_attr);
+
+
+		tmp_attr.first = STRING_VAR(P);
+		tmp_attr.second = std::to_string(id.predictionSeqNum);
+		vars_pairs.push_back(tmp_attr);
+
+		tmp_attr.first = STRING_VAR(L);
+		tmp_attr.second = std::to_string(id.lineSeqNum);
+		vars_pairs.push_back(tmp_attr);
+
+
+		tmp_attr.first = STRING_VAR(F);
+		tmp_attr.second = std::to_string(id.fetchSeqNum);
+		vars_pairs.push_back(tmp_attr);
+
+		tmp_attr.first = STRING_VAR(E);
+		tmp_attr.second = std::to_string(id.execSeqNum);
 		vars_pairs.push_back(tmp_attr);
 
 		return vars_pairs;
@@ -90,11 +123,14 @@ public:
 	inline bool set_valid_value(bool value=false) { this->vld = value; return this->vld;}
 	inline void set_pc(TheISA::PCState new_pc) {this->Pc = new_pc;}
 	inline void set_tid(ThreadID tid_val) { this->Tid = tid_val;}
+	inline void set_id(Minor::InstId new_id) {this->id = new_id;}
+
 	//getters
 	inline bool is_valid() { return this->vld;}
 	inline ThreadID get_tid() { return this->Tid;}
 	inline TheISA::PCState get_pc() {return this->Pc;}
 	inline pipe_stage get_bgu_info_stage(){ return this->stage;}
+	inline Minor::InstId get_id() {return this->id;}
 
 };
 

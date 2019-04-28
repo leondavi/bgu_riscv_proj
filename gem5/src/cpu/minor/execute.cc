@@ -663,6 +663,11 @@ Execute::issue(ThreadID thread_id)
                         DPRINTF(MinorExecute, "Issuing inst: %s"
                             " into FU %d\n", *inst,
                             fu_index);
+                        // [YE] trace here the issue
+                        exIssueInfo.set_valid_value(true);
+                        exIssueInfo.set_id(inst->id);
+                        exIssueInfo.set_pc(inst->pc);
+                        exIssueInfo.set_inst(inst->staticInst->getName());
 
                         Cycles extra_dest_retire_lat = Cycles(0);
                         TimingExpr *extra_dest_retire_lat_expr = NULL;
@@ -950,6 +955,11 @@ Execute::commitInst(MinorDynInstPtr inst, bool early_memory_issue,
         ExecContext context(cpu, *cpu.threads[thread_id], *this, inst);
 
         DPRINTF(MinorExecute, "Committing inst: %s\n", *inst);
+        // [YE] trace here
+        exCommitInfo.set_valid_value(true);
+        exCommitInfo.set_id(inst->id);
+        exCommitInfo.set_pc((inst->pc));
+        exCommitInfo.set_inst(inst->staticInst->getName());
 
         fault = inst->staticInst->execute(&context,
             inst->traceData);
@@ -1424,8 +1434,8 @@ Execute::evaluate()
 
             DPRINTF(MinorExecute, "Attempting to commit [tid:%d]\n",
                     commit_tid);
-            exCommitInfo.set_valid_value(true);
-            exCommitInfo.set_tid(commit_tid);
+//            exCommitInfo.set_valid_value(true);
+//            exCommitInfo.set_tid(commit_tid);
 
             /* commit can set stalled flags observable to issue and so *must* be
              *  called first */
@@ -1472,8 +1482,8 @@ Execute::evaluate()
             DPRINTF(MinorExecute, "Attempting to issue [tid:%d]\n",
                     issue_tid);
             num_issued = issue(issue_tid);
-            exIssueInfo.set_valid_value(true);
-            exIssueInfo.set_tid(issue_tid);
+//            exIssueInfo.set_valid_value(true);
+//            exIssueInfo.set_tid(issue_tid);
         }
 
     }

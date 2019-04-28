@@ -283,26 +283,26 @@ Pipeline::bguTrace()
 	//---------------- FETCH I --------------------//
 	bgu_pipeline_tracer->update_stage(&fetch1.fetch1_rqt_info);
 	bgu_pipeline_tracer->update_stage(&fetch1.fetch1_rsp_info);
-	//update in case request or response were ended
-	fetch1.fetch1_rqt_info.is_valid() ? fetch1.fetch1_rqt_info.set_valid_value(false) : 0;
-	fetch1.fetch1_rsp_info.is_valid() ? fetch1.fetch1_rsp_info.set_valid_value(false) : 0;
 	//---------------- FETCH II --------------------//
-	//update vld
 	bgu_pipeline_tracer->update_stage(&fetch2.fetch2Info);
-	fetch2.fetch2Info.is_valid() ? fetch2.fetch2Info.set_valid_value(false) : 0;
-
 	//---------------- DECODE ----------------------//
 	bgu_pipeline_tracer->update_stage(&decode.deInfo);
-	decode.deInfo.is_valid() ? decode.deInfo.set_valid_value(false) : 0 ;
-	
 	//---------------- EXECUTE ---------------------//
 	bgu_pipeline_tracer->update_stage(&execute.exIssueInfo);
 	bgu_pipeline_tracer->update_stage(&execute.exCommitInfo);
 
+
+	bgu_pipeline_tracer->end_pipe_tick();
+
+	//update invalid to all states after pipe tick
+	fetch1.fetch1_rqt_info.is_valid() ? fetch1.fetch1_rqt_info.set_valid_value(false) : 0;
+	fetch1.fetch1_rsp_info.is_valid() ? fetch1.fetch1_rsp_info.set_valid_value(false) : 0;
+	fetch2.fetch2Info.is_valid() ? fetch2.fetch2Info.set_valid_value(false) : 0;
+	decode.deInfo.is_valid() ? decode.deInfo.set_valid_value(false) : 0 ;
 	execute.exIssueInfo.is_valid()? execute.exIssueInfo.set_valid_value(false) : 0;
 	execute.exCommitInfo.is_valid() ? execute.exCommitInfo.set_valid_value(false) : 0;
 
-	bgu_pipeline_tracer->end_pipe_tick();
+
 
 }
 

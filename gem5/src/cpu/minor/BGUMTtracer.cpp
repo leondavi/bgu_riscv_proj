@@ -59,7 +59,7 @@ void BGUMtTracer::init_after_simulation_start()
 
 BGUMtTracer::~BGUMtTracer()
 {
-	std::cout<<"Destructor called ******";
+	//std::cout<<"Destructor called ******";
 	//tablefile<<summary_table.to_string()<<std::endl;
 
 //	logfile.close();
@@ -85,10 +85,6 @@ void BGUMtTracer::clear_line()
 	{
 		element = X_ATTRIBUTE;
 	}
-	for(auto &p : pipe_info_trace)//initialize values to NULL
-	{
-		p = NULL;
-	}
 }
 
 void BGUMtTracer::update_stage_csv(BguInfo *bgu_info)
@@ -98,10 +94,8 @@ void BGUMtTracer::update_stage_csv(BguInfo *bgu_info)
 
 void BGUMtTracer::update_stage(BguInfo *bgu_info)
 {
-	std::cout<<"vld_update: "<<bgu_info->is_valid()<<std::endl;
 	update_stage_csv(bgu_info);
 	this->pipe_info_trace[bgu_info->get_bgu_info_stage()];
-	std::cout<<"vld: "<<this->pipe_info_trace[bgu_info->get_bgu_info_stage()]->is_valid()<<std::endl;
 
 	init_after_simulation_start();//first initialization
 	this->pipe_trace_line[bgu_info->get_stage()] = "";

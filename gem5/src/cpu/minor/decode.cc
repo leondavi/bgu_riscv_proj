@@ -251,6 +251,8 @@ Decode::evaluate()
                 /* Push into output */
                 insts_out.insts[output_index] = output_inst;
                 output_index++;
+                deInfo.set_inst_num(output_index);
+
             }
 
             /* Have we finished with the input? */
@@ -286,7 +288,9 @@ Decode::evaluate()
         nextStageReserve[tid].reserve();
         deInfo.set_valid_value(true);
         deInfo.set_tid(tid);
+        deInfo.set_id(insts_out.insts[0]->id);
         deInfo.set_pc(insts_out.insts[0]->pc);
+        deInfo.set_inst(insts_out.insts[0]->staticInst->getName());
     }
 
     /* If we still have input to process and somewhere to put it,

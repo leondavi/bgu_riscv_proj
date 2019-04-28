@@ -416,15 +416,9 @@ protected:
 	class fetch_req_binfo : public bgu::BguInfo
 	{
 	public:
-		fetch_req_binfo() : bgu::BguInfo(bgu::FE1_RQT)
-		{
-			vld = false;
-		}
+		fetch_req_binfo() : bgu::BguInfo(bgu::FE1_RQT){}
 
-		~fetch_req_binfo()//%TODO remove
-		{
-
-		}
+		~fetch_req_binfo(){	}
 
 		inline std::vector<bgu::var_attr_t> get_vars()
 		{
@@ -438,15 +432,9 @@ protected:
 	{
 	public:
 
-		fetch_rsp_binfo() : bgu::BguInfo(bgu::FE1_RSP)
-		{
-			vld = false;
-		}
+		fetch_rsp_binfo() : bgu::BguInfo(bgu::FE1_RSP){	}
 
-		~fetch_rsp_binfo()//%TODO remove
-		{
-
-		}
+		~fetch_rsp_binfo(){}
 
 
 		inline std::vector<bgu::var_attr_t> get_vars()

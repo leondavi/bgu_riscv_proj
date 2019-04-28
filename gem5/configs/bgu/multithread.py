@@ -119,7 +119,7 @@ def buildCPU(options,system):
 
     # Fetch 1 params
     system.cpu.fetch1LineSnapWidth = 64
-    system.cpu.fetch1LineWidth = 64
+    system.cpu.fetch1LineWidth = 64 
     system.cpu.fetch1FetchLimit = 1
 
     # Fetch 2 params
