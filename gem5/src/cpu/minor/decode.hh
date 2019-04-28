@@ -162,7 +162,8 @@ class Decode : public Named
 	class DecodeTraceInfo : public bgu::BguInfo
 	{
 	protected:
-		int inst_num;
+		int 		inst_num;
+		std::string inst;
 
 	public:
 
@@ -179,12 +180,18 @@ class Decode : public Named
 			tmp_attr.second = std::to_string(inst_num);
 			vars_pairs.push_back(tmp_attr);
 
+			tmp_attr.first = STRING_VAR(inst);
+			tmp_attr.second = inst;
+			vars_pairs.push_back(tmp_attr);
+
 			return vars_pairs;
 		}
 
 		inline void set_inst_num(int new_inst_num) {this->inst_num = new_inst_num;}
-		inline int get_inst_num(){return this->inst_num;}
+		inline void set_inst(std::string new_inst){this->inst = new_inst;}
 
+		inline int get_inst_num(){return this->inst_num;}
+		inline std::string get_inst() {return this->inst;}
 
 
 	};

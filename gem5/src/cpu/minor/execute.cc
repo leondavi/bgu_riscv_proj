@@ -667,7 +667,8 @@ Execute::issue(ThreadID thread_id)
                         exIssueInfo.set_valid_value(true);
                         exIssueInfo.set_id(inst->id);
                         exIssueInfo.set_pc(inst->pc);
-                        // inst->staticInst->getName(); // TODO add issue instruction name
+                        exIssueInfo.set_inst(inst->staticInst->getName());
+
                         Cycles extra_dest_retire_lat = Cycles(0);
                         TimingExpr *extra_dest_retire_lat_expr = NULL;
                         Cycles extra_assumed_lat = Cycles(0);
@@ -958,6 +959,7 @@ Execute::commitInst(MinorDynInstPtr inst, bool early_memory_issue,
         exCommitInfo.set_valid_value(true);
         exCommitInfo.set_id(inst->id);
         exCommitInfo.set_pc((inst->pc));
+        exCommitInfo.set_inst(inst->staticInst->getName());
 
         fault = inst->staticInst->execute(&context,
             inst->traceData);

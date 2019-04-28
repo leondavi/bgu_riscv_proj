@@ -290,6 +290,7 @@ Decode::evaluate()
         deInfo.set_tid(tid);
         deInfo.set_id(insts_out.insts[0]->id);
         deInfo.set_pc(insts_out.insts[0]->pc);
+        deInfo.set_inst(insts_out.insts[0]->staticInst->getName());
     }
 
     /* If we still have input to process and somewhere to put it,

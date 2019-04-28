@@ -358,16 +358,27 @@ class Execute : public Named
    class ExecuteTraceIsuueInfo : public bgu::BguInfo
    {
    public:
+	   std::string inst;
 
-		ExecuteTraceIsuueInfo() : bgu::BguInfo(bgu::EX_IS){}
+	   ExecuteTraceIsuueInfo() : bgu::BguInfo(bgu::EX_IS){}
 
-		~ExecuteTraceIsuueInfo() {	}
+	   ~ExecuteTraceIsuueInfo() {	}
 
-		inline std::vector<bgu::var_attr_t> get_vars()
+	   inline std::vector<bgu::var_attr_t> get_vars()
 		{
-			clear_and_add_default_vars();
-			return vars_pairs;
+		   bgu::var_attr_t tmp_attr;
+		   clear_and_add_default_vars();
+
+			tmp_attr.first = STRING_VAR(inst);
+			tmp_attr.second = inst;
+			vars_pairs.push_back(tmp_attr);
+
+		   return vars_pairs;
 		}
+
+		inline void set_inst(std::string new_inst) {this->inst = new_inst;}
+		inline std::string get_inst() {return this->inst;}
+
 
    };
 
@@ -375,6 +386,7 @@ class Execute : public Named
    class ExecuteTraceCommitInfo : public bgu::BguInfo
     {
     public:
+	   std::string inst;
 
  		ExecuteTraceCommitInfo() : bgu::BguInfo(bgu::EX_COM) {}
 
@@ -382,9 +394,17 @@ class Execute : public Named
 
 		inline std::vector<bgu::var_attr_t> get_vars()
 		{
+			bgu::var_attr_t tmp_attr;
 			clear_and_add_default_vars();
+
+			tmp_attr.first = STRING_VAR(inst);
+			tmp_attr.second = inst;
+			vars_pairs.push_back(tmp_attr);
+
 			return vars_pairs;
 		}
+		inline void set_inst(std::string new_inst) {this->inst = new_inst;}
+		inline std::string get_inst() {return this->inst;}
     };
 
    ExecuteTraceIsuueInfo exIssueInfo;
