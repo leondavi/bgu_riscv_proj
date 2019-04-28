@@ -17,9 +17,15 @@ BGUMtTracer::BGUMtTracer(int file_to_generate)
 	this->diff_str = "";
 	this->first_time_print_header = false;
 	this->pipe_trace_line.resize(TOTAL_NUM_OF_PIPE_STAGES);
+	this->pipe_info_trace.resize(TOTAL_NUM_OF_PIPE_STAGES);
 	this->pipe_stages_str_vec = PIPE_STAGES_VEC;
 	this->file_to_generate = file_to_generate;
 	this->after_sim_initialized = false;
+	this->print_csv_tuple_explanation_row = false;
+	for(auto &p : pipe_info_trace)//initialize values to NULL
+	{
+		p = NULL;
+	}
 }
 
 void BGUMtTracer::init_after_simulation_start()
@@ -79,10 +85,24 @@ void BGUMtTracer::clear_line()
 	{
 		element = X_ATTRIBUTE;
 	}
+	for(auto &p : pipe_info_trace)//initialize values to NULL
+	{
+		p = NULL;
+	}
+}
+
+void BGUMtTracer::update_stage_csv(BguInfo *bgu_info)
+{
+	this->pipe_info_trace[bgu_info->get_bgu_info_stage()] = bgu_info;
 }
 
 void BGUMtTracer::update_stage(BguInfo *bgu_info)
 {
+	std::cout<<"vld_update: "<<bgu_info->is_valid()<<std::endl;
+	update_stage_csv(bgu_info);
+	this->pipe_info_trace[bgu_info->get_bgu_info_stage()];
+	std::cout<<"vld: "<<this->pipe_info_trace[bgu_info->get_bgu_info_stage()]->is_valid()<<std::endl;
+
 	init_after_simulation_start();//first initialization
 	this->pipe_trace_line[bgu_info->get_stage()] = "";
 	std::vector<var_attr_t> vars = bgu_info->get_vars();
@@ -96,13 +116,55 @@ void BGUMtTracer::update_stage(BguInfo *bgu_info)
 	}
 }
 
-void BGUMtTracer::update_row_in_csv_file(std::string sim_time,std::vector <std::string> &pipe_trace_line)
+void BGUMtTracer::update_row_in_csv_file(std::string sim_time)
 {
-	this->csvfile<<sim_time;
-	for(auto &cur_string : pipe_trace_line)
+	if(!this->print_csv_tuple_explanation_row)
 	{
-		this->csvfile<<",";
-		this->csvfile<<cur_string;
+		this->csvfile<<" ";//for simtime print empty in this case
+		for (int s = 0 ; s < this->pipe_info_trace.size(); s++)
+		{
+			this->csvfile<<",";//New row
+			this->csvfile<<"\"";//in order to print the comma in tuple
+			std::vector<var_attr_t> vars = this->pipe_info_trace[s]->get_vars();
+			for(int i=0 ; i<vars.size(); i++)
+			{
+				this->csvfile<<vars[i].first;
+				if(i<vars.size()-1)
+				{
+					//print comma separator in csv
+					this->csvfile<<",";
+				}
+			}
+			this->csvfile<<"\"";//in order to print the comma in tuple
+
+		}
+		this->print_csv_tuple_explanation_row = true;
+		this->csvfile<<std::endl;
+	}
+
+	this->csvfile<<sim_time;
+	for (int s=0; s<this->pipe_info_trace.size(); s++)
+	{
+		this->csvfile<<",";//New row
+		this->csvfile<<"\"";//in order to print the comma in tuple
+		if(this->pipe_info_trace[s] == NULL || this->pipe_info_trace[s]->is_valid())
+		{
+			std::vector<var_attr_t> vars = this->pipe_info_trace[s]->get_vars();
+			for(int i=0 ; i<vars.size(); i++)
+			{
+				this->csvfile<<vars[i].second;
+				if(i<vars.size()-1)
+				{
+					//print comma separator in csv
+					this->csvfile<<",";
+				}
+			}
+		}
+		else
+		{
+			this->csvfile<<"x";
+		}
+		this->csvfile<<"\"";
 	}
 	this->csvfile<<std::endl;
 }
@@ -161,7 +223,7 @@ void BGUMtTracer::end_pipe_tick()
 
 	switch (file_to_generate)
 	{
-		case E_CSV: {update_row_in_csv_file(tick_str, pipe_trace_line); break;}
+		case E_CSV: {update_row_in_csv_file(tick_str); break;}
 		case E_TABLE: {update_row_in_table(tick_str, pipe_trace_line); break;}
 		case E_LOGFILE: {std::string line = pipe_tick_line.str(); logfile<<line; break;}
 	}

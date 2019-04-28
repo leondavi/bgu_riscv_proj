@@ -94,6 +94,7 @@ public:
 	inline bool is_valid() { return this->vld;}
 	inline ThreadID get_tid() { return this->Tid;}
 	inline TheISA::PCState get_pc() {return this->Pc;}
+	inline pipe_stage get_bgu_info_stage(){ return this->stage;}
 
 };
 
@@ -107,6 +108,7 @@ enum file_t {E_TABLE,E_CSV,E_LOGFILE};
 class BGUMtTracer {
 private:
 	std::vector<std::string> pipe_trace_line;
+	std::vector<BguInfo*> pipe_info_trace;
 
 	std::vector <std::string> pipe_stages_str_vec;
 
@@ -122,6 +124,7 @@ private:
 
 	bool first_time_print_header;
 	bool after_sim_initialized;
+	bool print_csv_tuple_explanation_row;
 	int file_to_generate;
 
 	std::string output_dir;
@@ -132,6 +135,8 @@ private:
 	void generate_table_headers();
 	void generate_csv_headers();
 	void init_after_simulation_start();
+
+	void update_stage_csv(BguInfo *bgu_info);
 
 	static BGUMtTracer *inst_;
 
@@ -152,7 +157,7 @@ public:
 
 	void update_stage(BguInfo* bgu_info);
 	void update_row_in_table(std::string sim_time,std::vector <std::string> &pipe_trace_line);
-	void update_row_in_csv_file(std::string sim_time,std::vector <std::string> &pipe_trace_line);
+	void update_row_in_csv_file(std::string sim_time);
 	void end_pipe_tick();
 	void save_table_to_file();
 	inline void set_output(bool state = true) { this->output_flag = state; }
