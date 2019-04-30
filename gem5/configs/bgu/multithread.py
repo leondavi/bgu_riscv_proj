@@ -65,6 +65,27 @@ def getOptions():
                       default = '../mibench/sum.o',
                       help = "Execute code")
 
+    parser.add_option('--l1i_size',
+                      action = "store",
+                      type="string",
+                      default = '16kB',
+                      help="L1 instruction cache size. Default" 
+                      )
+                    
+    parser.add_option('--l1d_size',
+                      action = "store",
+                      type="string",
+                      default = '64kB',
+                      help="L1 instruction cache size. Default" 
+                      )
+
+    parser.add_option('--l2_size',
+                      action = "store",
+                      type="string",
+                      default = '256kB',
+                      help="L1 instruction cache size. Default" 
+                      )                      
+                    
     (options, args) = parser.parse_args()    
     return options
 
@@ -91,6 +112,7 @@ def buildSystem(options):
                                            system.cpu_voltage_domain)
     # Setup memory
     system.mem_mode = 'timing'
+    system.mem_mode.latency = '10ns'
     system.mem_ranges = [AddrRange(options.mem_size)]
     system.mem_ctrl = DDR3_1600_8x8()
     system.mem_ctrl.range = system.mem_ranges[0]
@@ -169,8 +191,8 @@ def buildMem(options,system):
     system.membus = SystemXBar()
     
     if (options.cache_enable):
-        system.cpu.icache = L1ICache()
-        system.cpu.dcache = L1DCache()
+        system.cpu.icache = L1ICache(options)
+        system.cpu.dcache = L1DCache(options)
         system.cpu.icache.connectCPU(system.cpu)
         system.cpu.dcache.connectCPU(system.cpu)
 
