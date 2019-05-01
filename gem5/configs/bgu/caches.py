@@ -47,9 +47,9 @@ m5.util.addToPath('../')
 class L1Cache(Cache):
     """Simple L1 Cache with default values"""
 
-    assoc = 2
-    tag_latency = 1
-    data_latency = 1
+    assoc = 4
+    tag_latency = 0
+    data_latency = 0
     sequential_access = True
     response_latency = 1
     tgts_per_mshr = 20
@@ -96,7 +96,6 @@ class L1DCache(L1Cache):
         if not opts or not opts.l1d_size:
             return
         self.size = opts.l1d_size
-        self.size = opts.l1i_size
         self.mshrs = opts.num_threads
 
 
