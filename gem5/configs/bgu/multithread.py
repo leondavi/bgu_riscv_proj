@@ -65,6 +65,27 @@ def getOptions():
                       default = '../mibench/sum.o',
                       help = "Execute code")
 
+    parser.add_option('--l1i_size',
+                      action = "store",
+                      type="string",
+                      default = '16kB',
+                      help="L1 instruction cache size. Default" 
+                      )
+                    
+    parser.add_option('--l1d_size',
+                      action = "store",
+                      type="string",
+                      default = '64kB',
+                      help="L1 instruction cache size. Default" 
+                      )
+
+    parser.add_option('--l2_size',
+                      action = "store",
+                      type="string",
+                      default = '256kB',
+                      help="L1 instruction cache size. Default" 
+                      )                      
+                    
     (options, args) = parser.parse_args()    
     return options
 
@@ -91,9 +112,12 @@ def buildSystem(options):
                                            system.cpu_voltage_domain)
     # Setup memory
     system.mem_mode = 'timing'
+#    system.mem_mode.latency = '2ns'
     system.mem_ranges = [AddrRange(options.mem_size)]
-    system.mem_ctrl = DDR3_1600_8x8()
+    system.mem_ctrl = DDR4_2400_8x8() #DR3_1600_8x8()
     system.mem_ctrl.range = system.mem_ranges[0]
+#    system.mem_ctrl.tRCD = '1ns'
+#    system.mem_ctrl.tCL = '1ns'
 
     return system
 
@@ -135,25 +159,18 @@ def buildCPU(options,system):
     # Exexute
     system.cpu.executeIssueLimit = 1
     system.cpu.executeMemoryIssueLimit = options.num_threads
-    system.cpu.executeCommitLimit = 2
+    system.cpu.executeCommitLimit = 1 
     system.cpu.executeMemoryCommitLimit = 1
     system.cpu.executeCycleInput = 1
 #    system.cpu.executeFuncUnits 0x55f45d6ea8c0
     system.cpu.executeAllowEarlyMemoryIssue = 1
-    system.cpu.executeMaxAccessesInMemory = 2
+    system.cpu.executeMaxAccessesInMemory = options.num_threads 
     system.cpu.executeMemoryWidth = 0
-    system.cpu.executeLSQRequestsQueueSize = 1
-    system.cpu.executeLSQTransfersQueueSize = 2
+    system.cpu.executeLSQRequestsQueueSize = options.num_threads
+    system.cpu.executeLSQTransfersQueueSize = options.num_threads 
     system.cpu.executeLSQStoreBufferSize = 5
-    system.cpu.executeLSQMaxStoreBufferStoresPerCycle = 2
+    system.cpu.executeLSQMaxStoreBufferStoresPerCycle = options.num_threads 
 
-    #binary = 'tests/test-progs/hello/bin/riscv/linux/a.out' # TODO - make it param
-    #binary = '/home/david/workspace/bgu_riscv_proj/gem5/tests/test-progs/sum/sum.o' # TODO - make it param
-    binary = '/home/david/workspace/bgu_riscv_proj/gem5/tests/test-progs/bgu_riscv_compiled_tests/bitcnts'
-#    binary = 'tests/test-progs/hello/bin/riscv/linux/hello' # TODO - make it param
-#    binary = '/home/yossi/Desktop/test/sum.o'
-#    binary = '/home/yossi/projects/cpp_test/sum.o'
-#    binary = '/home/yossi/projects/cpp_test/hello.o'
     for i in range(0,options.num_threads):
         process = Process()
         process.cmd = [options.binary]
@@ -167,10 +184,15 @@ def buildCPU(options,system):
 def buildMem(options,system):
     # Create a memory bus, a system crossbar, in this case
     system.membus = SystemXBar()
-    
+    system.membus.frontend_latency = 0 #3
+    system.membus.forward_latency = 0 #4
+    system.membus.response_latency = 0 #2
+    system.membus.snoop_response_latency = 0 #4
+    system.membus.width = 64
+
     if (options.cache_enable):
-        system.cpu.icache = L1ICache()
-        system.cpu.dcache = L1DCache()
+        system.cpu.icache = L1ICache(options)
+        system.cpu.dcache = L1DCache(options)
         system.cpu.icache.connectCPU(system.cpu)
         system.cpu.dcache.connectCPU(system.cpu)
 
