@@ -142,19 +142,19 @@ def buildCPU(options,system):
     system.cpu.executeBranchDelay = 1
 
     # Fetch 1 params
-    system.cpu.fetch1LineSnapWidth = 8
-    system.cpu.fetch1LineWidth = 8
-    system.cpu.fetch1FetchLimit = options.num_threads
+    system.cpu.fetch1LineSnapWidth = 16
+    system.cpu.fetch1LineWidth = 16
+    system.cpu.fetch1FetchLimit = 2*options.num_threads
 
     # Fetch 2 params
-    system.cpu.decodeInputWidth = 4  
+    system.cpu.decodeInputWidth = 8  
     system.cpu.fetch2CycleInput = 1
     system.cpu.fetch2InputBufferSize = 1 # can be changed to 1, since no delay expected here.
 
     # Decode params
-    system.cpu.executeInputWidth = 4
+    system.cpu.executeInputWidth = 8
     system.cpu.decodeCycleInput = 1    
-    system.cpu.decodeInputBufferSize = 4
+    system.cpu.decodeInputBufferSize = 8
 
     # Exexute
     system.cpu.executeIssueLimit = 1
