@@ -557,6 +557,7 @@ Fetch2::evaluate()
 
         fetch2Info.set_valid_value(true);
         fetch2Info.set_id(insts_out.insts[0]->id);
+        fetch2Info.set_inst(insts_out.insts[0]->staticInst->getName());
         fetch2Info.set_pc(insts_out.insts[0]->pc);
     }
 
