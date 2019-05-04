@@ -172,7 +172,7 @@ class MinorDefaultFUPool(MinorFUPool):
         MinorDefaultFloatSimdFU(), MinorDefaultMemFU(),
         MinorDefaultMiscFU()]
 
-class ThreadPolicy(Enum): vals = ['SingleThreaded', 'RoundRobin', 'Random']
+class ThreadPolicy(Enum): vals = ['SingleThreaded', 'RoundRobin', 'Random','Event']
 
 class MinorCPU(BaseCPU):
     type = 'MinorCPU'
@@ -225,6 +225,8 @@ class MinorCPU(BaseCPU):
         "Allow Decode to pack instructions from more than one input cycle"
         " to fill its output each cycle")
 
+    executeIssuePolicy = Param.ThreadPolicy('RoundRobin',
+            "Thread scheduling policy")
     executeInputWidth = Param.Unsigned(2,
         "Width (in instructions) of input to Execute")
     executeCycleInput = Param.Bool(True,

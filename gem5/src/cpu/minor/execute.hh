@@ -205,6 +205,8 @@ class Execute : public Named
     ThreadID issuePriority;
     ThreadID commitPriority;
 
+    Enums::ThreadPolicy issueThreadPolicy;
+
   protected:
     friend std::ostream &operator <<(std::ostream &os, DrainState state);
 

@@ -52,7 +52,7 @@ class L1Cache(Cache):
     data_latency = 0
     sequential_access = True
     response_latency = 1
-    tgts_per_mshr = 20
+    tgts_per_mshr =  4
 
     def __init__(self, options=None):
         super(L1Cache, self).__init__()

@@ -90,7 +90,9 @@ Execute::Execute(const std::string &name_,
     executeInfo(params.numThreads, ExecuteThreadInfo(params.executeCommitLimit)),
     interruptPriority(0),
     issuePriority(0),
-    commitPriority(0)
+    commitPriority(0),
+    issueThreadPolicy(params.executeIssuePolicy)
+
 {
     if (commitLimit < 1) {
         fatal("%s: executeCommitLimit must be >= 1 (%d)\n", name_,
@@ -1475,16 +1477,23 @@ Execute::evaluate()
                 setDrainState(commit_tid, DrainAllInsts);
             }
         }
-        ThreadID issue_tid = getIssuingThread();
-        /* This will issue merrily even when interrupted in the sure and
-         *  certain knowledge that the interrupt with change the stream */
-        if (issue_tid != InvalidThreadID) {
-            DPRINTF(MinorExecute, "Attempting to issue [tid:%d]\n",
-                    issue_tid);
-            num_issued = issue(issue_tid);
-//            exIssueInfo.set_valid_value(true);
-//            exIssueInfo.set_tid(issue_tid);
-        }
+        ThreadID issue_tid;
+        int tmpcount=0;
+//        do{
+        	tmpcount++;
+        	issue_tid = getIssuingThread();
+        	/* This will issue merrily even when interrupted in the sure and
+        	 *  certain knowledge that the interrupt with change the stream */
+        	if (issue_tid != InvalidThreadID) {
+        		DPRINTF(MinorExecute, "Attempting to issue [tid:%d]\n",
+        				issue_tid);
+        		num_issued = issue(issue_tid);
+        	}
+
+//    	}while((issue_tid != InvalidThreadID) &&
+//    			(num_issued ==0) &&
+//				(tmpcount< cpu.numThreads)
+//    	); // [YE] keep trying to issue instruction when in event mode.
 
     }
 
@@ -1742,7 +1751,7 @@ Execute::getIssuingThread()
 {
     std::vector<ThreadID> priority_list;
 
-    switch (cpu.threadPolicy) {
+    switch (issueThreadPolicy) {
       case Enums::SingleThreaded:
           return 0;
       case Enums::RoundRobin:
@@ -1751,6 +1760,10 @@ Execute::getIssuingThread()
       case Enums::Random:
           priority_list = cpu.randomPriority();
           break;
+      case Enums::Event:
+          priority_list = cpu.roundRobinPriority(issuePriority-1); // -YE] - TODO replace it
+          break;
+
       default:
           panic("Invalid thread scheduling policy.");
     }

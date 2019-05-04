@@ -76,16 +76,22 @@ def getOptions():
                       action = "store",
                       type="string",
                       default = '64kB',
-                      help="L1 instruction cache size. Default" 
+                      help="L1 data cache size. Default" 
                       )
 
     parser.add_option('--l2_size',
                       action = "store",
                       type="string",
                       default = '256kB',
-                      help="L1 instruction cache size. Default" 
+                      help="L2 instruction cache size. Default" 
                       )                      
-                    
+   
+    parser.add_option('--tp',
+                      action = "store",
+                      type="string",
+                      default = 'RoundRobin',
+                      help="Issue thread pilicy" 
+                      )                    
     (options, args) = parser.parse_args()    
     return options
 
@@ -112,12 +118,9 @@ def buildSystem(options):
                                            system.cpu_voltage_domain)
     # Setup memory
     system.mem_mode = 'timing'
-#    system.mem_mode.latency = '2ns'
     system.mem_ranges = [AddrRange(options.mem_size)]
-    system.mem_ctrl = DDR4_2400_8x8() #DR3_1600_8x8()
+    system.mem_ctrl = DDR3_1600_8x8()
     system.mem_ctrl.range = system.mem_ranges[0]
-#    system.mem_ctrl.tRCD = '1ns'
-#    system.mem_ctrl.tCL = '1ns'
 
     return system
 
@@ -149,9 +152,11 @@ def buildCPU(options,system):
     # Fetch 2 params
     system.cpu.decodeInputWidth = 8  
     system.cpu.fetch2CycleInput = 1
-    system.cpu.fetch2InputBufferSize = 1 # can be changed to 1, since no delay expected here.
+    system.cpu.fetch2InputBufferSize = 2 # can be changed to 1, since no delay expected here.
 
     # Decode params
+    #system.cpu.executeIssuePolicy = 'RoundRobin' #['RoundRobin', 'Random','Event']
+    system.cpu.executeIssuePolicy = options.tp #'Event'
     system.cpu.executeInputWidth = 8
     system.cpu.decodeCycleInput = 1    
     system.cpu.decodeInputBufferSize = 8
