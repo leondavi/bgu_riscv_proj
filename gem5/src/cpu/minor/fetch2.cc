@@ -484,7 +484,8 @@ Fetch2::evaluate()
                 }
             }
 
-            if (dyn_inst) {
+            if (dyn_inst)
+            {
                 /* Step to next sequence number */
                 fetch_info.fetchSeqNum++;
 

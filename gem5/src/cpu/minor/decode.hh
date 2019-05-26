@@ -52,6 +52,7 @@
 #include "cpu/minor/dyn_inst.hh"
 #include "cpu/minor/pipe_data.hh"
 #include "BGUMTtracer.h"
+#include <algorithm>
 
 namespace Minor
 {
@@ -167,7 +168,7 @@ class Decode : public Named
 
 	public:
 
-		DecodeTraceInfo() : bgu::BguInfo(bgu::DE) {}
+		DecodeTraceInfo() : inst_num(0), inst("*"), bgu::BguInfo(bgu::DE)  {}
 
 		~DecodeTraceInfo(){ }
 

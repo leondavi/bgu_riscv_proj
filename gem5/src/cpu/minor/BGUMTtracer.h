@@ -29,6 +29,20 @@ extern OutputDirectory simout;
 #define FILE_NAME "output"
 #define X_ATTRIBUTE " x "
 
+static const std::vector<std::string> branch_insts_vec {"beq"/*branch if equal*/,
+														"bne"/*branch if not equal*/,
+														"blt"/*branch if less than*/,
+														"ble"/*branch if less than or equal*/,
+														"bltu"/*branch if less than (unsigned)*/,
+														"bleu"/*branch if less than or equal (unsigned)*/,
+														"bgt"/*branch if greater than*/,
+														"bge"/*branch if greater than or equal*/,
+														"bgtu"/*branch if greater than (unsigned)*/,
+														"bgeu"/*branch if greater than or equal (unsigned)*/,
+														"jal"/*jump and link (with imm for short distance jump)"*/,
+														"jalr"/*jump and link register*/,
+														"jr"/*jumpr register */};
+
 
 #define STRING_VAR(name) var_to_string((char*) #name)
 

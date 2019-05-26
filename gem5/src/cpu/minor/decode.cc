@@ -288,8 +288,29 @@ Decode::evaluate()
         nextStageReserve[tid].reserve();
         deInfo.set_valid_value(true);
         deInfo.set_id(insts_out.insts[0]->id);
+
         deInfo.set_pc(insts_out.insts[0]->pc);
         deInfo.set_inst(insts_out.insts[0]->staticInst->getName());
+
+        //Searching for jump/branch instruction
+
+        for (int inst = 0 ; inst < insts_out.numInsts; inst++)
+        {
+        	if(insts_out.insts[inst] != NULL && insts_out.insts[inst]->staticInst != NULL)
+        	{
+        		std::string current_instruction = insts_out.insts[inst]->staticInst->getName();
+        		if(std::find(branch_insts_vec.begin(),branch_insts_vec.end(),current_instruction) != branch_insts_vec.end())
+        		{
+        			//it is branch
+        			//std::cout<<"branch found: "<<current_instruction<<std::endl;
+        			deInfo.set_pc(insts_out.insts[inst]->pc);
+					deInfo.set_inst(insts_out.insts[inst]->staticInst->getName());
+        		}
+        		//std::cout<<"inst: "<<inst<<" "<<insts_out.insts[inst]->staticInst->getName()<<std::endl;
+        	}
+        }
+
+
     }
 
     /* If we still have input to process and somewhere to put it,

@@ -147,13 +147,13 @@ def buildCPU(options,system):
     system.cpu.executeLSQStoreBufferSize = 5
     system.cpu.executeLSQMaxStoreBufferStoresPerCycle = 2
 
-    #binary = 'tests/test-progs/hello/bin/riscv/linux/a.out' # TODO - make it param
+    binary = 'tests/test-progs/hello/bin/riscv/linux/a.out' # TODO - make it param
     #binary = '/home/david/workspace/bgu_riscv_proj/gem5/tests/test-progs/sum/sum.o' # TODO - make it param
-    binary = '/home/david/workspace/bgu_riscv_proj/gem5/tests/test-progs/bgu_riscv_compiled_tests/bitcnts'
+ #   binary = '/home/david/workspace/bgu_riscv_proj/gem5/tests/test-progs/bgu_riscv_compiled_tests/bitcnts'
 #    binary = 'tests/test-progs/hello/bin/riscv/linux/hello' # TODO - make it param
 #    binary = '/home/yossi/Desktop/test/sum.o'
 #    binary = '/home/yossi/projects/cpp_test/sum.o'
-#    binary = '/home/yossi/projects/cpp_test/hello.o'
+ #   binary = 'tests/'
     for i in range(0,options.num_threads):
         process = Process()
         process.cmd = [options.binary]
