@@ -296,10 +296,10 @@ Decode::evaluate()
 
         for (int inst = 0 ; inst < insts_out.numInsts; inst++)
         {
-        	if(insts_out.insts[inst] != NULL && insts_out.insts[inst]->staticInst != NULL)
+        	if(insts_out.insts[inst] != 0 && insts_out.insts[inst]->staticInst != 0)
         	{
-        		std::string current_instruction = insts_out.insts[inst]->staticInst->getName();
-        		if(std::find(branch_insts_vec.begin(),branch_insts_vec.end(),current_instruction) != branch_insts_vec.end())
+        		std::string current_instruction = eraseSubStr(insts_out.insts[inst]->staticInst->getName(),"c_");
+        		if (std::find(branch_insts_vec.begin(),branch_insts_vec.end(),current_instruction) != branch_insts_vec.end())
         		{
         			//it is branch
         			//std::cout<<"branch found: "<<current_instruction<<std::endl;

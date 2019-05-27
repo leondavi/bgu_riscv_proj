@@ -61,6 +61,7 @@ if 'MinorCPU' in env['CPU_MODELS']:
     Source('stats.cc')
     Source('BGUMTtracer.cpp')
     Source('fort.c')
+    Source('generic_functions.cc')
 
     DebugFlag('MinorCPU', 'Minor CPU-level events')
     DebugFlag('MinorExecute', 'Minor Execute stage')
