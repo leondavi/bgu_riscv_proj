@@ -405,7 +405,7 @@ class Execute : public Named
 			vars_pairs.push_back(tmp_attr);
 
 			tmp_attr.first = STRING_VAR(br);
-			tmp_attr.second = br;
+			tmp_attr.second = std::to_string(br);
 			vars_pairs.push_back(tmp_attr);
 
 			return vars_pairs;
