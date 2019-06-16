@@ -53,7 +53,6 @@
 #include "cpu/minor/pipe_data.hh"
 #include "BGUMTtracer.h"
 #include <algorithm>
-#include "generic_functions.hh"
 
 namespace Minor
 {

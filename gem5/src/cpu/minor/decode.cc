@@ -298,8 +298,8 @@ Decode::evaluate()
         {
         	if(insts_out.insts[inst] != 0 && insts_out.insts[inst]->staticInst != 0)
         	{
-        		std::string current_instruction = eraseSubStr(insts_out.insts[inst]->staticInst->getName(),"c_");
-        		if (std::find(branch_insts_vec.begin(),branch_insts_vec.end(),current_instruction) != branch_insts_vec.end())
+        		std::string inst_name_str = insts_out.insts[inst]->staticInst->getName();
+        		if (identify_branch_instruction(inst_name_str))
         		{
         			//it is branch
         			//saving current pc
@@ -310,16 +310,13 @@ Decode::evaluate()
         			//std::cout<<"branch found: "<<current_instruction<<std::endl;
         			deInfo.set_pc(current_pc);
         			deInfo.set_br_tgt(branch_target);
-					deInfo.set_inst(insts_out.insts[inst]->staticInst->getName());
+					deInfo.set_inst(inst_name_str);
 
 					break;
         		}
         		//std::cout<<"inst: "<<inst<<" "<<insts_out.insts[inst]->staticInst->getName()<<std::endl;
         	}
         }
-
-
-
     }
 
     /* If we still have input to process and somewhere to put it,

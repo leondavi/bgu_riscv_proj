@@ -22,6 +22,8 @@
 #include "cpu/base.hh"
 //#include "cpu/minor/cpu.hh"
 #include "cpu/minor/dyn_inst.hh"
+#include "generic_functions.hh"
+
 
 extern OutputDirectory simout;
 
@@ -64,6 +66,12 @@ inline std::string dec_to_hex_str(unsigned dec)
 	std::stringstream stream;
 	stream << std::hex << dec;
 	return stream.str();
+}
+
+inline bool identify_branch_instruction(std::string inst_str)
+{
+	std::string current_instruction = eraseSubStr(inst_str,"c_");
+	return std::find(branch_insts_vec.begin(),branch_insts_vec.end(),current_instruction) != branch_insts_vec.end();
 }
 
 namespace bgu

@@ -123,6 +123,8 @@ class Execute : public Named
     /** The execution functional units */
     std::vector<FUPipeline *> funcUnits;
 
+    bool branch_taken;
+
   public: /* Public for Pipeline to be able to pass it to Decode */
     std::vector<InputBuffer<ForwardInstData>> inputBuffer;
 
@@ -387,8 +389,9 @@ class Execute : public Named
     {
     public:
 	   std::string inst;
+	   bool br;//branch - true taken / false not taken
 
- 		ExecuteTraceCommitInfo() : bgu::BguInfo(bgu::EX_COM) {}
+ 		ExecuteTraceCommitInfo() : br(false),bgu::BguInfo(bgu::EX_COM) {}
 
  		~ExecuteTraceCommitInfo() {	}
 
@@ -401,9 +404,16 @@ class Execute : public Named
 			tmp_attr.second = inst;
 			vars_pairs.push_back(tmp_attr);
 
+			tmp_attr.first = STRING_VAR(br);
+			tmp_attr.second = br;
+			vars_pairs.push_back(tmp_attr);
+
 			return vars_pairs;
 		}
 		inline void set_inst(std::string new_inst) {this->inst = new_inst;}
+		inline void set_br(bool val){this->br=val;}
+
+		inline bool get_br(){return this->br;}
 		inline std::string get_inst() {return this->inst;}
     };
 
