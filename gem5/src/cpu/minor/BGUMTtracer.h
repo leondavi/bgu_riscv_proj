@@ -109,7 +109,7 @@ public:
 		vars_pairs.push_back(tmp_attr);
 		//Pc create attributes
 		tmp_attr.first = STRING_VAR(Pc);
-		tmp_attr.second = "0x"+dec_to_hex_str(Pc.instAddr());
+		tmp_attr.second = pcstate_to_str(Pc.instAddr());
 		vars_pairs.push_back(tmp_attr);
 
 
@@ -138,6 +138,10 @@ public:
 		return vars_pairs;
 	}
 
+	inline std::string pcstate_to_str(TheISA::PCState pc_state)
+	{
+		return "0x"+dec_to_hex_str(pc_state.instAddr());
+	}
 
 	//setters
 	inline bool set_valid_value(bool value=false) { this->vld = value; return this->vld;}

@@ -302,13 +302,22 @@ Decode::evaluate()
         		if (std::find(branch_insts_vec.begin(),branch_insts_vec.end(),current_instruction) != branch_insts_vec.end())
         		{
         			//it is branch
+        			//saving current pc
+        			RiscvISA::PCState current_pc = insts_out.insts[inst]->pc;
+        			ThreadContext *tid_cnxt = this->cpu.getContext(insts_out.threadId);
+        			RiscvISA::PCState branch_target;
+        			insts_out.insts[inst]->staticInst->hasBranchTarget(current_pc,tid_cnxt,branch_target);
         			//std::cout<<"branch found: "<<current_instruction<<std::endl;
-        			deInfo.set_pc(insts_out.insts[inst]->pc);
+        			deInfo.set_pc(current_pc);
+        			deInfo.set_br_tgt(branch_target);
 					deInfo.set_inst(insts_out.insts[inst]->staticInst->getName());
+
+					break;
         		}
         		//std::cout<<"inst: "<<inst<<" "<<insts_out.insts[inst]->staticInst->getName()<<std::endl;
         	}
         }
+
 
 
     }

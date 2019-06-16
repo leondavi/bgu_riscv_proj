@@ -166,11 +166,11 @@ class Decode : public Named
 	protected:
 		int 		inst_num;
 		std::string inst;
+		TheISA::PCState br_tgt;
 
 	public:
 
 		DecodeTraceInfo() : inst_num(0), inst("*"), bgu::BguInfo(bgu::DE)  {}
-
 		~DecodeTraceInfo(){ }
 
 		inline std::vector<bgu::var_attr_t> get_vars()
@@ -186,12 +186,18 @@ class Decode : public Named
 			tmp_attr.second = inst;
 			vars_pairs.push_back(tmp_attr);
 
+			tmp_attr.first = STRING_VAR(br_tgt);
+			tmp_attr.second = pcstate_to_str(br_tgt);
+			vars_pairs.push_back(tmp_attr);
+
 			return vars_pairs;
 		}
 
 		inline void set_inst_num(int new_inst_num) {this->inst_num = new_inst_num;}
 		inline void set_inst(std::string new_inst){this->inst = new_inst;}
+		inline void set_br_tgt(TheISA::PCState new_pc) {this->br_tgt = new_pc;}
 
+		inline TheISA::PCState get_br_tgt() { return this->br_tgt;}
 		inline int get_inst_num(){return this->inst_num;}
 		inline std::string get_inst() {return this->inst;}
 
