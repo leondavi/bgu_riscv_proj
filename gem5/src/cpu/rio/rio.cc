@@ -4,12 +4,34 @@
 
 RioCPU::RioCPU(RioCPUParams *params):
 BaseCPU(params),
+activityRecorder(name() + ".activity", 3, 3,0), // TODO - remove it to pipeline
 Icache(std::string("icache"),*this),
 Dcache(std::string("dcache"),*this)
 //pipeline()
-
 {
+    /* create threads */
+    Rio::RioThread *thread;
 
+    for (ThreadID i = 0; i < numThreads; i++)
+    {
+        if (FullSystem)
+        {
+            fatal("The Rio Model does not support FullSystem yet\n");
+        }
+        else
+        {
+            thread = new Rio::RioThread(this, i, params->system,
+                    params->workload[i], params->itb, params->dtb,
+                    params->isa[i]);
+        }
+
+        threads.push_back(thread);
+        ThreadContext *tc = thread->getTC();
+        threadContexts.push_back(tc);
+    }
+
+    // TODO - chechk DynInst
+    //  Minor::MinorDynInst::init();
 
 };
 
