@@ -48,30 +48,31 @@
 #include "cpu/simple_thread.hh"
 #include "cpu/base.hh"
 #include "params/RioCPU.hh"
-
-namespace Rio {
-/** Forward declared to break the cyclic inclusion dependencies between
- *  pipeline and cpu */
+//
+namespace Rio
+{
+///** Forward declared to break the cyclic inclusion dependencies between
+// *  pipeline and cpu */
 class Pipeline;
-
-/** Rio will use the SimpleThread state for now */
+//
+///** Rio will use the SimpleThread state for now */
 typedef SimpleThread RioThread;
-}
-;
+};
+
 
 class RioCPU: public BaseCPU {
 protected:
-	Rio::Pipeline pipeline; // TODO - need to create the object
+//	Rio::Pipeline pipeline; // TODO - need to create the object
 
 public:
 	RioCPU(RioCPUParams *params);
 
-	virtual ~RioCPU();
+	~RioCPU() {};
 
 	/** Activity recording for pipeline.  This belongs to Pipeline but
 	 *  stages will access it through the CPU as the MinorCPU object
 	 *  actually mediates idling behaviour */
-	ActivityRecorder activityRecorder; // We need to call advance function
+//	ActivityRecorder activityRecorder; //TODO- We need to call advance function
 
 	/** These are thread state-representing objects for this CPU.  If
 	 *  you need a ThreadContext for *any* reason, use
@@ -93,6 +94,7 @@ public:
 		}
 
 	};
+
 protected:
 	/** Return a reference to the data port. */
 	MasterPort &getDataPort() override;
@@ -100,10 +102,34 @@ protected:
 	/** Return a reference to the instruction port. */
 	MasterPort &getInstPort() override;
 
-public:
-	void init() override;	// Used at the constructor
-    void startup() override;
+//public:
+//	void init() override;	// Used at the constructor
+//    void startup() override;
     void wakeup(ThreadID tid) override;
+
+    /** Simple inst count interface from BaseCPU */
+    Counter totalInsts() const override;
+    Counter totalOps() const override;
+
+
+    // TODO remove below
+	class cachePort : public RioCPUPort
+	{
+	public:
+    	cachePort(std::string name, RioCPU &cpu) :
+			RioCPU::RioCPUPort(name, cpu)
+		{ }
+
+	protected:
+		bool recvTimingResp(PacketPtr pkt)
+		{ return false; }
+
+		void recvReqRetry() {}
+	};
+
+	cachePort Icache;
+	cachePort Dcache;
+
 
 };
 

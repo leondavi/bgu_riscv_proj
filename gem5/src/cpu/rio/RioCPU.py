@@ -38,12 +38,17 @@
 #
 # Authors: Nathan Binkert
 
+from m5.defines import buildEnv
 from m5.params import *
-from BaseSimpleCPU import BaseSimpleCPU
-from SimPoint import SimPoint
+from m5.proxy import *
+from m5.SimObject import SimObject
 
-class RioCPU(BaseSimpleCPU):
-    """Simple CPU model executing a configurable number of
+
+from BaseCPU import BaseCPU
+
+
+class RioCPU(BaseCPU):
+    """Base CPU model executing a configurable number of
     instructions per cycle. This model uses the simplified 'atomic'
     memory mode."""
 
@@ -58,12 +63,3 @@ class RioCPU(BaseSimpleCPU):
     def support_take_over(cls):
         return True
 
-    width = Param.Int(1, "CPU width")
-    simulate_data_stalls = Param.Bool(False, "Simulate dcache stall cycles")
-    simulate_inst_stalls = Param.Bool(False, "Simulate icache stall cycles")
-    fastmem = Param.Bool(False, "Access memory directly")
-
-    def addSimPointProbe(self, interval):
-        simpoint = SimPoint()
-        simpoint.interval = interval
-        self.probeListener = simpoint

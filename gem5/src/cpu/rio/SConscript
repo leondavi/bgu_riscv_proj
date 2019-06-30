@@ -30,10 +30,13 @@
 
 Import('*')
 
-need_simple_base = False
+#need_simple_base = False
+
 if 'RioCPU' in env['CPU_MODELS']:
     need_simple_base = True
     SimObject('RioCPU.py')
+   #SimObject('BaseCPU.py')
+    
     Source('rio.cc')
     Source('pipeline.cc')
     print("addsource")
