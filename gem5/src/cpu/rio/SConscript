@@ -35,6 +35,7 @@ if 'RioCPU' in env['CPU_MODELS']:
     need_simple_base = True
     SimObject('RioCPU.py')
     Source('rio.cc')
+    Source('pipeline.cc')
     print("addsource")
 
 if 'RioCPU' in env['CPU_MODELS'] or \

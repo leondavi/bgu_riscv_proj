@@ -40,175 +40,71 @@
  * Authors: Steve Reinhardt
  */
 
-#ifndef __CPU_SIMPLE_ATOMIC_HH__
-#define __CPU_SIMPLE_ATOMIC_HH__
+#ifndef __CPU_RIO_CPU_HH__
+#define __CPU_RIO_CPU_HH__
 
-#include "cpu/simple/base.hh"
-#include "cpu/simple/exec_context.hh"
-#include "mem/request.hh"
+#include "cpu/rio/pipeline.hh"
+#include "cpu/activity.hh"
+#include "cpu/simple_thread.hh"
+#include "cpu/base.hh"
 #include "params/RioCPU.hh"
-#include "sim/probe/probe.hh"
 
-class RioCPU : public BaseSimpleCPU
-{
-  public:
+namespace Rio {
+/** Forward declared to break the cyclic inclusion dependencies between
+ *  pipeline and cpu */
+class Pipeline;
 
-    RioCPU(RioCPUParams *params);
-    virtual ~RioCPU();
+/** Rio will use the SimpleThread state for now */
+typedef SimpleThread RioThread;
+}
+;
 
-    void init() override;
+class RioCPU: public BaseCPU {
+protected:
+	Rio::Pipeline pipeline; // TODO - need to create the object
 
-  private:
+public:
+	RioCPU(RioCPUParams *params);
 
-    EventFunctionWrapper tickEvent;
+	virtual ~RioCPU();
 
-    const int width;
-    bool locked;
-    const bool simulate_data_stalls;
-    const bool simulate_inst_stalls;
+	/** Activity recording for pipeline.  This belongs to Pipeline but
+	 *  stages will access it through the CPU as the MinorCPU object
+	 *  actually mediates idling behaviour */
+	ActivityRecorder activityRecorder; // We need to call advance function
 
-    // main simulation loop (one cycle)
-    void tick();
+	/** These are thread state-representing objects for this CPU.  If
+	 *  you need a ThreadContext for *any* reason, use
+	 *  threads[threadId]->getTC() */
+	std::vector<Rio::RioThread *> threads;
 
-    /**
-     * Check if a system is in a drained state.
-     *
-     * We need to drain if:
-     * <ul>
-     * <li>We are in the middle of a microcode sequence as some CPUs
-     *     (e.g., HW accelerated CPUs) can't be started in the middle
-     *     of a gem5 microcode sequence.
-     *
-     * <li>The CPU is in a LLSC region. This shouldn't normally happen
-     *     as these are executed atomically within a single tick()
-     *     call. The only way this can happen at the moment is if
-     *     there is an event in the PC event queue that affects the
-     *     CPU state while it is in an LLSC region.
-     *
-     * <li>Stay at PC is true.
-     * </ul>
-     */
-    bool isDrained() {
-        SimpleExecContext &t_info = *threadInfo[curThread];
+	/** Thread Scheduling Policy (RoundRobin, Random, etc) */
+	// Enums::ThreadPolicy threadPolicy; - TODO - we have separate in each relevant place
+	/** Provide a non-protected base class for Minor's Ports as derived
+	 *  classes are created by Fetch1 and Execute */
+	class RioCPUPort: public MasterPort {
+	public:
+		/** The enclosing cpu */
+		RioCPU &cpu;
 
-        return t_info.thread->microPC() == 0 &&
-            !locked &&
-            !t_info.stayAtPC;
-    }
+	public:
+		RioCPUPort(const std::string& name_, RioCPU &cpu_) :
+				MasterPort(name_, &cpu_), cpu(cpu_) {
+		}
 
-    /**
-     * Try to complete a drain request.
-     *
-     * @returns true if the CPU is drained, false otherwise.
-     */
-    bool tryCompleteDrain();
+	};
+protected:
+	/** Return a reference to the data port. */
+	MasterPort &getDataPort() override;
 
-    /**
-     * An AtomicCPUPort overrides the default behaviour of the
-     * recvAtomicSnoop and ignores the packet instead of panicking. It
-     * also provides an implementation for the purely virtual timing
-     * functions and panics on either of these.
-     */
-    class AtomicCPUPort : public MasterPort
-    {
+	/** Return a reference to the instruction port. */
+	MasterPort &getInstPort() override;
 
-      public:
+public:
+	void init() override;	// Used at the constructor
+    void startup() override;
+    void wakeup(ThreadID tid) override;
 
-        AtomicCPUPort(const std::string &_name, BaseSimpleCPU* _cpu)
-            : MasterPort(_name, _cpu)
-        { }
-
-      protected:
-
-        bool recvTimingResp(PacketPtr pkt)
-        {
-            panic("Atomic CPU doesn't expect recvTimingResp!\n");
-            return true;
-        }
-
-        void recvReqRetry()
-        {
-            panic("Atomic CPU doesn't expect recvRetry!\n");
-        }
-
-    };
-
-    class AtomicCPUDPort : public AtomicCPUPort
-    {
-
-      public:
-
-        AtomicCPUDPort(const std::string &_name, BaseSimpleCPU* _cpu)
-            : AtomicCPUPort(_name, _cpu), cpu(_cpu)
-        {
-            cacheBlockMask = ~(cpu->cacheLineSize() - 1);
-        }
-
-        bool isSnooping() const { return true; }
-
-        Addr cacheBlockMask;
-      protected:
-        BaseSimpleCPU *cpu;
-
-        virtual Tick recvAtomicSnoop(PacketPtr pkt);
-        virtual void recvFunctionalSnoop(PacketPtr pkt);
-    };
-
-
-    AtomicCPUPort icachePort;
-    AtomicCPUDPort dcachePort;
-
-    bool fastmem;
-    RequestPtr ifetch_req;
-    RequestPtr data_read_req;
-    RequestPtr data_write_req;
-
-    bool dcache_access;
-    Tick dcache_latency;
-
-    /** Probe Points. */
-    ProbePointArg<std::pair<SimpleThread*, const StaticInstPtr>> *ppCommit;
-
-  protected:
-
-    /** Return a reference to the data port. */
-    MasterPort &getDataPort() override { return dcachePort; }
-
-    /** Return a reference to the instruction port. */
-    MasterPort &getInstPort() override { return icachePort; }
-
-    /** Perform snoop for other cpu-local thread contexts. */
-    void threadSnoop(PacketPtr pkt, ThreadID sender);
-
-  public:
-
-    DrainState drain() override;
-    void drainResume() override;
-
-    void switchOut() override;
-    void takeOverFrom(BaseCPU *oldCPU) override;
-
-    void verifyMemoryMode() const override;
-
-    void activateContext(ThreadID thread_num) override;
-    void suspendContext(ThreadID thread_num) override;
-
-    Fault readMem(Addr addr, uint8_t *data, unsigned size,
-                  Request::Flags flags) override;
-
-    Fault initiateMemRead(Addr addr, unsigned size,
-                          Request::Flags flags) override;
-
-    Fault writeMem(uint8_t *data, unsigned size,
-                   Addr addr, Request::Flags flags, uint64_t *res) override;
-
-    void regProbePoints() override;
-
-    /**
-     * Print state of address in memory system via PrintReq (for
-     * debugging).
-     */
-    void printAddr(Addr a);
 };
 
-#endif // __CPU_SIMPLE_ATOMIC_HH__
+#endif // __CPU_RIO_CPU_HH__
