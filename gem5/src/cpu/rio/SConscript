@@ -39,6 +39,10 @@ if 'RioCPU' in env['CPU_MODELS']:
     
     Source('rio.cc')
     Source('pipeline.cc')
+    Source('fetch.cc')
+    Source('decode.cc')
+    Source('execute.cc')
+
     print("addsource")
 
 if 'RioCPU' in env['CPU_MODELS'] or \

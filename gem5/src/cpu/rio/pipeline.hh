@@ -8,9 +8,13 @@
 #ifndef __CPU_RIO_PIPELINE_HH_
 #define __CPU_RIO_PIPELINE_HH_
 
+#include "cpu/rio/buffer.hh"
 #include "cpu/activity.hh"
 #include "sim/ticked_object.hh"
 #include "cpu/rio/rio.hh"
+#include "cpu/rio/fetch.hh"
+#include "cpu/rio/decode.hh"
+#include "cpu/rio/execute.hh"
 #include "params/RioCPU.hh"
 
 namespace Rio {
@@ -21,6 +25,19 @@ protected:
 
 	/** Allow cycles to be skipped when the pipeline is idle */
 	bool allow_idling;
+
+
+	//Buffers and wires between stages
+	RioLatch<int> fe_to_de;
+	RioLatch<int> de_to_ex;
+	RioLatch<int> ex_to_fe;
+
+	//Stages - instances
+
+	Fetch fetch_;
+	Decode decode_;
+	Execute execute_;
+
 
 	ActivityRecorder activityRecorder;
 
