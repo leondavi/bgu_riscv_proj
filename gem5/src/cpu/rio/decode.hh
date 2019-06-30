@@ -8,6 +8,8 @@
 #ifndef SRC_CPU_RIO_DECODE_HH_
 #define SRC_CPU_RIO_DECODE_HH_
 
+#include "cpu/rio/buffer.hh"
+
 namespace Rio {
 
 class Decode
@@ -17,10 +19,10 @@ protected:
 	RioCPU &cpu;
 
 	/** Input port carrying branch requests from Execute */
-	Latch<int>::Output inp;
+	RioLatch<int>::Output inp;
 
 	/** Output port carrying read lines to Fetch2 */
-	Latch<int>::Input out;
+	RioLatch<int>::Input out;
 public:
 	Decode();
 	virtual ~Decode();

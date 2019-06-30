@@ -8,6 +8,8 @@
 #ifndef SRC_CPU_RIO_FETCH_HH_
 #define SRC_CPU_RIO_FETCH_HH_
 
+#include "cpu/rio/buffer.hh"
+
 namespace Rio {
 
 class Fetch {
@@ -16,10 +18,10 @@ protected:
 	RioCPU &cpu;
 
 	/** Input port carrying branch requests from Execute */
-	Latch<int>::Output inp;
+	RioLatch<int>::Output inp;
 
 	/** Output port carrying read lines to Fetch2 */
-	Latch<int>::Input out;
+	RioLatch<int>::Input out;
 public:
 	Fetch();
 	 ~Fetch();
