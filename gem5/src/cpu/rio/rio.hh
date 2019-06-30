@@ -48,7 +48,9 @@
 #include "cpu/simple_thread.hh"
 #include "cpu/base.hh"
 #include "params/RioCPU.hh"
-//
+#include "cpu/rio/rioport.hh"
+
+
 namespace Rio
 {
 ///** Forward declared to break the cyclic inclusion dependencies between
@@ -81,19 +83,7 @@ public:
 
 	/** Thread Scheduling Policy (RoundRobin, Random, etc) */
 	// Enums::ThreadPolicy threadPolicy; - TODO - we have separate in each relevant place
-	/** Provide a non-protected base class for Minor's Ports as derived
-	 *  classes are created by Fetch1 and Execute */
-	class RioCPUPort: public MasterPort {
-	public:
-		/** The enclosing cpu */
-		RioCPU &cpu;
 
-	public:
-		RioCPUPort(const std::string& name_, RioCPU &cpu_) :
-				MasterPort(name_, &cpu_), cpu(cpu_) {
-		}
-
-	};
 
 protected:
 	/** Return a reference to the data port. */
@@ -114,22 +104,9 @@ public:
 
     ///////////////////////////////////////////////////////////////////
     // TODO remove below
-	class cachePort : public RioCPUPort
-	{
-	public:
-    	cachePort(std::string name, RioCPU &cpu) :
-			RioCPU::RioCPUPort(name, cpu)
-		{ }
 
-	protected:
-		bool recvTimingResp(PacketPtr pkt)
-		{ return false; }
-
-		void recvReqRetry() {}
-	};
-
-	cachePort Icache;
-	cachePort Dcache;
+	Rio::CachePort *Icache;
+	Rio::CachePort *Dcache;
 
 
 };
