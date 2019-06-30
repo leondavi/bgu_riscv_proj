@@ -55,6 +55,9 @@ class RioCPU(BaseCPU):
     type = 'RioCPU'
     cxx_header = "cpu/rio/rio.hh"
 
+    enableIdling = Param.Bool(True,
+        "Enable cycle skipping when the processor is idle\n");
+
     @classmethod
     def memory_mode(cls):
         return 'timing'

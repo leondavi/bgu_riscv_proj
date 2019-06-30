@@ -62,7 +62,7 @@ typedef SimpleThread RioThread;
 
 class RioCPU: public BaseCPU {
 protected:
-	Rio::Pipeline pipeline; // TODO - need to create the object
+	Rio::Pipeline *pipeline;
 
 public:
 	RioCPU(RioCPUParams *params);
@@ -72,7 +72,7 @@ public:
 	/** Activity recording for pipeline.  This belongs to Pipeline but
 	 *  stages will access it through the CPU as the MinorCPU object
 	 *  actually mediates idling behaviour */
-	ActivityRecorder activityRecorder; //TODO- We need to call advance function
+	ActivityRecorder *activityRecorder; //TODO- We need to call advance function
 
 	/** These are thread state-representing objects for this CPU.  If
 	 *  you need a ThreadContext for *any* reason, use

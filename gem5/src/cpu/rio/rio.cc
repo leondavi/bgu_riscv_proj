@@ -3,10 +3,9 @@
 #include "arch/utility.hh"
 
 RioCPU::RioCPU(RioCPUParams *params) :
-		BaseCPU(params), activityRecorder(name() + ".activity", 3, 3, 0), // TODO - remove it to pipeline
-		Icache(std::string("icache"), *this), Dcache(std::string("dcache"),
-				*this)
-//pipeline()
+		BaseCPU(params),
+		Icache(std::string("icache"), *this),
+		Dcache(std::string("dcache"), *this)
 {
 	/* create threads */
 	Rio::RioThread *thread;
@@ -28,8 +27,10 @@ RioCPU::RioCPU(RioCPUParams *params) :
 	// TODO - chechk DynInst
 	//  Minor::MinorDynInst::init();
 
+    pipeline = new Rio::Pipeline(*this, *params);
+	activityRecorder = pipeline->getActivityRecorder();
+
 }
-;
 
 //=============================================================================
 RioCPU * RioCPUParams::create() {

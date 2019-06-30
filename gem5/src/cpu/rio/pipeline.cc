@@ -9,13 +9,58 @@
 
 namespace Rio {
 
-Pipeline::Pipeline() {
+Pipeline::Pipeline(RioCPU &cpu_, RioCPUParams &params) :
+		Ticked(cpu_, &(cpu_.BaseCPU::numCycles)),
+		cpu(cpu_),
+	    allow_idling(params.enableIdling),
+		activityRecorder(cpu.name() + ".activity", Num_StageId , 3, 0) // TODO - fix the const 3
+{
 	// TODO Auto-generated constructor stub
 
 }
+void Pipeline::evaluate()
+{
+    /* Note that it's important to evaluate the stages in order to allow
+     *  'immediate', 0-time-offset TimeBuffer activity to be visible from
+     *  later stages to earlier ones in the same cycle */
 
-Pipeline::~Pipeline() {
-	// TODO Auto-generated destructor stub
+//    execute.evaluate();
+//    decode.evaluate();
+//    fetch2.evaluate();
+//    fetch1.evaluate();
+//
+//    if (DTRACE(BGUTrace))
+//    	bguTrace();
+
+    /* Update the time buffers after the stages */
+//    f1ToF2.evaluate();
+//    f2ToF1.evaluate();
+//    f2ToD.evaluate();
+//    dToE.evaluate();
+//    eToF1.evaluate();
+
+    /* The activity recorder must be be called after all the stages and
+     *  before the idler (which acts on the advice of the activity recorder */
+    activityRecorder.advance();
+
+//    if (allow_idling) {
+//        /* Become idle if we can but are not draining */
+//        if (!activityRecorder.active() && !needToSignalDrained) {
+//            DPRINTF(Quiesce, "Suspending as the processor is idle\n");
+//            stop();
+//        }
+//
+//        /* Deactivate all stages.  Note that the stages *could*
+//         *  activate and deactivate themselves but that's fraught
+//         *  with additional difficulty.
+//         *  As organised herre */
+//        activityRecorder.deactivateStage(Pipeline::CPUStageId);
+//        activityRecorder.deactivateStage(Pipeline::Fetch1StageId);
+//        activityRecorder.deactivateStage(Pipeline::Fetch2StageId);
+//        activityRecorder.deactivateStage(Pipeline::DecodeStageId);
+//        activityRecorder.deactivateStage(Pipeline::ExecuteStageId);
+//    }
+
 }
 
-} /* namespace Rio */
+}/* namespace Rio */
