@@ -67,7 +67,7 @@ protected:
 public:
 	RioCPU(RioCPUParams *params);
 
-	~RioCPU() {};
+	~RioCPU();
 
 	/** Activity recording for pipeline.  This belongs to Pipeline but
 	 *  stages will access it through the CPU as the MinorCPU object

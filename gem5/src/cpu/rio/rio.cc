@@ -31,6 +31,14 @@ RioCPU::RioCPU(RioCPUParams *params) :
 	activityRecorder = pipeline->getActivityRecorder();
 
 }
+//=============================================================================
+RioCPU::~RioCPU(){
+	delete pipeline;
+
+    for (ThreadID thread_id = 0; thread_id < threads.size(); thread_id++) {
+        delete threads[thread_id];
+    }
+}
 
 //=============================================================================
 RioCPU * RioCPUParams::create() {
