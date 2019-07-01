@@ -2,6 +2,11 @@
 #ifndef __CPU_RIO_BUFFER_HH__
 #define __CPU_RIO_BUFFER_HH__
 
+#include <iostream>
+#include <queue>
+#include <sstream>
+
+#include "cpu/activity.hh"
 #include "cpu/timebuf.hh"
 
 namespace Rio

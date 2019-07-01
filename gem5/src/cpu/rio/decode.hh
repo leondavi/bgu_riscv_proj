@@ -9,6 +9,7 @@
 #define SRC_CPU_RIO_DECODE_HH_
 
 #include "cpu/rio/buffer.hh"
+#include "cpu/rio/rio.hh"
 
 namespace Rio {
 
@@ -24,7 +25,7 @@ protected:
 	/** Output port carrying read lines to Fetch2 */
 	RioLatch<int>::Input out;
 public:
-	Decode();
+	Decode(RioCPU &cpu_);
 	virtual ~Decode();
 };
 

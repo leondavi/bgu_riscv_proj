@@ -5,11 +5,11 @@
  *      Author: david
  */
 
-#include "decode.hh"
+#include "cpu/rio/decode.hh"
 
 namespace Rio {
 
-Decode::Decode() {
+Decode::Decode(RioCPU &cpu_) : cpu(cpu_) {
 	// TODO Auto-generated constructor stub
 
 }

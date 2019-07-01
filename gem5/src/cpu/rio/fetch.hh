@@ -9,6 +9,7 @@
 #define SRC_CPU_RIO_FETCH_HH_
 
 #include "cpu/rio/buffer.hh"
+#include "cpu/rio/rio.hh"
 
 namespace Rio {
 
