@@ -1,6 +1,5 @@
 #include "cpu/rio/rio.hh"
-#include "cpu/rio/pipeline.hh"
-#include "arch/utility.hh"
+
 
 RioCPU::RioCPU(RioCPUParams *params) :
 		BaseCPU(params)

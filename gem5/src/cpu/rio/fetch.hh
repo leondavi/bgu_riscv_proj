@@ -12,9 +12,12 @@
 #include "cpu/rio/rio.hh"
 #include "cpu/rio/pipeline.hh"
 
+class RioCPU;
+
 namespace Rio {
 
 class Fetch {
+
 protected:
 	/** Pointer back to the containing CPU */
 	RioCPU &cpu;
@@ -24,10 +27,14 @@ protected:
 
 	/** Output port carrying read lines to Fetch2 */
 	RioLatch<int>::Input out;
+
 public:
 	Fetch(RioCPU &cpu_, RioLatch<int>::Output inp_,RioLatch<int>::Input out_);
 
-	 ~Fetch();
+		inp(inp_),
+		out(out_)
+	{ }
+	~Fetch();
 };
 
 } /* namespace Rio */

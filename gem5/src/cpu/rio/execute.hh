@@ -11,6 +11,8 @@
 #include "cpu/rio/buffer.hh"
 #include "cpu/rio/rio.hh"
 
+class RioCPU;
+
 namespace Rio {
 
 class Execute {

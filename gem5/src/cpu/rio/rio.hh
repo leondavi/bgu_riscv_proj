@@ -49,6 +49,7 @@
 #include "cpu/base.hh"
 #include "params/RioCPU.hh"
 #include "cpu/rio/rioport.hh"
+#include "arch/utility.hh"
 
 
 namespace Rio
