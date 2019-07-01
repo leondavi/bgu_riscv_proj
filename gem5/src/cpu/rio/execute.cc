@@ -9,7 +9,8 @@
 
 namespace Rio {
 
-Execute(RioCPU &cpu_ ,RioLatch<int>::Output inp_,RioLatch<int>::Input out_) :
+
+Execute::Execute(RioCPU &cpu_ ,RioLatch<int>::Output inp_,RioLatch<int>::Input out_) :
 		cpu(cpu_),
 		inp(inp_),
 		out(out_)

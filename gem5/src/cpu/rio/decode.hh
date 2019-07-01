@@ -28,6 +28,7 @@ protected:
 	RioLatch<int>::Input out;
 public:
 	Decode(RioCPU &cpu_ ,RioLatch<int>::Output inp_,RioLatch<int>::Input out_);
+
 	~Decode();
 };
 

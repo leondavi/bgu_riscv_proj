@@ -12,16 +12,23 @@
 #include "cpu/activity.hh"
 #include "sim/ticked_object.hh"
 #include "cpu/rio/rio.hh"
-#include "cpu/rio/fetch.hh"
-#include "cpu/rio/decode.hh"
-#include "cpu/rio/execute.hh"
+//#include "cpu/rio/fetch.hh"
+//#include "cpu/rio/decode.hh"
+//#include "cpu/rio/execute.hh"
 
 #include "params/RioCPU.hh"
 
 namespace Rio {
 
+//forward declerations:
+//class Fetch;
+//class Decode;
+//class Execute;
+
 
 class Pipeline: public Ticked {
+
+
 protected:
 	RioCPU &cpu;
 
@@ -36,9 +43,9 @@ protected:
 
 	//Stages - instances
 
-	Fetch fetch_;
-	Decode decode_;
-	Execute execute_;
+//	Fetch fetch_;
+//	Decode decode_;
+//	Execute execute_;
 
 
 	ActivityRecorder activityRecorder;

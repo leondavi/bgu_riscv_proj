@@ -10,9 +10,6 @@
 
 #include "cpu/rio/buffer.hh"
 #include "cpu/rio/rio.hh"
-#include "cpu/rio/pipeline.hh"
-
-class RioCPU;
 
 namespace Rio {
 
@@ -30,10 +27,6 @@ protected:
 
 public:
 	Fetch(RioCPU &cpu_, RioLatch<int>::Output inp_,RioLatch<int>::Input out_);
-
-		inp(inp_),
-		out(out_)
-	{ }
 	~Fetch();
 };
 
