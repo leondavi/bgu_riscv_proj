@@ -5,11 +5,11 @@
  *      Author: david
  */
 
-#include "execute.hh"
+#include "cpu/rio/execute.hh"
 
 namespace Rio {
 
-Execute::Execute() {
+Execute::Execute(RioCPU &cpu_) : cpu(cpu_)  {
 	// TODO Auto-generated constructor stub
 
 }

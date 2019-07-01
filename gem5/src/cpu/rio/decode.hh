@@ -11,6 +11,8 @@
 #include "cpu/rio/buffer.hh"
 #include "cpu/rio/rio.hh"
 
+class RioCPU;
+
 namespace Rio {
 
 class Decode
@@ -26,7 +28,7 @@ protected:
 	RioLatch<int>::Input out;
 public:
 	Decode(RioCPU &cpu_);
-	virtual ~Decode();
+	~Decode();
 };
 
 } /* namespace Rio */

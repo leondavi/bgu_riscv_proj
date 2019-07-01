@@ -9,7 +9,7 @@
 
 namespace Rio {
 
-Fetch::Fetch() {
+Fetch::Fetch(RioCPU &cpu_)  : cpu(cpu_) {
 	// TODO Auto-generated constructor stub
 
 }
