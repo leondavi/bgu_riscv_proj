@@ -105,8 +105,8 @@ public:
     ///////////////////////////////////////////////////////////////////
     // TODO remove below
 
-	Rio::CachePort *Icache;
-	Rio::CachePort *Dcache;
+	Rio::RioCachePort *Icache;
+	Rio::RioCachePort *Dcache;
 
 
 };

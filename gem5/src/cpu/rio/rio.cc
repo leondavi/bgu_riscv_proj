@@ -28,8 +28,8 @@ RioCPU::RioCPU(RioCPUParams *params) :
     pipeline = new Rio::Pipeline(*this, *params);
 	activityRecorder = pipeline->getActivityRecorder();
 
-	Icache = new Rio::CachePort(std::string("icache"), &this);
-	Dcache = new Rio::CachePort(std::string("dcache"), &this);
+	Icache = new Rio::RioCachePort(std::string("icache"), *this);
+	Dcache = new Rio::RioCachePort(std::string("dcache"), *this);
 
 }
 //=============================================================================
@@ -49,13 +49,13 @@ RioCPU * RioCPUParams::create() {
 //=============================================================================
 MasterPort &RioCPU::getInstPort() {
 //    return pipeline->getInstPort();
-	return Icache;
+	return *Icache;
 }
 
 //=============================================================================
 MasterPort &RioCPU::getDataPort() {
 //    return pipeline->getDataPort();
-	return Dcache;
+	return *Dcache;
 }
 
 //=============================================================================
