@@ -24,7 +24,7 @@ protected:
 	/** Output port carrying read lines to Fetch2 */
 	RioLatch<int>::Input out;
 public:
-	Execute(RioCPU &cpu_);
+	Execute(RioCPU &cpu_ ,RioLatch<int>::Output inp_,RioLatch<int>::Input out_);
 	~Execute();
 };
 

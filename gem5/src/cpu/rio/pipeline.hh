@@ -15,6 +15,7 @@
 #include "cpu/rio/fetch.hh"
 #include "cpu/rio/decode.hh"
 #include "cpu/rio/execute.hh"
+
 #include "params/RioCPU.hh"
 
 namespace Rio {

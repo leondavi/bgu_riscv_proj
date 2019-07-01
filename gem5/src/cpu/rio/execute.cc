@@ -9,7 +9,11 @@
 
 namespace Rio {
 
-Execute::Execute(RioCPU &cpu_) : cpu(cpu_)  {
+Execute(RioCPU &cpu_ ,RioLatch<int>::Output inp_,RioLatch<int>::Input out_) :
+		cpu(cpu_),
+		inp(inp_),
+		out(out_)
+{
 	// TODO Auto-generated constructor stub
 
 }

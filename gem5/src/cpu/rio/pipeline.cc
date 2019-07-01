@@ -19,7 +19,6 @@ Pipeline::Pipeline(RioCPU &cpu_, RioCPUParams &params) :
 		execute_(cpu_, de_to_ex.output(), ex_to_fe.input()),
 		decode_(cpu_, fe_to_de.output(), de_to_ex.input()),
 		fetch_(cpu_, ex_to_fe.output(), fe_to_de.input()),
-
 		activityRecorder(cpu.name() + ".activity", Num_StageId , 3, 0) // TODO - fix the const 3
 {
 	// TODO Auto-generated constructor stub

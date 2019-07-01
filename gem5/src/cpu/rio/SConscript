@@ -37,11 +37,12 @@ if 'RioCPU' in env['CPU_MODELS']:
     SimObject('RioCPU.py')
    #SimObject('BaseCPU.py')
     
-    Source('rio.cc')
-    Source('pipeline.cc')
+    Source('rio.cc')    
     Source('fetch.cc')
     Source('decode.cc')
     Source('execute.cc')
+    Source('pipeline.cc')
+    
 
     print("addsource")
 
