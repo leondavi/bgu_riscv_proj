@@ -10,6 +10,7 @@
 
 #include "cpu/rio/buffer.hh"
 #include "cpu/rio/rio.hh"
+#include "cpu/base.hh"
 
 namespace Rio {
 
@@ -17,7 +18,7 @@ class Fetch {
 
 protected:
 	/** Pointer back to the containing CPU */
-	RioCPU &cpu;
+	//RioCPU &cpu;
 
 	/** Input port carrying branch requests from Execute */
 	RioLatch<int>::Output inp;
@@ -26,7 +27,10 @@ protected:
 	RioLatch<int>::Input out;
 
 public:
-	Fetch(RioCPU &cpu_, RioLatch<int>::Output inp_,RioLatch<int>::Input out_);
+	Fetch(
+			//RioCPU &cpu_,
+			RioLatch<int>::Output inp_,RioLatch<int>::Input out_);
+
 	~Fetch();
 };
 

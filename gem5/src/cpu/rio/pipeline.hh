@@ -8,15 +8,19 @@
 #ifndef __CPU_RIO_PIPELINE_HH_
 #define __CPU_RIO_PIPELINE_HH_
 
-#include "cpu/rio/buffer.hh"
+//#include "cpu/rio/buffer.hh"
 #include "cpu/activity.hh"
-#include "sim/ticked_object.hh"
 #include "cpu/rio/rio.hh"
-//#include "cpu/rio/fetch.hh"
+#include "cpu/rio/fetch.hh"
 //#include "cpu/rio/decode.hh"
 //#include "cpu/rio/execute.hh"
-
+#include "sim/ticked_object.hh"
 #include "params/RioCPU.hh"
+
+#include <sstream>
+#include <iostream>
+
+
 
 namespace Rio {
 
@@ -43,7 +47,7 @@ protected:
 
 	//Stages - instances
 
-//	Fetch fetch_;
+	Fetch fetch_;
 //	Decode decode_;
 //	Execute execute_;
 
@@ -56,7 +60,8 @@ public:
 		/* A stage representing wakeup of the whole processor */
 		CPUStageId = 0,
 		/* Real pipeline stages */
-		FetchStageId, DecodeStageId, ExecuteStageId, Num_StageId /* Stage count */
+		FetchStageId, DecodeStageId, ExecuteStageId,
+		Num_StageId /* Stage count */
 	};
 
 	Pipeline(RioCPU &cpu_, RioCPUParams &params);

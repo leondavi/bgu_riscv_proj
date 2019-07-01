@@ -6,11 +6,14 @@
  */
 
 #include "cpu/rio/fetch.hh"
+#include "cpu/rio/pipeline.hh"
 
 namespace Rio {
 
-Fetch::Fetch(RioCPU &cpu_, RioLatch<int>::Output inp_, RioLatch<int>::Input out_)  :
-		cpu(cpu_),
+Fetch::Fetch(
+		//RioCPU &cpu_,
+		RioLatch<int>::Output inp_, RioLatch<int>::Input out_)  :
+		//cpu(cpu_),
 		inp(inp_),
 		out(out_)
 {
