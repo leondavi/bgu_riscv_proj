@@ -9,17 +9,5 @@
 
 namespace Rio {
 
-Fetch::Fetch(RioCPU &cpu__, RioLatch<int> inp_, RioLatch<int> out_)  :
-		cpu(cpu_),
-		inp(inp_),
-		out(out_)
-{
-	// TODO Auto-generated constructor stub
-
-}
-
-Fetch::~Fetch() {
-	// TODO Auto-generated destructor stub
-}
 
 } /* namespace Rio */

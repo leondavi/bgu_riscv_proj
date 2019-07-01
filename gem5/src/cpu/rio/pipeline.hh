@@ -19,6 +19,7 @@
 
 namespace Rio {
 
+
 class Pipeline: public Ticked {
 protected:
 	RioCPU &cpu;
