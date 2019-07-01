@@ -3,9 +3,7 @@
 #include "arch/utility.hh"
 
 RioCPU::RioCPU(RioCPUParams *params) :
-		BaseCPU(params),
-		Icache(std::string("icache"), *this),
-		Dcache(std::string("dcache"), *this)
+		BaseCPU(params)
 {
 	/* create threads */
 	Rio::RioThread *thread;
@@ -30,6 +28,9 @@ RioCPU::RioCPU(RioCPUParams *params) :
     pipeline = new Rio::Pipeline(*this, *params);
 	activityRecorder = pipeline->getActivityRecorder();
 
+	Icache = new Rio::RioCachePort(std::string("icache"), *this);
+	Dcache = new Rio::RioCachePort(std::string("dcache"), *this);
+
 }
 //=============================================================================
 RioCPU::~RioCPU(){
@@ -48,13 +49,13 @@ RioCPU * RioCPUParams::create() {
 //=============================================================================
 MasterPort &RioCPU::getInstPort() {
 //    return pipeline->getInstPort();
-	return Icache;
+	return *Icache;
 }
 
 //=============================================================================
 MasterPort &RioCPU::getDataPort() {
 //    return pipeline->getDataPort();
-	return Dcache;
+	return *Dcache;
 }
 
 //=============================================================================
