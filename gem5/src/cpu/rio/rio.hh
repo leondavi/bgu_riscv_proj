@@ -101,6 +101,8 @@ public:
     Counter totalInsts() const override;
     Counter totalOps() const override;
 
+    /** Stats interface from SimObject (by way of BaseCPU) */
+    void regStats() override;
 
     ///////////////////////////////////////////////////////////////////
     // TODO remove below

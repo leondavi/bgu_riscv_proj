@@ -76,6 +76,14 @@ Counter RioCPU::totalOps() const {
 	return ret;
 }
 
+/** Stats interface from SimObject (by way of BaseCPU) */
+//=============================================================================
+void RioCPU::regStats()
+{
+    BaseCPU::regStats();
+    //stats.regStats(name(), *this);
+    //pipeline->regStats();
+}
 //=============================================================================
 void RioCPU::wakeup(ThreadID tid) {
 	assert(tid < numThreads);

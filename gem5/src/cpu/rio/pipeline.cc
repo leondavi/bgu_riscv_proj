@@ -38,7 +38,7 @@ void Pipeline::evaluate()
 //    execute.evaluate();
 //    decode.evaluate();
 //    fetch2.evaluate();
-//    fetch1.evaluate();
+	fetch_.evaluate();
 //
 //    if (DTRACE(BGUTrace))
 //    	bguTrace();

@@ -26,10 +26,15 @@ protected:
 	/** Output port carrying read lines to Fetch2 */
 	RioLatch<int>::Input out;
 
+	int temp_counter;
 public:
 	Fetch(RioCPU &cpu_,RioLatch<int>::Output inp_,RioLatch<int>::Input out_);
 
 	~Fetch();
+
+	/** Pass on input/buffer data to the output if you can */
+	void evaluate();
+
 };
 
 } /* namespace Rio */
