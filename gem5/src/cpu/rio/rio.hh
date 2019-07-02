@@ -43,7 +43,6 @@
 #ifndef __CPU_RIO_CPU_HH__
 #define __CPU_RIO_CPU_HH__
 
-#include "cpu/rio/pipeline.hh"
 #include "cpu/activity.hh"
 #include "cpu/simple_thread.hh"
 #include "cpu/base.hh"

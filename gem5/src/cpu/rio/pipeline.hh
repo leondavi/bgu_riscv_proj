@@ -8,14 +8,17 @@
 #ifndef __CPU_RIO_PIPELINE_HH_
 #define __CPU_RIO_PIPELINE_HH_
 
-//#include "cpu/rio/buffer.hh"
+class Fetch;
+
+#include "cpu/rio/buffer.hh"
 #include "cpu/activity.hh"
 #include "cpu/rio/rio.hh"
 #include "cpu/rio/fetch.hh"
-//#include "cpu/rio/decode.hh"
-//#include "cpu/rio/execute.hh"
+#include "cpu/rio/decode.hh"
+#include "cpu/rio/execute.hh"
 #include "sim/ticked_object.hh"
 #include "params/RioCPU.hh"
+
 
 #include <sstream>
 #include <iostream>
@@ -32,7 +35,6 @@ namespace Rio {
 
 class Pipeline: public Ticked {
 
-
 protected:
 	RioCPU &cpu;
 
@@ -48,8 +50,8 @@ protected:
 	//Stages - instances
 
 	Fetch fetch_;
-//	Decode decode_;
-//	Execute execute_;
+	Decode decode_;
+	Execute execute_;
 
 
 	ActivityRecorder activityRecorder;

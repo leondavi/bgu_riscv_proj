@@ -6,9 +6,10 @@
  */
 
 #include "cpu/rio/pipeline.hh"
+#include "cpu/rio/fetch.hh"
+
 #include <algorithm>
 
-#include "cpu/rio/fetch.hh"
 
 namespace Rio {
 
@@ -19,11 +20,9 @@ Pipeline::Pipeline(RioCPU &cpu_, RioCPUParams &params) :
 		fe_to_de(cpu.name()+".fe_to_de",Cycles(1)), // TODO- change to parameter
 		de_to_ex(cpu.name()+".de_to_ex",Cycles(1)), // TODO- change to parameter
 		ex_to_fe(cpu.name()+".ex_to_fe",Cycles(1)), // TODO- change to parameter
-		fetch_(
-				//cpu_,
-				ex_to_fe.output(), fe_to_de.input()),
-		//decode_(cpu_, fe_to_de.output(), de_to_ex.input()),
-		//execute_(cpu_, de_to_ex.output(), ex_to_fe.input()),
+		fetch_(cpu_,ex_to_fe.output(), fe_to_de.input()),
+		decode_(cpu_, fe_to_de.output(), de_to_ex.input()),
+		execute_(cpu_, de_to_ex.output(), ex_to_fe.input()),
 		activityRecorder(cpu.name()+".activity", Num_StageId , 3, 0) // TODO - fix the const 3
 {
 	// TODO Auto-generated constructor stub

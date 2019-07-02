@@ -36,12 +36,12 @@ if 'RioCPU' in env['CPU_MODELS']:
     need_simple_base = True
     SimObject('RioCPU.py')
    #SimObject('BaseCPU.py')
-    
-    Source('rio.cc')    
-    Source('fetch.cc')
-    #Source('decode.cc')
-    #Source('execute.cc')
+    Source('rio.cc') 
+    Source('fetch.cc')   
+    Source('decode.cc')
+    Source('execute.cc')
     Source('pipeline.cc')
+    
     
 
     print("addsource")
