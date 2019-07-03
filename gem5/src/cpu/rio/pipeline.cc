@@ -71,7 +71,15 @@ void Pipeline::evaluate()
 //        activityRecorder.deactivateStage(Pipeline::DecodeStageId);
 //        activityRecorder.deactivateStage(Pipeline::ExecuteStageId);
 //    }
-
 }
+
+
+void Pipeline::regStats()
+{
+	Ticked::regStats();
+
+//        fetch2.regStats();
+}
+
 
 }/* namespace Rio */

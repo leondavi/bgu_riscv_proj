@@ -78,6 +78,8 @@ public:
 	// bgu::BGUMtTracer* bgu_pipeline_tracer;
     // void bguTrace(); 						// TODO - copy this
 
+    /** Stats registering */
+    void regStats();
 }; // End of class
 
 } /* namespace Rio */

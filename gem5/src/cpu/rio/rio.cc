@@ -82,7 +82,7 @@ void RioCPU::regStats()
 {
     BaseCPU::regStats();
     //stats.regStats(name(), *this);
-    //pipeline->regStats();
+    pipeline->regStats();
 }
 //=============================================================================
 void RioCPU::wakeup(ThreadID tid) {
@@ -92,3 +92,46 @@ void RioCPU::wakeup(ThreadID tid) {
 		threads[tid]->activate();
 	}
 }
+
+//=============================================================================
+void RioCPU::init()
+{
+	std::cout<<"RIO Init\n";
+    BaseCPU::init();
+
+    if (!params()->switched_out &&
+        system->getMemoryMode() != Enums::timing)
+    {
+        fatal("The Minor CPU requires the memory system to be in "
+            "'timing' mode.\n");
+    }
+
+    /* Initialise the ThreadContext's memory proxies */
+    for (ThreadID thread_id = 0; thread_id < threads.size(); thread_id++) {
+        ThreadContext *tc = getContext(thread_id);
+
+        tc->initMemProxies(tc);
+    }
+
+    /* Initialise CPUs (== threads in the ISA) */
+    if (FullSystem && !params()->switched_out) {
+		fatal("The Rio Model does not support FullSystem yet\n");
+    }
+}
+
+//=============================================================================
+void RioCPU::startup()
+{
+	std::cout<<"RIO startup\n";
+    //DPRINTF(MinorCPU, "MinorCPU startup\n"); //TODO open it
+
+    BaseCPU::startup();
+
+    for (ThreadID tid = 0; tid < numThreads; tid++) {
+        threads[tid]->startup(); // TODO - debug check if we use it(we saw it empty)
+//        pipeline->wakeupFetch(tid);
+    }
+
+    pipeline->start();
+}
+

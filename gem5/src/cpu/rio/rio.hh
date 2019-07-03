@@ -93,8 +93,8 @@ protected:
 	MasterPort &getInstPort() override;
 
 public:
-//	void init() override;	// Used at the constructor
-//  void startup() override;
+	void init() override;	// Used at the constructor
+	void startup() override;
     void wakeup(ThreadID tid) override;
 
     /** Simple inst count interface from BaseCPU */
