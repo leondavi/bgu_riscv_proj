@@ -84,14 +84,7 @@ void RioCPU::regStats()
     //stats.regStats(name(), *this);
     pipeline->regStats();
 }
-//=============================================================================
-void RioCPU::wakeup(ThreadID tid) {
-	assert(tid < numThreads);
 
-	if (threads[tid]->status() == ThreadContext::Suspended) {
-		threads[tid]->activate();
-	}
-}
 
 //=============================================================================
 void RioCPU::init()
@@ -130,8 +123,18 @@ void RioCPU::startup()
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         threads[tid]->startup(); // TODO - debug check if we use it(we saw it empty)
 //        pipeline->wakeupFetch(tid);
+        wakeup(tid);
     }
+
+}
+
+//=============================================================================
+void RioCPU::wakeup(ThreadID tid) {
+	assert(tid < numThreads);
+
+	if (threads[tid]->status() == ThreadContext::Suspended) {
+		threads[tid]->activate();
+	}
 
     pipeline->start();
 }
-

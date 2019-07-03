@@ -30,7 +30,12 @@ Fetch::evaluate()
 	int &count_out = *out.inputWire;
 
 	count_out = ++temp_counter;
-	std::cout << "Fetch : " << temp_counter<<std::endl;
+	std::cout <<std::to_string(curTick()/1000) << " Fetch : " << temp_counter<<std::endl;
+
+	if(temp_counter <10)
+	{
+		cpu.activityRecorder->activity();
+	}
 }
 
 } /* namespace Rio */

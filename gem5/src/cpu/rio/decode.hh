@@ -30,6 +30,10 @@ public:
 	Decode(RioCPU &cpu_ ,RioLatch<int>::Output inp_,RioLatch<int>::Input out_);
 
 	~Decode();
+
+	/** Pass on input/buffer data to the output if you can */
+	void evaluate();
+
 };
 
 } /* namespace Rio */

@@ -27,7 +27,12 @@ protected:
 	RioLatch<int>::Input out;
 public:
 	Execute(RioCPU &cpu_ ,RioLatch<int>::Output inp_,RioLatch<int>::Input out_);
+
 	~Execute();
+
+	/** Pass on input/buffer data to the output if you can */
+	void evaluate();
+
 };
 
 } /* namespace Rio */
