@@ -41,7 +41,7 @@ if 'RioCPU' in env['CPU_MODELS']:
     Source('decode.cc')
     Source('execute.cc')
     Source('pipeline.cc')
-    
+    Source('riotracer.cc')
     
 
     print("addsource")
