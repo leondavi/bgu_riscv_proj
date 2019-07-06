@@ -97,6 +97,19 @@ public:
 	void startup() override;
     void wakeup(ThreadID tid) override;
 
+    // Thread base classses
+    /**
+     * Called to set up the state to run a particular thread context. This also
+     * kicks off the first simulation
+     *
+     * @param tid The ID of the thread that was activated
+     */
+    void activateContext(ThreadID tid) override;
+
+    void suspendContext(ThreadID tid) override;
+
+    void haltContext(ThreadID tid) override;
+
     /** Simple inst count interface from BaseCPU */
     Counter totalInsts() const override;
     Counter totalOps() const override;

@@ -138,3 +138,25 @@ void RioCPU::wakeup(ThreadID tid) {
 
     pipeline->start();
 }
+
+void
+RioCPU::activateContext(ThreadID tid)
+{
+//    DPRINTF(FlexCPUCoreEvent, "activateContext(%d)\n", tid);
+
+    BaseCPU::activateContext(tid);
+}
+
+void
+RioCPU::suspendContext(ThreadID tid)
+{
+    // Need to de-schedule any instructions in the pipeline?
+    BaseCPU::suspendContext(tid);
+}
+
+void
+RioCPU::haltContext(ThreadID tid)
+{
+    // Need to de-schedule any instructions in the pipeline?
+    BaseCPU::haltContext(tid);
+}
