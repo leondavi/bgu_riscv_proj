@@ -1,45 +1,3 @@
-/*
- * Copyright (c) 2012-2013,2015 ARM Limited
- * All rights reserved.
- *
- * The license below extends only to copyright in the software and shall
- * not be construed as granting a license to any other intellectual
- * property including but not limited to intellectual property relating
- * to a hardware implementation of the functionality of the software
- * licensed hereunder.  You may use the software subject to the license
- * terms below provided that you ensure that this notice is replicated
- * unmodified and in its entirety in all distributions of the software,
- * modified or unmodified, in source code or in binary form.
- *
- * Copyright (c) 2002-2005 The Regents of The University of Michigan
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met: redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer;
- * redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution;
- * neither the name of the copyright holders nor the names of its
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Authors: Steve Reinhardt
- */
-
 #ifndef __CPU_RIO_CPU_HH__
 #define __CPU_RIO_CPU_HH__
 
@@ -66,6 +24,14 @@ class RioCPU: public BaseCPU {
 protected:
 	Rio::Pipeline *pipeline;
 
+	Rio::RioCachePort *Icache;
+	Rio::RioCachePort *Dcache;
+
+	/** Return a reference to the data port. */
+	MasterPort &getDataPort() override;
+
+	/** Return a reference to the instruction port. */
+	MasterPort &getInstPort() override;
 public:
 	RioCPU(RioCPUParams *params);
 
@@ -81,24 +47,38 @@ public:
 	 *  threads[threadId]->getTC() */
 	std::vector<Rio::RioThread *> threads;
 
-	/** Thread Scheduling Policy (RoundRobin, Random, etc) */
-	// Enums::ThreadPolicy threadPolicy; - TODO - we have separate in each relevant place
-
-
-protected:
-	/** Return a reference to the data port. */
-	MasterPort &getDataPort() override;
-
-	/** Return a reference to the instruction port. */
-	MasterPort &getInstPort() override;
-
-public:
+	/**
+     * Called after constructor but before running. (Make sure to call
+     * BaseCPU::init() in this function to let it do its job)
+     */
 	void init() override;	// Used at the constructor
+
+	/**
+     * Called after init, during the first simulate() event.
+     */
 	void startup() override;
+
+    /**
+     * Called to resume execution of a particular thread on this CPU.
+     */
     void wakeup(ThreadID tid) override;
 
-    // Thread base classses
     /**
+     * Called before this CPU instance is swapped with another. Must ensure
+     * that by the time this function returns, internal state is flushed.
+     */
+    void switchOut() override;
+
+    /**
+     * Called before a running CPU instance is swapped for this. We are
+     * expected to initialize our state using the old CPU's state, and take
+     * over any connections (ports) the previous CPU held.
+     *
+     * @param cpu CPU to load state from.
+     */
+    void takeOverFrom(BaseCPU* cpu) override;
+
+     /**
      * Called to set up the state to run a particular thread context. This also
      * kicks off the first simulation
      *
@@ -120,8 +100,7 @@ public:
     ///////////////////////////////////////////////////////////////////
     // TODO remove below
 
-	Rio::RioCachePort *Icache;
-	Rio::RioCachePort *Dcache;
+
 
 
 };

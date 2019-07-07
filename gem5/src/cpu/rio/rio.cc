@@ -1,6 +1,21 @@
 #include "cpu/rio/rio.hh"
 #include "cpu/rio/pipeline.hh"
 
+#include "debug/RioCPU.hh"
+
+// Rio parameters
+//=============================================================================
+RioCPU * RioCPUParams::create()
+{
+	return new RioCPU(this);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// PUBLIC
+///////////////////////////////////////////////////////////////////////////////
+
+// Rio - constructor
+//=============================================================================
 RioCPU::RioCPU(RioCPUParams *params) :
 		BaseCPU(params)
 {
@@ -31,6 +46,8 @@ RioCPU::RioCPU(RioCPUParams *params) :
 	Dcache = new Rio::RioCachePort(std::string("dcache"), *this);
 
 }
+
+// Rio destructor
 //=============================================================================
 RioCPU::~RioCPU(){
 	delete pipeline;
@@ -40,56 +57,12 @@ RioCPU::~RioCPU(){
     }
 }
 
+// Init
 //=============================================================================
-RioCPU * RioCPUParams::create() {
-	return new RioCPU(this);
-}
-
-//=============================================================================
-MasterPort &RioCPU::getInstPort() {
-//    return pipeline->getInstPort();
-	return *Icache;
-}
-
-//=============================================================================
-MasterPort &RioCPU::getDataPort() {
-//    return pipeline->getDataPort();
-	return *Dcache;
-}
-
-//=============================================================================
-Counter RioCPU::totalInsts() const {
-	Counter ret = 0;
-	for (auto i = threads.begin(); i != threads.end(); i++)
-		ret += (*i)->numInst;
-
-	return ret;
-}
-
-//=============================================================================
-Counter RioCPU::totalOps() const {
-	Counter ret = 0;
-
-	for (auto i = threads.begin(); i != threads.end(); i++)
-		ret += (*i)->numOp;
-
-	return ret;
-}
-
-/** Stats interface from SimObject (by way of BaseCPU) */
-//=============================================================================
-void RioCPU::regStats()
+void
+RioCPU::init()
 {
-    BaseCPU::regStats();
-    //stats.regStats(name(), *this);
-    pipeline->regStats();
-}
-
-
-//=============================================================================
-void RioCPU::init()
-{
-	std::cout<<"RIO Init\n";
+	DPRINTF(RioCPU,"RIO Init\n");
     BaseCPU::init();
 
     if (!params()->switched_out &&
@@ -112,24 +85,27 @@ void RioCPU::init()
     }
 }
 
+// Startup
 //=============================================================================
-void RioCPU::startup()
+void
+RioCPU::startup()
 {
-	std::cout<<"RIO startup\n";
-    //DPRINTF(MinorCPU, "MinorCPU startup\n"); //TODO open it
+    DPRINTF(RioCPU, "RioCPU startup\n");
 
     BaseCPU::startup();
 
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         threads[tid]->startup(); // TODO - debug check if we use it(we saw it empty)
-//        pipeline->wakeupFetch(tid);
         wakeup(tid);
     }
-
 }
 
+// Wakeup
 //=============================================================================
-void RioCPU::wakeup(ThreadID tid) {
+void
+RioCPU::wakeup(ThreadID tid)
+{
+    DPRINTF(RioCPU, "Rio wakeup(%d)\n",tid);
 	assert(tid < numThreads);
 
 	if (threads[tid]->status() == ThreadContext::Suspended) {
@@ -139,24 +115,98 @@ void RioCPU::wakeup(ThreadID tid) {
     pipeline->start();
 }
 
+// SwitchOut
+//=============================================================================
+void
+RioCPU::switchOut()
+{
+    DPRINTF(RioCPU, "Rio swithcOut\n");
+	BaseCPU::switchOut();
+}
+
+// TakeOverFrom
+//=============================================================================
+void
+RioCPU::takeOverFrom(BaseCPU* cpu)
+{
+    DPRINTF(RioCPU, "Rio takeOverFrom\n");
+	BaseCPU::takeOverFrom(cpu);
+}
+
+// ActivateContext
+//=============================================================================
 void
 RioCPU::activateContext(ThreadID tid)
 {
-//    DPRINTF(FlexCPUCoreEvent, "activateContext(%d)\n", tid);
-
+	DPRINTF(RioCPU, "activateContext(%d)\n", tid);
     BaseCPU::activateContext(tid);
 }
 
+// SuspendContext
+//=============================================================================
 void
 RioCPU::suspendContext(ThreadID tid)
 {
-    // Need to de-schedule any instructions in the pipeline?
+	DPRINTF(RioCPU, "suspendContext(%d)\n", tid);
     BaseCPU::suspendContext(tid);
+    Fault
 }
 
+// Halt Context
+//=============================================================================
 void
 RioCPU::haltContext(ThreadID tid)
 {
-    // Need to de-schedule any instructions in the pipeline?
+	DPRINTF(RioCPU, "haltContext(%d)\n", tid);
     BaseCPU::haltContext(tid);
+}
+
+// TotalInsts
+//=============================================================================
+Counter
+RioCPU::totalInsts() const
+{
+	Counter ret = 0;
+	for (auto i = threads.begin(); i != threads.end(); i++)
+		ret += (*i)->numInst;
+
+	return ret;
+}
+
+// TotalOps
+//=============================================================================
+Counter
+RioCPU::totalOps() const {
+	Counter ret = 0;
+
+	for (auto i = threads.begin(); i != threads.end(); i++)
+		ret += (*i)->numOp;
+
+	return ret;
+}
+
+// RegStats
+//=============================================================================
+void
+RioCPU::regStats()
+{
+    BaseCPU::regStats();
+    //stats.regStats(name(), *this);
+    pipeline->regStats();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Protected
+///////////////////////////////////////////////////////////////////////////////
+
+//=============================================================================
+MasterPort &RioCPU::getInstPort() {
+//    return pipeline->getInstPort();
+	return *Icache;
+}
+
+//=============================================================================
+MasterPort &RioCPU::getDataPort() {
+//    return pipeline->getDataPort();
+	return *Dcache;
 }

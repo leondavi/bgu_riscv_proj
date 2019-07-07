@@ -36,6 +36,7 @@ Fetch::evaluate()
 	{
 		cpu.activityRecorder->activity();
 	}
+
 }
 
 } /* namespace Rio */
