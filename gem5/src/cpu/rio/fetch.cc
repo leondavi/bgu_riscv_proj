@@ -6,9 +6,12 @@
  */
 
 #include "cpu/rio/fetch.hh"
-
+#include "debug/RioCPU.hh"
 namespace Rio {
 
+
+// Fetch - constructor
+//=============================================================================
 Fetch::Fetch(
 		RioCPU &cpu_,
 		RioLatch<int>::Output inp_, RioLatch<int>::Input out_)  :
@@ -16,27 +19,39 @@ Fetch::Fetch(
 		inp(inp_),
 		out(out_)
 {
-	// TODO Auto-generated constructor stub
 	temp_counter = 0;
 }
 
 Fetch::~Fetch() {
-	// TODO Auto-generated destructor stub
+
 }
 
+// Fetch - destructor
+//=============================================================================
 void
 Fetch::evaluate()
 {
 	int &count_out = *out.inputWire;
 
 	count_out = ++temp_counter;
-	std::cout <<std::to_string(curTick()/1000) << " Fetch : " << temp_counter<<std::endl;
+	DPRINTF(RioCPU,"Fetch : (%d)\n",count_out);
 
 	if(temp_counter <10)
 	{
 		cpu.activityRecorder->activity();
 	}
+	// First we need to check per thread if there is a stream change from
+	// execute stage or from branch prediction unit
 
+	// Check which thread can send fetch request
+
+	// Try To send the request
+
+	// Check if a response is exists, if so update state and move forward
+
+	// In case no action, turn stage off?
 }
+
+
 
 } /* namespace Rio */

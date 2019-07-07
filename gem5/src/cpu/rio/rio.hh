@@ -2,7 +2,8 @@
 #define __CPU_RIO_CPU_HH__
 
 #include "cpu/activity.hh"
-#include "cpu/simple_thread.hh"
+//#include "cpu/simple_thread.hh"
+#include "cpu/rio/rio_thread.hh"
 #include "cpu/base.hh"
 #include "params/RioCPU.hh"
 #include "cpu/rio/rioport.hh"
@@ -16,7 +17,7 @@ namespace Rio
 class Pipeline;
 //
 ///** Rio will use the SimpleThread state for now */
-typedef SimpleThread RioThread;
+//typedef SimpleThread RioThread;
 };
 
 
@@ -45,7 +46,7 @@ public:
 	/** These are thread state-representing objects for this CPU.  If
 	 *  you need a ThreadContext for *any* reason, use
 	 *  threads[threadId]->getTC() */
-	std::vector<Rio::RioThread *> threads;
+	std::vector<RioThread *> threads;
 
 	/**
      * Called after constructor but before running. (Make sure to call
@@ -96,11 +97,6 @@ public:
 
     /** Stats interface from SimObject (by way of BaseCPU) */
     void regStats() override;
-
-    ///////////////////////////////////////////////////////////////////
-    // TODO remove below
-
-
 
 
 };
