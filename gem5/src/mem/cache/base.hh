@@ -63,17 +63,20 @@
 #include "debug/Cache.hh"
 #include "debug/CachePort.hh"
 #include "enums/Clusivity.hh"
-#include "mem/cache/blk.hh"
+#include "mem/cache/cache_blk.hh"
+#include "mem/cache/compressors/base.hh"
 #include "mem/cache/mshr_queue.hh"
 #include "mem/cache/tags/base.hh"
 #include "mem/cache/write_queue.hh"
 #include "mem/cache/write_queue_entry.hh"
-#include "mem/mem_object.hh"
 #include "mem/packet.hh"
 #include "mem/packet_queue.hh"
 #include "mem/qport.hh"
 #include "mem/request.hh"
+#include "params/WriteAllocator.hh"
+#include "sim/clocked_object.hh"
 #include "sim/eventq.hh"
+#include "sim/probe/probe.hh"
 #include "sim/serialize.hh"
 #include "sim/sim_exit.hh"
 #include "sim/system.hh"
@@ -89,7 +92,7 @@ struct BaseCacheParams;
 /**
  * A basic cache interface. Implements some common functions for speed.
  */
-class BaseCache : public MemObject
+class BaseCache : public ClockedObject
 {
   protected:
     /**
@@ -187,10 +190,12 @@ class BaseCache : public MemObject
          * send out, and if so simply stall any requests, and schedule
          * a send event at the same time as the next snoop response is
          * being sent out.
+         *
+         * @param pkt The packet to check for conflicts against.
          */
-        bool checkConflictingSnoop(Addr addr)
+        bool checkConflictingSnoop(const PacketPtr pkt)
         {
-            if (snoopRespQueue.hasAddr(addr)) {
+            if (snoopRespQueue.checkConflict(pkt, cache.blkSize)) {
                 DPRINTF(CachePort, "Waiting for snoop response to be "
                         "sent\n");
                 Tick when = snoopRespQueue.deferredPacketReadyTime();
@@ -320,13 +325,36 @@ class BaseCache : public MemObject
     /** Tag and data Storage */
     BaseTags *tags;
 
+    /** Compression method being used. */
+    BaseCacheCompressor* compressor;
+
     /** Prefetcher */
     BasePrefetcher *prefetcher;
 
+    /** To probe when a cache hit occurs */
+    ProbePointArg<PacketPtr> *ppHit;
+
+    /** To probe when a cache miss occurs */
+    ProbePointArg<PacketPtr> *ppMiss;
+
+    /** To probe when a cache fill occurs */
+    ProbePointArg<PacketPtr> *ppFill;
+
     /**
-     * Notify the prefetcher on every access, not just misses.
+     * The writeAllocator drive optimizations for streaming writes.
+     * It first determines whether a WriteReq MSHR should be delayed,
+     * thus ensuring that we wait longer in cases when we are write
+     * coalescing and allowing all the bytes of the line to be written
+     * before the MSHR packet is sent downstream. This works in unison
+     * with the tracking in the MSHR to check if the entire line is
+     * written. The write mode also affects the behaviour on filling
+     * any whole-line writes. Normally the cache allocates the line
+     * when receiving the InvalidateResp, but after seeing enough
+     * consecutive lines we switch to using the tempBlock, and thus
+     * end up not allocating the line, and instead turning the
+     * whole-line write into a writeback straight away.
      */
-    const bool prefetchOnAccess;
+    WriteAllocator * const writeAllocator;
 
     /**
      * Temporary cache block for occasional transitory use.  We use
@@ -400,6 +428,28 @@ class BaseCache : public MemObject
     Addr regenerateBlkAddr(CacheBlk* blk);
 
     /**
+     * Calculate latency of accesses that only touch the tag array.
+     * @sa calculateAccessLatency
+     *
+     * @param delay The delay until the packet's metadata is present.
+     * @param lookup_lat Latency of the respective tag lookup.
+     * @return The number of ticks that pass due to a tag-only access.
+     */
+    Cycles calculateTagOnlyLatency(const uint32_t delay,
+                                   const Cycles lookup_lat) const;
+    /**
+     * Calculate access latency in ticks given a tag lookup latency, and
+     * whether access was a hit or miss.
+     *
+     * @param blk The cache block that was accessed.
+     * @param delay The delay until the packet's metadata is present.
+     * @param lookup_lat Latency of the respective tag lookup.
+     * @return The number of ticks that pass due to a block access.
+     */
+    Cycles calculateAccessLatency(const CacheBlk* blk, const uint32_t delay,
+                                  const Cycles lookup_lat) const;
+
+    /**
      * Does all the processing necessary to perform the provided request.
      * @param pkt The memory request to perform.
      * @param blk The cache block to be updated.
@@ -465,16 +515,14 @@ class BaseCache : public MemObject
      * Service non-deferred MSHR targets using the received response
      *
      * Iterates through the list of targets that can be serviced with
-     * the current response. Any writebacks that need to performed
-     * must be appended to the writebacks parameter.
+     * the current response.
      *
      * @param mshr The MSHR that corresponds to the reponse
      * @param pkt The response packet
      * @param blk The reference block
-     * @param writebacks List of writebacks that need to be performed
      */
     virtual void serviceMSHRTargets(MSHR *mshr, const PacketPtr pkt,
-                                    CacheBlk *blk, PacketList& writebacks) = 0;
+                                    CacheBlk *blk) = 0;
 
     /**
      * Handles a response (cache line fill/write ack) from the bus.
@@ -506,7 +554,7 @@ class BaseCache : public MemObject
      * @param writebacks A list with packets for any performed writebacks
      * @return Cycles for handling the request
      */
-    virtual Cycles handleAtomicReqMiss(PacketPtr pkt, CacheBlk *blk,
+    virtual Cycles handleAtomicReqMiss(PacketPtr pkt, CacheBlk *&blk,
                                        PacketList &writebacks) = 0;
 
     /**
@@ -566,10 +614,13 @@ class BaseCache : public MemObject
      * @param blk The referenced block, can be nullptr.
      * @param needs_writable Indicates that the block must be writable
      * even if the request in cpu_pkt doesn't indicate that.
+     * @param is_whole_line_write True if there are writes for the
+     * whole line
      * @return A packet send to the memory below
      */
     virtual PacketPtr createMissPacket(PacketPtr cpu_pkt, CacheBlk *blk,
-                                       bool needs_writable) const = 0;
+                                       bool needs_writable,
+                                       bool is_whole_line_write) const = 0;
 
     /**
      * Determine if clean lines should be written back or not. In
@@ -607,6 +658,33 @@ class BaseCache : public MemObject
      * between, we create this event with a higher priority.
      */
     EventFunctionWrapper writebackTempBlockAtomicEvent;
+
+    /**
+     * When a block is overwriten, its compression information must be updated,
+     * and it may need to be recompressed. If the compression size changes, the
+     * block may either become smaller, in which case there is no side effect,
+     * or bigger (data expansion; fat write), in which case the block might not
+     * fit in its current location anymore. If that happens, there are usually
+     * two options to be taken:
+     *
+     * - The co-allocated blocks must be evicted to make room for this block.
+     *   Simpler, but ignores replacement data.
+     * - The block itself is moved elsewhere (used in policies where the CF
+     *   determines the location of the block).
+     *
+     * This implementation uses the first approach.
+     *
+     * Notice that this is only called for writebacks, which means that L1
+     * caches (which see regular Writes), do not support compression.
+     * @sa CompressedTags
+     *
+     * @param blk The block to be overwriten.
+     * @param data A pointer to the data to be compressed (blk's new data).
+     * @param writebacks List for any writebacks that need to be performed.
+     * @return Whether operation is successful or not.
+     */
+    bool updateCompressionData(CacheBlk *blk, const uint64_t* data,
+                               PacketList &writebacks);
 
     /**
      * Perform any necessary updates to the block and perform any data
@@ -685,7 +763,7 @@ class BaseCache : public MemObject
      * @param blk Block to invalidate
      * @param writebacks Return a list of packets with writebacks
      */
-    virtual void evictBlock(CacheBlk *blk, PacketList &writebacks) = 0;
+    void evictBlock(CacheBlk *blk, PacketList &writebacks);
 
     /**
      * Invalidate a cache block.
@@ -782,6 +860,11 @@ class BaseCache : public MemObject
      * latency.
      */
     const Cycles responseLatency;
+
+    /**
+     * Whether tags and data are accessed sequentially.
+     */
+    const bool sequentialAccess;
 
     /** The number of targets for each MSHR. */
     const int numTarget;
@@ -929,15 +1012,6 @@ class BaseCache : public MemObject
     /** Total cycle latency of overall MSHR misses. */
     Stats::Formula overallMshrUncacheableLatency;
 
-#if 0
-    /** The total number of MSHR accesses per command and thread. */
-    Stats::Formula mshrAccesses[MemCmd::NUM_MEM_CMDS];
-    /** The total number of demand MSHR accesses. */
-    Stats::Formula demandMshrAccesses;
-    /** The total number of MSHR accesses. */
-    Stats::Formula overallMshrAccesses;
-#endif
-
     /** The miss rate in the MSHRs pre command and thread. */
     Stats::Formula mshrMissRate[MemCmd::NUM_MEM_CMDS];
     /** The demand miss rate in the MSHRs. */
@@ -960,6 +1034,9 @@ class BaseCache : public MemObject
     /** Number of replacements of valid blocks. */
     Stats::Scalar replacements;
 
+    /** Number of data expansions. */
+    Stats::Scalar dataExpansions;
+
     /**
      * @}
      */
@@ -969,16 +1046,17 @@ class BaseCache : public MemObject
      */
     void regStats() override;
 
+    /** Registers probes. */
+    void regProbePoints() override;
+
   public:
     BaseCache(const BaseCacheParams *p, unsigned blk_size);
     ~BaseCache();
 
     void init() override;
 
-    BaseMasterPort &getMasterPort(const std::string &if_name,
-                                  PortID idx = InvalidPortID) override;
-    BaseSlavePort &getSlavePort(const std::string &if_name,
-                                PortID idx = InvalidPortID) override;
+    Port &getPort(const std::string &if_name,
+                  PortID idx=InvalidPortID) override;
 
     /**
      * Query block size of a cache.
@@ -1016,6 +1094,15 @@ class BaseCache : public MemObject
         assert(pkt->isWrite() || pkt->cmd == MemCmd::CleanEvict);
 
         Addr blk_addr = pkt->getBlockAddr(blkSize);
+
+        // If using compression, on evictions the block is decompressed and
+        // the operation's latency is added to the payload delay. Consume
+        // that payload delay here, meaning that the data is always stored
+        // uncompressed in the writebuffer
+        if (compressor) {
+            time += pkt->payloadDelay;
+            pkt->payloadDelay = 0;
+        }
 
         WriteQueueEntry *wq_entry =
             writeBuffer.findMatch(blk_addr, pkt->isSecure());
@@ -1093,6 +1180,15 @@ class BaseCache : public MemObject
         return tags->findBlock(addr, is_secure);
     }
 
+    bool hasBeenPrefetched(Addr addr, bool is_secure) const {
+        CacheBlk *block = tags->findBlock(addr, is_secure);
+        if (block) {
+            return block->wasPrefetched();
+        } else {
+            return false;
+        }
+    }
+
     bool inMissQueue(Addr addr, bool is_secure) const {
         return mshrQueue.findMatch(addr, is_secure);
     }
@@ -1114,6 +1210,14 @@ class BaseCache : public MemObject
         hits[pkt->cmdToIndex()][pkt->req->masterId()]++;
 
     }
+
+    /**
+     * Checks if the cache is coalescing writes
+     *
+     * @return True if the cache is coalescing writes
+     */
+    bool coalesce() const;
+
 
     /**
      * Cache block visitor that writes back dirty cache blocks using
@@ -1155,7 +1259,138 @@ class BaseCache : public MemObject
      */
     void serialize(CheckpointOut &cp) const override;
     void unserialize(CheckpointIn &cp) override;
+};
 
+/**
+ * The write allocator inspects write packets and detects streaming
+ * patterns. The write allocator supports a single stream where writes
+ * are expected to access consecutive locations and keeps track of
+ * size of the area covered by the concecutive writes in byteCount.
+ *
+ * 1) When byteCount has surpassed the coallesceLimit the mode
+ * switches from ALLOCATE to COALESCE where writes should be delayed
+ * until the whole block is written at which point a single packet
+ * (whole line write) can service them.
+ *
+ * 2) When byteCount has also exceeded the noAllocateLimit (whole
+ * line) we switch to NO_ALLOCATE when writes should not allocate in
+ * the cache but rather send a whole line write to the memory below.
+ */
+class WriteAllocator : public SimObject {
+  public:
+    WriteAllocator(const WriteAllocatorParams *p) :
+        SimObject(p),
+        coalesceLimit(p->coalesce_limit * p->block_size),
+        noAllocateLimit(p->no_allocate_limit * p->block_size),
+        delayThreshold(p->delay_threshold)
+    {
+        reset();
+    }
+
+    /**
+     * Should writes be coalesced? This is true if the mode is set to
+     * NO_ALLOCATE.
+     *
+     * @return return true if the cache should coalesce writes.
+     */
+    bool coalesce() const {
+        return mode != WriteMode::ALLOCATE;
+    }
+
+    /**
+     * Should writes allocate?
+     *
+     * @return return true if the cache should not allocate for writes.
+     */
+    bool allocate() const {
+        return mode != WriteMode::NO_ALLOCATE;
+    }
+
+    /**
+     * Reset the write allocator state, meaning that it allocates for
+     * writes and has not recorded any information about qualifying
+     * writes that might trigger a switch to coalescing and later no
+     * allocation.
+     */
+    void reset() {
+        mode = WriteMode::ALLOCATE;
+        byteCount = 0;
+        nextAddr = 0;
+    }
+
+    /**
+     * Access whether we need to delay the current write.
+     *
+     * @param blk_addr The block address the packet writes to
+     * @return true if the current packet should be delayed
+     */
+    bool delay(Addr blk_addr) {
+        if (delayCtr[blk_addr] > 0) {
+            --delayCtr[blk_addr];
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Clear delay counter for the input block
+     *
+     * @param blk_addr The accessed cache block
+     */
+    void resetDelay(Addr blk_addr) {
+        delayCtr.erase(blk_addr);
+    }
+
+    /**
+     * Update the write mode based on the current write
+     * packet. This method compares the packet's address with any
+     * current stream, and updates the tracking and the mode
+     * accordingly.
+     *
+     * @param write_addr Start address of the write request
+     * @param write_size Size of the write request
+     * @param blk_addr The block address that this packet writes to
+     */
+    void updateMode(Addr write_addr, unsigned write_size, Addr blk_addr);
+
+  private:
+    /**
+     * The current mode for write coalescing and allocation, either
+     * normal operation (ALLOCATE), write coalescing (COALESCE), or
+     * write coalescing without allocation (NO_ALLOCATE).
+     */
+    enum class WriteMode : char {
+        ALLOCATE,
+        COALESCE,
+        NO_ALLOCATE,
+    };
+    WriteMode mode;
+
+    /** Address to match writes against to detect streams. */
+    Addr nextAddr;
+
+    /**
+     * Bytes written contiguously. Saturating once we no longer
+     * allocate.
+     */
+    uint32_t byteCount;
+
+    /**
+     * Limits for when to switch between the different write modes.
+     */
+    const uint32_t coalesceLimit;
+    const uint32_t noAllocateLimit;
+    /**
+     * The number of times the allocator will delay an WriteReq MSHR.
+     */
+    const uint32_t delayThreshold;
+
+    /**
+     * Keep track of the number of times the allocator has delayed an
+     * WriteReq MSHR.
+     */
+    std::unordered_map<Addr, Counter> delayCtr;
 };
 
 #endif //__MEM_CACHE_BASE_HH__

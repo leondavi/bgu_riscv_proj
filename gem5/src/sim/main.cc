@@ -32,7 +32,6 @@
 
 #include "sim/init.hh"
 #include "sim/init_signals.hh"
-#include "cpu/minor/BGUMTtracer.h"
 
 // main() is now pretty stripped down and just sets up python and then
 // calls initM5Python which loads the various embedded python modules
@@ -46,23 +45,32 @@ main(int argc, char **argv)
     // Initialize m5 special signal handling.
     initSignals();
 
+#if PY_MAJOR_VERSION >= 3
+    std::unique_ptr<wchar_t[], decltype(&PyMem_RawFree)> program(
+        Py_DecodeLocale(argv[0], NULL),
+        &PyMem_RawFree);
+    Py_SetProgramName(program.get());
+#else
     Py_SetProgramName(argv[0]);
+#endif
+
+    // Register native modules with Python's init system before
+    // initializing the interpreter.
+    registerNativeModules();
 
     // initialize embedded Python interpreter
     Py_Initialize();
 
     // Initialize the embedded m5 python library
-    ret = initM5Python();
+    ret = EmbeddedPython::initAll();
 
     if (ret == 0) {
         // start m5
-        bgu::BGUMtTracer* bgu_tracer_p; //pointer to singleton in order to print the table at the end
-        bgu_tracer_p = bgu_tracer_p->get_instance();
-        bgu_tracer_p->set_output(false);
         ret = m5Main(argc, argv);
-        bgu_tracer_p->save_table_to_file();
     }
+
     // clean up Python intepreter.
     Py_Finalize();
+
     return ret;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 ARM Limited
+ * Copyright (c) 2012-2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -57,12 +57,14 @@
 #include <cassert>
 #include <list>
 
+#include "base/addr_range.hh"
 #include "base/cast.hh"
 #include "base/compiler.hh"
 #include "base/flags.hh"
 #include "base/logging.hh"
 #include "base/printable.hh"
 #include "base/types.hh"
+#include "config/the_isa.hh"
 #include "mem/request.hh"
 #include "sim/core.hh"
 
@@ -93,6 +95,7 @@ class MemCmd
         WriteClean,            // writes dirty data below without evicting
         CleanEvict,
         SoftPFReq,
+        SoftPFExReq,
         HardPFReq,
         SoftPFResp,
         HardPFResp,
@@ -263,6 +266,9 @@ class Packet : public Printable
         // Flags to transfer across when copying a packet
         COPY_FLAGS             = 0x0000003F,
 
+        // Flags that are used to create reponse packets
+        RESPONDER_FLAGS        = 0x00000009,
+
         // Does this packet have sharers (which means it should not be
         // considered writable) or not. See setHasSharers below.
         HAS_SHARERS            = 0x00000001,
@@ -347,6 +353,9 @@ class Packet : public Printable
      */
     std::vector<bool> bytesValid;
 
+    // Quality of Service priority value
+    uint8_t _qosValue;
+
   public:
 
     /**
@@ -378,16 +387,16 @@ class Packet : public Printable
 
     /**
      * A virtual base opaque structure used to hold state associated
-     * with the packet (e.g., an MSHR), specific to a MemObject that
+     * with the packet (e.g., an MSHR), specific to a SimObject that
      * sees the packet. A pointer to this state is returned in the
-     * packet's response so that the MemObject in question can quickly
+     * packet's response so that the SimObject in question can quickly
      * look up the state needed to process it. A specific subclass
      * would be derived from this to carry state specific to a
      * particular sending device.
      *
-     * As multiple MemObjects may add their SenderState throughout the
+     * As multiple SimObjects may add their SenderState throughout the
      * memory system, the SenderStates create a stack, where a
-     * MemObject can add a new Senderstate, as long as the
+     * SimObject can add a new Senderstate, as long as the
      * predecessing SenderState is restored when the response comes
      * back. For this reason, the predecessor should always be
      * populated with the current SenderState of a packet before
@@ -549,6 +558,12 @@ class Packet : public Printable
     bool isPrint() const             { return cmd.isPrint(); }
     bool isFlush() const             { return cmd.isFlush(); }
 
+    bool isWholeLineWrite(unsigned blk_size)
+    {
+        return (cmd == MemCmd::WriteReq || cmd == MemCmd::WriteLineReq) &&
+            getOffset(blk_size) == 0 && getSize() == blk_size;
+    }
+
     //@{
     /// Snoop flags
     /**
@@ -639,6 +654,15 @@ class Packet : public Printable
     { return flags.isSet(RESPONDER_HAD_WRITABLE); }
 
     /**
+     * Copy the reponse flags from an input packet to this packet. The
+     * reponse flags determine whether a responder has been found and
+     * the state at which the block will be at the destination.
+     *
+     * @pkt The packet that we will copy flags from
+     */
+    void copyResponderFlags(const PacketPtr pkt);
+
+    /**
      * A writeback/writeclean cmd gets propagated further downstream
      * by the receiver when the flag is set.
      */
@@ -670,6 +694,25 @@ class Packet : public Printable
     bool isBlockCached() const     { return flags.isSet(BLOCK_CACHED); }
     void clearBlockCached()        { flags.clear(BLOCK_CACHED); }
 
+    /**
+     * QoS Value getter
+     * Returns 0 if QoS value was never set (constructor default).
+     *
+     * @return QoS priority value of the packet
+     */
+    inline uint8_t qosValue() const { return _qosValue; }
+
+    /**
+     * QoS Value setter
+     * Interface for setting QoS priority value of the packet.
+     *
+     * @param qos_value QoS priority value
+     */
+    inline void qosValue(const uint8_t qos_value)
+    { _qosValue = qos_value; }
+
+    inline MasterID masterId() const { return req->masterId(); }
+
     // Network error conditions... encapsulate them as methods since
     // their encoding keeps changing (from result field to command
     // field, etc.)
@@ -693,6 +736,13 @@ class Packet : public Printable
     void setAddr(Addr _addr) { assert(flags.isSet(VALID_ADDR)); addr = _addr; }
 
     unsigned getSize() const  { assert(flags.isSet(VALID_SIZE)); return size; }
+
+    /**
+     * Get address range to which this packet belongs.
+     *
+     * @return Address range of this packet.
+     */
+    AddrRange getAddrRange() const;
 
     Addr getOffset(unsigned int blk_size) const
     {
@@ -746,8 +796,9 @@ class Packet : public Printable
      * not be valid. The command must be supplied.
      */
     Packet(const RequestPtr &_req, MemCmd _cmd)
-        :  cmd(_cmd), id((PacketId)_req.get()), req(_req), data(nullptr),
-           addr(0), _isSecure(false), size(0), headerDelay(0), snoopDelay(0),
+        :  cmd(_cmd), id((PacketId)_req.get()), req(_req),
+           data(nullptr), addr(0), _isSecure(false), size(0),
+           _qosValue(0), headerDelay(0), snoopDelay(0),
            payloadDelay(0), senderState(NULL)
     {
         if (req->hasPaddr()) {
@@ -768,7 +819,8 @@ class Packet : public Printable
      */
     Packet(const RequestPtr &_req, MemCmd _cmd, int _blkSize, PacketId _id = 0)
         :  cmd(_cmd), id(_id ? _id : (PacketId)_req.get()), req(_req),
-           data(nullptr), addr(0), _isSecure(false), headerDelay(0),
+           data(nullptr), addr(0), _isSecure(false),
+           _qosValue(0), headerDelay(0),
            snoopDelay(0), payloadDelay(0), senderState(NULL)
     {
         if (req->hasPaddr()) {
@@ -792,6 +844,7 @@ class Packet : public Printable
            data(nullptr),
            addr(pkt->addr), _isSecure(pkt->_isSecure), size(pkt->size),
            bytesValid(pkt->bytesValid),
+           _qosValue(pkt->qosValue()),
            headerDelay(pkt->headerDelay),
            snoopDelay(0),
            payloadDelay(pkt->payloadDelay),
@@ -827,6 +880,8 @@ class Packet : public Printable
     {
         if (req->isLLSC())
             return MemCmd::LoadLockedReq;
+        else if (req->isPrefetchEx())
+            return MemCmd::SoftPFExReq;
         else if (req->isPrefetch())
             return MemCmd::SoftPFReq;
         else
@@ -925,6 +980,45 @@ class Packet : public Printable
         flags.set(VALID_SIZE);
     }
 
+    /**
+     * Check if packet corresponds to a given block-aligned address and
+     * address space.
+     *
+     * @param addr The address to compare against.
+     * @param is_secure Whether addr belongs to the secure address space.
+     * @param blk_size Block size in bytes.
+     * @return Whether packet matches description.
+     */
+    bool matchBlockAddr(const Addr addr, const bool is_secure,
+                        const int blk_size) const;
+
+    /**
+     * Check if this packet refers to the same block-aligned address and
+     * address space as another packet.
+     *
+     * @param pkt The packet to compare against.
+     * @param blk_size Block size in bytes.
+     * @return Whether packet matches description.
+     */
+    bool matchBlockAddr(const PacketPtr pkt, const int blk_size) const;
+
+    /**
+     * Check if packet corresponds to a given address and address space.
+     *
+     * @param addr The address to compare against.
+     * @param is_secure Whether addr belongs to the secure address space.
+     * @return Whether packet matches description.
+     */
+    bool matchAddr(const Addr addr, const bool is_secure) const;
+
+    /**
+     * Check if this packet refers to the same address and address space as
+     * another packet.
+     *
+     * @param pkt The packet to compare against.
+     * @return Whether packet matches description.
+     */
+    bool matchAddr(const PacketPtr pkt) const;
 
   public:
     /**
@@ -998,6 +1092,7 @@ class Packet : public Printable
     getPtr()
     {
         assert(flags.isSet(STATIC_DATA|DYNAMIC_DATA));
+        assert(!isMaskedWrite());
         return (T*)data;
     }
 
@@ -1030,12 +1125,15 @@ class Packet : public Printable
     template <typename T>
     T get(ByteOrder endian) const;
 
+#if THE_ISA != NULL_ISA
     /**
      * Get the data in the packet byte swapped from guest to host
      * endian.
      */
     template <typename T>
-    T get() const;
+    T get() const
+        M5_DEPRECATED_MSG("The memory system should be ISA independent.");
+#endif
 
     /** Set the value in the data pointer to v as big endian. */
     template <typename T>
@@ -1052,10 +1150,12 @@ class Packet : public Printable
     template <typename T>
     void set(T v, ByteOrder endian);
 
+#if THE_ISA != NULL_ISA
     /** Set the value in the data pointer to v as guest endian. */
     template <typename T>
-    void set(T v);
-
+    void set(T v)
+        M5_DEPRECATED_MSG("The memory system should be ISA independent.");
+#endif
 
     /**
      * Get the data in the packet byte swapped from the specified
@@ -1081,10 +1181,11 @@ class Packet : public Printable
         // same pointer from source to destination and back
         assert(p != getPtr<uint8_t>() || flags.isSet(STATIC_DATA));
 
-        if (p != getPtr<uint8_t>())
+        if (p != getPtr<uint8_t>()) {
             // for packet with allocated dynamic data, we copy data from
             // one to the other, e.g. a forwarded response to a response
             std::memcpy(getPtr<uint8_t>(), p, getSize());
+        }
     }
 
     /**
@@ -1104,7 +1205,19 @@ class Packet : public Printable
     void
     writeData(uint8_t *p) const
     {
-        std::memcpy(p, getConstPtr<uint8_t>(), getSize());
+        if (!isMaskedWrite()) {
+            std::memcpy(p, getConstPtr<uint8_t>(), getSize());
+        } else {
+            assert(req->getByteEnable().size() == getSize());
+            // Write only the enabled bytes
+            const uint8_t *base = getConstPtr<uint8_t>();
+            for (int i = 0; i < getSize(); i++) {
+                if (req->getByteEnable()[i]) {
+                    p[i] = *(base + i);
+                }
+                // Disabled bytes stay untouched
+            }
+        }
     }
 
     /**
@@ -1148,7 +1261,6 @@ class Packet : public Printable
 
     /** @} */
 
-  private: // Private data accessor methods
     /** Get the data in the packet without byte swapping. */
     template <typename T>
     T getRaw() const;
@@ -1170,6 +1282,17 @@ class Packet : public Printable
     bool
     trySatisfyFunctional(PacketPtr other)
     {
+        if (other->isMaskedWrite()) {
+            // Do not forward data if overlapping with a masked write
+            if (_isSecure == other->isSecure() &&
+                getAddr() <= (other->getAddr() + other->getSize() - 1) &&
+                other->getAddr() <= (getAddr() + getSize() - 1)) {
+                warn("Trying to check against a masked write, skipping."
+                     " (addr: 0x%x, other addr: 0x%x)", getAddr(),
+                     other->getAddr());
+            }
+            return false;
+        }
         // all packets that are carrying a payload should have a valid
         // data pointer
         return trySatisfyFunctional(other, other->getAddr(), other->isSecure(),
@@ -1196,6 +1319,12 @@ class Packet : public Printable
     isCleanEviction() const
     {
         return cmd == MemCmd::CleanEvict || cmd == MemCmd::WritebackClean;
+    }
+
+    bool
+    isMaskedWrite() const
+    {
+        return (cmd == MemCmd::WriteReq && !req->getByteEnable().empty());
     }
 
     /**

@@ -156,7 +156,9 @@ MessageBuffer::enqueue(MsgPtr message, Tick current_time, Tick delta)
     assert(delta > 0);
     Tick arrival_time = 0;
 
-    if (!RubySystem::getRandomization() || !m_randomization) {
+    // random delays are inserted if either RubySystem level randomization flag
+    // is turned on, or the buffer level randomization is set
+    if (!RubySystem::getRandomization() && !m_randomization) {
         // No randomization
         arrival_time = current_time + delta;
     } else {
@@ -295,16 +297,18 @@ void
 MessageBuffer::reanalyzeList(list<MsgPtr> &lt, Tick schdTick)
 {
     while (!lt.empty()) {
-        m_msg_counter++;
         MsgPtr m = lt.front();
-        m->setLastEnqueueTime(schdTick);
-        m->setMsgCounter(m_msg_counter);
+        assert(m->getLastEnqueueTime() <= schdTick);
 
         m_prio_heap.push_back(m);
         push_heap(m_prio_heap.begin(), m_prio_heap.end(),
                   greater<MsgPtr>());
 
         m_consumer->scheduleEventAbsolute(schdTick);
+
+        DPRINTF(RubyQueue, "Requeue arrival_time: %lld, Message: %s\n",
+            schdTick, *(m.get()));
+
         lt.pop_front();
     }
 }

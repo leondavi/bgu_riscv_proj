@@ -70,12 +70,12 @@ X86ISA::I82094AA::init()
     IntDevice::init();
 }
 
-BaseMasterPort &
-X86ISA::I82094AA::getMasterPort(const std::string &if_name, PortID idx)
+Port &
+X86ISA::I82094AA::getPort(const std::string &if_name, PortID idx)
 {
     if (if_name == "int_master")
         return intMasterPort;
-    return BasicPioDevice::getMasterPort(if_name, idx);
+    return BasicPioDevice::getPort(if_name, idx);
 }
 
 AddrRangeList
@@ -103,10 +103,10 @@ X86ISA::I82094AA::read(PacketPtr pkt)
     Addr offset = pkt->getAddr() - pioAddr;
     switch(offset) {
       case 0:
-        pkt->set<uint32_t>(regSel);
+        pkt->setLE<uint32_t>(regSel);
         break;
       case 16:
-        pkt->set<uint32_t>(readReg(regSel));
+        pkt->setLE<uint32_t>(readReg(regSel));
         break;
       default:
         panic("Illegal read from I/O APIC.\n");
@@ -122,10 +122,10 @@ X86ISA::I82094AA::write(PacketPtr pkt)
     Addr offset = pkt->getAddr() - pioAddr;
     switch(offset) {
       case 0:
-        regSel = pkt->get<uint32_t>();
+        regSel = pkt->getLE<uint32_t>();
         break;
       case 16:
-        writeReg(regSel, pkt->get<uint32_t>());
+        writeReg(regSel, pkt->getLE<uint32_t>());
         break;
       default:
         panic("Illegal write to I/O APIC.\n");
