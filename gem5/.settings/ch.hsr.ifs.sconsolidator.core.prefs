@@ -1,0 +1,4 @@
+additionalCommandlineOptions=build/RISCV/gem5.opt
+ch.hsr.sconsolidator.core.BuildSettingsPreferencePage_useParentScope=false
+eclipse.preferences.version=1
+startingDirectory=/home/yossi/workspace/bgu_riscv_proj/gem5

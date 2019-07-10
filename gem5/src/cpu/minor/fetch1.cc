@@ -165,9 +165,8 @@ Fetch1::fetchLine(ThreadID tid)
     /* Use a lower, sizeof(MachInst) aligned address for the fetch */
     Addr aligned_pc = thread.pc.instAddr() & ~((Addr) lineSnap - 1);
     unsigned int line_offset = aligned_pc % lineSnap;
-//    unsigned int line_offset = thread.pc.instAddr() % lineSnap;
     unsigned int request_size = maxLineWidth - line_offset;
-    //TODO std::cout<<"pc  "<< thread.pc.instAddr()<<" aligned_pc  "<<aligned_pc <<" line_offset "<<line_offset <<" request_size "<<request_size<<"\n";
+
     /* Fill in the line's id */
     InstId request_id(tid,
         thread.streamSeqNum, thread.predictionSeqNum,
@@ -207,17 +206,15 @@ Fetch1::fetchLine(ThreadID tid)
     /* Step the PC for the next line onto the line aligned next address.
      * Note that as instructions can span lines, this PC is only a
      * reliable 'new' PC if the next line has a new stream sequence number. */
-//#if THE_ISA == ALPHA_ISA
-//    /* Restore the low bits of the PC used as address space flags */
-//    Addr pc_low_bits = thread.pc.instAddr() &
-//        ((Addr) (1 << sizeof(TheISA::MachInst)) - 1);
-//
-//    thread.pc.set(aligned_pc + request_size + pc_low_bits);
-//#else
+#if THE_ISA == ALPHA_ISA
+    /* Restore the low bits of the PC used as address space flags */
+    Addr pc_low_bits = thread.pc.instAddr() &
+        ((Addr) (1 << sizeof(TheISA::MachInst)) - 1);
+
+    thread.pc.set(aligned_pc + request_size + pc_low_bits);
+#else
     thread.pc.set(aligned_pc + request_size);
-//    thread.pc.set(thread.pc.instAddr() + request_size);
-//    std::cout<<"thread.pc.instAddr()"<< thread.pc.instAddr()<<"\n";
-//#endif
+#endif
 }
 
 std::ostream &
@@ -338,9 +335,6 @@ Fetch1::moveFromRequestsToTransfers(FetchRequestPtr request)
 
     requests.pop();
     transfers.push(request);
-//    fetch1Info.req = true;
-//    fetch1Info.reqPc = request->pc;
-//    fetch1Info.reqTid = request->id.threadId;
 }
 
 bool
@@ -574,7 +568,7 @@ Fetch1::processResponse(Fetch1::FetchRequestPtr response,
     /* Set the lineBase, which is a sizeof(MachInst) aligned address <=
      *  pc.instAddr() */
     line.lineBaseAddr = response->request->getVaddr();
-    //TODO std::cout<<"lineBaseAddr " <<line.lineBaseAddr<<" ID " << response->request->masterId()<<"\n";
+
     if (response->fault != NoFault) {
         /* Stop fetching if there was a fault */
         /* Should probably try to flush the queues as well, but we
@@ -587,12 +581,11 @@ Fetch1::processResponse(Fetch1::FetchRequestPtr response,
         line.adoptPacketData(packet);
         /* Null the response's packet to prevent the response from trying to
          *  deallocate the packet */
-        //fetch1_rqt_info.size = response->packet->getSize();
         response->packet = NULL;
         fetch1_rsp_info.set_valid_value(true);
         fetch1_rsp_info.set_id(response->id);
         fetch1_rsp_info.set_pc(response->pc);
-//        fetch1Info.size = response->packet->getSize();
+
     }
 }
 

@@ -57,7 +57,7 @@
 using namespace ArmISA;
 
 TableWalker::TableWalker(const Params *p)
-    : MemObject(p),
+    : ClockedObject(p),
       stage2Mmu(NULL), port(NULL), masterId(Request::invldMasterId),
       isStage2(p->is_stage2), tlb(NULL),
       currState(NULL), pending(false),
@@ -102,7 +102,7 @@ void
 TableWalker::setMMU(Stage2MMU *m, MasterID master_id)
 {
     stage2Mmu = m;
-    port = &m->getPort();
+    port = &m->getDMAPort();
     masterId = master_id;
 }
 
@@ -114,8 +114,8 @@ TableWalker::init()
     fatal_if(!tlb, "Table walker must have a valid TLB\n");
 }
 
-BaseMasterPort&
-TableWalker::getMasterPort(const std::string &if_name, PortID idx)
+Port &
+TableWalker::getPort(const std::string &if_name, PortID idx)
 {
     if (if_name == "port") {
         if (!isStage2) {
@@ -124,13 +124,16 @@ TableWalker::getMasterPort(const std::string &if_name, PortID idx)
             fatal("Cannot access table walker port through stage-two walker\n");
         }
     }
-    return MemObject::getMasterPort(if_name, idx);
+    return ClockedObject::getPort(if_name, idx);
 }
 
 TableWalker::WalkerState::WalkerState() :
     tc(nullptr), aarch64(false), el(EL0), physAddrRange(0), req(nullptr),
     asid(0), vmid(0), isHyp(false), transState(nullptr),
-    vaddr(0), vaddr_tainted(0), isWrite(false), isFetch(false), isSecure(false),
+    vaddr(0), vaddr_tainted(0),
+    sctlr(0), scr(0), cpsr(0), tcr(0),
+    htcr(0), hcr(0), vtcr(0),
+    isWrite(false), isFetch(false), isSecure(false),
     secureLookup(false), rwTable(false), userTable(false), xnTable(false),
     pxnTable(false), stage2Req(false),
     stage2Tran(nullptr), timing(false), functional(false),
@@ -771,30 +774,33 @@ TableWalker::processWalkAArch64()
             start_lookup_level = SLL[sl_tg];
             panic_if(start_lookup_level == MAX_LOOKUP_LEVELS,
                      "Cannot discern lookup level from vtcr.{sl0,tg0}");
-        } else switch (bits(currState->vaddr, 63,48)) {
-          case 0:
-            DPRINTF(TLB, " - Selecting TTBR0 (AArch64)\n");
-            ttbr = currState->tc->readMiscReg(MISCREG_TTBR0_EL1);
-            tsz = adjustTableSizeAArch64(64 - currState->tcr.t0sz);
-            tg = GrainMap_tg0[currState->tcr.tg0];
-            if (bits(currState->vaddr, 63, tsz) != 0x0 ||
-                currState->tcr.epd0)
-              fault = true;
-            break;
-          case 0xffff:
-            DPRINTF(TLB, " - Selecting TTBR1 (AArch64)\n");
-            ttbr = currState->tc->readMiscReg(MISCREG_TTBR1_EL1);
-            tsz = adjustTableSizeAArch64(64 - currState->tcr.t1sz);
-            tg = GrainMap_tg1[currState->tcr.tg1];
-            if (bits(currState->vaddr, 63, tsz) != mask(64-tsz) ||
-                currState->tcr.epd1)
-              fault = true;
-            break;
-          default:
-            // top two bytes must be all 0s or all 1s, else invalid addr
-            fault = true;
+            ps = currState->vtcr.ps;
+        } else {
+            switch (bits(currState->vaddr, 63,48)) {
+              case 0:
+                DPRINTF(TLB, " - Selecting TTBR0 (AArch64)\n");
+                ttbr = currState->tc->readMiscReg(MISCREG_TTBR0_EL1);
+                tsz = adjustTableSizeAArch64(64 - currState->tcr.t0sz);
+                tg = GrainMap_tg0[currState->tcr.tg0];
+                if (bits(currState->vaddr, 63, tsz) != 0x0 ||
+                    currState->tcr.epd0)
+                  fault = true;
+                break;
+              case 0xffff:
+                DPRINTF(TLB, " - Selecting TTBR1 (AArch64)\n");
+                ttbr = currState->tc->readMiscReg(MISCREG_TTBR1_EL1);
+                tsz = adjustTableSizeAArch64(64 - currState->tcr.t1sz);
+                tg = GrainMap_tg1[currState->tcr.tg1];
+                if (bits(currState->vaddr, 63, tsz) != mask(64-tsz) ||
+                    currState->tcr.epd1)
+                  fault = true;
+                break;
+              default:
+                // top two bytes must be all 0s or all 1s, else invalid addr
+                fault = true;
+            }
+            ps = currState->tcr.ips;
         }
-        ps = currState->tcr.ips;
         break;
       case EL2:
         switch(bits(currState->vaddr, 63,48)) {
@@ -819,7 +825,7 @@ TableWalker::processWalkAArch64()
               // invalid addr if top two bytes are not all 0s
               fault = true;
         }
-        ps = currState->tcr.ips;
+        ps = currState->tcr.ps;
         break;
       case EL3:
         switch(bits(currState->vaddr, 63,48)) {
@@ -833,7 +839,7 @@ TableWalker::processWalkAArch64()
                 // invalid addr if top two bytes are not all 0s
                 fault = true;
         }
-        ps = currState->tcr.ips;
+        ps = currState->tcr.ps;
         break;
     }
 

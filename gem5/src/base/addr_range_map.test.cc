@@ -1,5 +1,17 @@
 /*
- * Copyright (c) 2009 The Regents of The University of Michigan
+ * Copyright (c) 2012, 2018 ARM Limited
+ * All rights reserved
+ *
+ * The license below extends only to copyright in the software and shall
+ * not be construed as granting a license to any other intellectual
+ * property including but not limited to intellectual property relating
+ * to a hardware implementation of the functionality of the software
+ * licensed hereunder.  You may use the software subject to the license
+ * terms below provided that you ensure that this notice is replicated
+ * unmodified and in its entirety in all distributions of the software,
+ * modified or unmodified, in source code or in binary form.
+ *
+ * Copyright (c) 2006 The Regents of The University of Michigan
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,46 +37,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Authors: Korey Sewell
- *
+ * Authors: Ali Saidi
  */
 
-#ifndef __ARCH_ALPHA_MT_HH__
-#define __ARCH_ALPHA_MT_HH__
+#include <gtest/gtest.h>
 
-/**
- * @file
- *
- * ISA-specific helper functions for multithreaded execution.
- */
+#include "base/addr_range_map.hh"
 
-#include <iostream>
-
-#include "arch/isa_traits.hh"
-#include "base/bitfield.hh"
-#include "base/logging.hh"
-#include "base/trace.hh"
-
-namespace AlphaISA
+// Converted from legacy unit test framework
+TEST(AddrRangeMapTest, LegacyTests)
 {
+    AddrRangeMap<int> r;
+    AddrRangeMap<int>::const_iterator i;
 
-template <class TC>
-inline unsigned
-getVirtProcNum(TC *tc)
-{
-    fatal("Alpha is not setup for multithreaded ISA extensions");
-    return 0;
+    i = r.insert(RangeIn(10, 40), 5);
+    ASSERT_NE(i, r.end());
+
+    i = r.insert(RangeIn(60, 90), 3);
+    ASSERT_NE(i, r.end());
+
+    EXPECT_NE(r.intersects(RangeIn(20, 30)), r.end());
+    EXPECT_EQ(r.contains(RangeIn(55, 55)), r.end());
+    EXPECT_EQ(r.intersects(RangeIn(55, 55)), r.end());
+
+    i = r.insert(RangeIn(0, 12), 1);
+    EXPECT_EQ(i, r.end());
+
+    i = r.insert(RangeIn(0, 9), 1);
+    ASSERT_NE(i, r.end());
+
+    EXPECT_NE(r.contains(RangeIn(20, 30)), r.end());
 }
-
-
-template <class TC>
-inline unsigned
-getTargetThread(TC *tc)
-{
-    fatal("Alpha is not setup for multithreaded ISA extensions");
-    return 0;
-}
-
-} // namespace AlphaISA
-
-#endif

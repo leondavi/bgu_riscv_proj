@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 ARM Limited
+ * Copyright (c) 2013-2014,2018 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -90,7 +90,9 @@ Execute::Execute(const std::string &name_,
     executeInfo(params.numThreads, ExecuteThreadInfo(params.executeCommitLimit)),
     interruptPriority(0),
     issuePriority(0),
-    commitPriority(0)
+    commitPriority(0),
+    issueThreadPolicy(params.executeIssuePolicy)
+
 {
     if (commitLimit < 1) {
         fatal("%s: executeCommitLimit must be >= 1 (%d)\n", name_,
@@ -330,6 +332,7 @@ Execute::handleMemResponse(MinorDynInstPtr inst,
 
     bool is_load = inst->staticInst->isLoad();
     bool is_store = inst->staticInst->isStore();
+    bool is_atomic = inst->staticInst->isAtomic();
     bool is_prefetch = inst->staticInst->isDataPrefetch();
 
     /* If true, the trace's predicate value will be taken from the exec
@@ -356,12 +359,14 @@ Execute::handleMemResponse(MinorDynInstPtr inst,
         DPRINTF(MinorMem, "Completing failed request inst: %s\n",
             *inst);
         use_context_predicate = false;
+        if (!context.readMemAccPredicate())
+            inst->staticInst->completeAcc(nullptr, &context, inst->traceData);
     } else if (packet->isError()) {
         DPRINTF(MinorMem, "Trying to commit error response: %s\n",
             *inst);
 
         fatal("Received error response packet for inst: %s\n", *inst);
-    } else if (is_store || is_load || is_prefetch) {
+    } else if (is_store || is_load || is_prefetch || is_atomic) {
         assert(packet);
 
         DPRINTF(MinorMem, "Memory response inst: %s addr: 0x%x size: %d\n",
@@ -473,6 +478,10 @@ Execute::executeMemRefInst(MinorDynInstPtr inst, BranchData &branch,
         } else {
             /* Only set this if the instruction passed its
              * predicate */
+            if (!context.readMemAccPredicate()) {
+                DPRINTF(MinorMem, "No memory access for inst: %s\n", *inst);
+                assert(context.readPredicate());
+            }
             passed_predicate = context.readPredicate();
 
             /* Set predicate in tracing */
@@ -869,7 +878,7 @@ Execute::doInstCommitAccounting(MinorDynInstPtr inst)
     if (inst->traceData)
         inst->traceData->setCPSeq(thread->numOp);
 
-    cpu.probeInstCommit(inst->staticInst);
+    cpu.probeInstCommit(inst->staticInst, inst->pc.instAddr());
 }
 
 bool
@@ -925,7 +934,7 @@ Execute::commitInst(MinorDynInstPtr inst, bool early_memory_issue,
                  *  until it gets to the head of inFlightInsts */
                 inst->canEarlyIssue = false;
                 /* Not completed as we'll come here again to pick up
-                *  the fault when we get to the end of the FU */
+                 * the fault when we get to the end of the FU */
                 completed_inst = false;
             } else {
                 DPRINTF(MinorExecute, "Fault in execute: %s\n",
@@ -1434,9 +1443,6 @@ Execute::evaluate()
 
             DPRINTF(MinorExecute, "Attempting to commit [tid:%d]\n",
                     commit_tid);
-//            exCommitInfo.set_valid_value(true);
-//            exCommitInfo.set_tid(commit_tid);
-
             /* commit can set stalled flags observable to issue and so *must* be
              *  called first */
             if (commit_info.drainState != NotDraining) {
@@ -1475,16 +1481,19 @@ Execute::evaluate()
                 setDrainState(commit_tid, DrainAllInsts);
             }
         }
-        ThreadID issue_tid = getIssuingThread();
-        /* This will issue merrily even when interrupted in the sure and
-         *  certain knowledge that the interrupt with change the stream */
-        if (issue_tid != InvalidThreadID) {
-            DPRINTF(MinorExecute, "Attempting to issue [tid:%d]\n",
-                    issue_tid);
-            num_issued = issue(issue_tid);
-//            exIssueInfo.set_valid_value(true);
-//            exIssueInfo.set_tid(issue_tid);
-        }
+        ThreadID issue_tid;
+        int tmpcount=0;
+        	tmpcount++;
+        	issue_tid = getIssuingThread();
+        	/* This will issue merrily even when interrupted in the sure and
+        	 *  certain knowledge that the interrupt with change the stream */
+        	if (issue_tid != InvalidThreadID) {
+        		DPRINTF(MinorExecute, "Attempting to issue [tid:%d]\n",
+        				issue_tid);
+        		num_issued = issue(issue_tid);
+        	}
+
+
 
     }
 
@@ -1742,7 +1751,7 @@ Execute::getIssuingThread()
 {
     std::vector<ThreadID> priority_list;
 
-    switch (cpu.threadPolicy) {
+    switch (issueThreadPolicy) {
       case Enums::SingleThreaded:
           return 0;
       case Enums::RoundRobin:
@@ -1751,6 +1760,10 @@ Execute::getIssuingThread()
       case Enums::Random:
           priority_list = cpu.randomPriority();
           break;
+      case Enums::Event:
+          priority_list = cpu.roundRobinPriority(issuePriority-1); // -YE] - TODO replace it
+          break;
+
       default:
           panic("Invalid thread scheduling policy.");
     }
