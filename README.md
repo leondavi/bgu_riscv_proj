@@ -11,6 +11,8 @@ riscv architecture for gem5
    Choose Installation (Newlib), in order to support the embedded riscv gem5 machine. 
 6. Cross compile using riscv gcc or g++ using the following commands: ```/opt/riscv/bin/riscv64-unknown-elf-gcc-8.2.0```
    or ```/opt/riscv/bin/riscv64-unknown-elf-g++```
+7. Install six module of python using pip: ```sudo pip install six```
+   or upgrade to the latest version: ```sudo pip install six --upgrade```
    
 ## IDE Eclipse 
 1. Install eclipse throguh Ubuntu Software or apt-get. 
