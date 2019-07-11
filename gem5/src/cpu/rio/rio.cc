@@ -149,7 +149,6 @@ RioCPU::suspendContext(ThreadID tid)
 {
 	DPRINTF(RioCPU, "suspendContext(%d)\n", tid);
     BaseCPU::suspendContext(tid);
-    Fault
 }
 
 // Halt Context
