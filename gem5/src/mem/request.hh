@@ -320,6 +320,9 @@ class Request
      */
     unsigned _size;
 
+    /** Byte-enable mask for writes. */
+    std::vector<bool> _byteEnable;
+
     /** The requestor ID which is unique in the system for all ports
      * that are capable of issuing a transaction
      */
@@ -567,6 +570,9 @@ class Request
      * Generate two requests as if this request had been split into two
      * pieces. The original request can't have been translated already.
      */
+    // TODO: this function is still required by TimingSimpleCPU - should be
+    // removed once TimingSimpleCPU will support arbitrarily long multi-line
+    // mem. accesses
     void splitOnVaddr(Addr split_addr, RequestPtr &req1, RequestPtr &req2)
     {
         assert(privateFlags.isSet(VALID_VADDR));
@@ -577,6 +583,14 @@ class Request
         req1->_size = split_addr - _vaddr;
         req2->_vaddr = split_addr;
         req2->_size = _size - req1->_size;
+        if (!_byteEnable.empty()) {
+            req1->_byteEnable = std::vector<bool>(
+                _byteEnable.begin(),
+                _byteEnable.begin() + req1->_size);
+            req2->_byteEnable = std::vector<bool>(
+                _byteEnable.begin() + req1->_size,
+                _byteEnable.end());
+        }
     }
 
     /**
@@ -626,6 +640,19 @@ class Request
     {
         assert(privateFlags.isSet(VALID_SIZE));
         return _size;
+    }
+
+    const std::vector<bool>&
+    getByteEnable() const
+    {
+        return _byteEnable;
+    }
+
+    void
+    setByteEnable(const std::vector<bool>& be)
+    {
+        assert(be.empty() || be.size() == _size);
+        _byteEnable = be;
     }
 
     /** Accessor for time. */
@@ -860,7 +887,9 @@ class Request
     bool isUncacheable() const { return _flags.isSet(UNCACHEABLE); }
     bool isStrictlyOrdered() const { return _flags.isSet(STRICT_ORDER); }
     bool isInstFetch() const { return _flags.isSet(INST_FETCH); }
-    bool isPrefetch() const { return _flags.isSet(PREFETCH); }
+    bool isPrefetch() const { return (_flags.isSet(PREFETCH) ||
+                                      _flags.isSet(PF_EXCLUSIVE)); }
+    bool isPrefetchEx() const { return _flags.isSet(PF_EXCLUSIVE); }
     bool isLLSC() const { return _flags.isSet(LLSC); }
     bool isPriv() const { return _flags.isSet(PRIVILEGED); }
     bool isLockedRMW() const { return _flags.isSet(LOCKED_RMW); }

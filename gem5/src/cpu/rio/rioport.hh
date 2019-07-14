@@ -20,7 +20,7 @@ public:
 	/** The enclosing cpu */
 	RioCPU &cpu;
 
-	RioCPUPort(const std::string& name_, RioCPU &cpu_) 	: MasterPort(name_, (MemObject*)&cpu_),cpu(cpu_)
+	RioCPUPort(const std::string& name_, RioCPU &cpu_) 	: MasterPort(name_, (ClockedObject*)&cpu_),cpu(cpu_)
 	{		}
 
 };

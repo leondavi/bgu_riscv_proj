@@ -142,7 +142,7 @@ class Interrupts : public SimObject
 
         CPSR cpsr = tc->readMiscReg(MISCREG_CPSR);
 
-        bool isHypMode   = cpsr.mode == MODE_HYP;
+        bool isHypMode   = currEL(tc) == EL2;
         bool isSecure    = inSecureState(tc);
         bool allowVIrq   = !cpsr.i && hcr.imo && !isSecure && !isHypMode;
         bool allowVFiq   = !cpsr.f && hcr.fmo && !isSecure && !isHypMode;
@@ -232,7 +232,7 @@ class Interrupts : public SimObject
         // Calculate a few temp vars so we can work out if there's a pending
         // virtual interrupt, and if its allowed to happen
         // ARM ARM Issue C section B1.9.9, B1.9.11, and B1.9.13
-        bool isHypMode   = cpsr.mode == MODE_HYP;
+        bool isHypMode   = currEL(tc) == EL2;
         bool isSecure    = inSecureState(tc);
         bool allowVIrq   = !cpsr.i && hcr.imo && !isSecure && !isHypMode;
         bool allowVFiq   = !cpsr.f && hcr.fmo && !isSecure && !isHypMode;
@@ -248,7 +248,7 @@ class Interrupts : public SimObject
             return std::make_shared<VirtualInterrupt>();
         if (interrupts[INT_FIQ] && take_fiq)
             return std::make_shared<FastInterrupt>();
-        if ((interrupts[NumInterruptTypesINT_VIRT_FIQ] || hcr.vf) && allowVFiq)
+        if ((interrupts[INT_VIRT_FIQ] || hcr.vf) && allowVFiq)
             return std::make_shared<VirtualFastInterrupt>();
         if (interrupts[INT_ABT] && take_ea)
             return std::make_shared<SystemError>();

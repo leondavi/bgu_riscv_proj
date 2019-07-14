@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, 2015-2018 ARM Limited
+ * Copyright (c) 2012-2013, 2015-2019 ARM Limited
  * All rights reserved.
  *
  * The license below extends only to copyright in the software and shall
@@ -40,6 +40,7 @@
  *
  * Authors: Erik Hallnor
  *          Dave Greene
+ *          Nikos Nikoleris
  */
 
 /**
@@ -63,7 +64,7 @@
 MSHR::MSHR() : downstreamPending(false),
                pendingModified(false),
                postInvalidate(false), postDowngrade(false),
-               isForward(false)
+               wasWholeLineWrite(false), isForward(false)
 {
 }
 
@@ -95,6 +96,8 @@ MSHR::TargetList::updateFlags(PacketPtr pkt, Target::Source source,
 
         if (source != Target::FromPrefetcher) {
             hasFromCache = hasFromCache || pkt->fromCache();
+
+            updateWriteFlags(pkt);
         }
     }
 }
@@ -257,16 +260,22 @@ MSHR::allocate(Addr blk_addr, unsigned blk_size, PacketPtr target,
     order = _order;
     assert(target);
     isForward = false;
+    wasWholeLineWrite = false;
     _isUncacheable = target->req->isUncacheable();
     inService = false;
     downstreamPending = false;
-    assert(targets.isReset());
+
+    targets.init(blkAddr, blkSize);
+    deferredTargets.init(blkAddr, blkSize);
+
     // Don't know of a case where we would allocate a new MSHR for a
     // snoop (mem-side request), so set source according to request here
     Target::Source source = (target->cmd == MemCmd::HardPFReq) ?
         Target::FromPrefetcher : Target::FromCPU;
     targets.add(target, when_ready, _order, source, true, alloc_on_fill);
-    assert(deferredTargets.isReset());
+
+    // All targets must refer to the same block
+    assert(target->matchBlockAddr(targets.front().pkt, blkSize));
 }
 
 
@@ -294,6 +303,10 @@ MSHR::markInService(bool pending_modified_resp)
         // level where it's going to get a response
         targets.clearDownstreamPending();
     }
+    // if the line is not considered a whole-line write when sent
+    // downstream, make sure it is also not considered a whole-line
+    // write when receiving the response, and vice versa
+    wasWholeLineWrite = isWholeLineWrite();
 }
 
 
@@ -449,17 +462,20 @@ MSHR::handleSnoop(PacketPtr pkt, Counter _order)
             // in the case of an uncacheable request there is no need
             // to set the responderHadWritable flag, but since the
             // recipient does not care there is no harm in doing so
+        } else if (isPendingModified() && pkt->isClean()) {
+            // this cache doesn't respond to the clean request, a
+            // destination xbar will respond to this request, but to
+            // do so it needs to know if it should wait for the
+            // WriteCleanReq
+            pkt->setSatisfied();
         }
+
         targets.add(cp_pkt, curTick(), _order, Target::FromSnoop,
                     downstreamPending && targets.needsWritable, false);
 
         if (pkt->needsWritable() || pkt->isInvalidate()) {
             // This transaction will take away our pending copy
             postInvalidate = true;
-        }
-
-        if (isPendingModified() && pkt->isClean()) {
-            pkt->setSatisfied();
         }
     }
 
@@ -480,6 +496,7 @@ MSHR::TargetList
 MSHR::extractServiceableTargets(PacketPtr pkt)
 {
     TargetList ready_targets;
+    ready_targets.init(blkAddr, blkSize);
     // If the downstream MSHR got an invalidation request then we only
     // service the first of the FromCPU targets and any other
     // non-FromCPU target. This way the remaining FromCPU targets
@@ -670,4 +687,25 @@ MSHR::print() const
     std::ostringstream str;
     print(str);
     return str.str();
+}
+
+bool
+MSHR::matchBlockAddr(const Addr addr, const bool is_secure) const
+{
+    assert(hasTargets());
+    return (blkAddr == addr) && (isSecure == is_secure);
+}
+
+bool
+MSHR::matchBlockAddr(const PacketPtr pkt) const
+{
+    assert(hasTargets());
+    return pkt->matchBlockAddr(blkAddr, isSecure, blkSize);
+}
+
+bool
+MSHR::conflictAddr(const QueueEntry* entry) const
+{
+    assert(hasTargets());
+    return entry->matchBlockAddr(blkAddr, isSecure);
 }

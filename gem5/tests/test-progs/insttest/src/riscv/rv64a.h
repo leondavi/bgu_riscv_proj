@@ -35,7 +35,7 @@
 
 #include "insttest.h"
 
-namespace res
+namespace A
 {
 
 inline int64_t

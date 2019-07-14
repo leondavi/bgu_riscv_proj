@@ -27,9 +27,11 @@
 
 from __future__ import print_function
 
-import logging
-
+import argparse
 import m5
+import os
+import re
+import sys
 
 from m5.objects import SystemC_Kernel, Root
 
@@ -38,9 +40,16 @@ from m5.objects import SystemC_Kernel, Root
 kernel = SystemC_Kernel()
 root = Root(full_system=True, systemc_kernel=kernel)
 
-kernel.sc_main("Hello", "World");
+m5.systemc.sc_main('gem5_systemc_test');
 
 m5.instantiate(None)
 
 cause = m5.simulate(m5.MaxTick).getCause()
-logging.info('Exiting @ tick %i because %s', m5.curTick(), cause)
+
+result = m5.systemc.sc_main_result()
+if result.code != 0:
+    # Arguably this should make gem5 fail, but some tests purposefully
+    # generate errors, and as long as their output matches that's still
+    # considered correct. A "real" systemc config should expect sc_main
+    # (if present) not to fail.
+    sys.exit(int(result.code))

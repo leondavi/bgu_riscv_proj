@@ -60,11 +60,9 @@ MinorCPU::MinorCPU(MinorCPUParams *params) :
                     params->itb, params->dtb, params->isa[i]);
             thread->setStatus(ThreadContext::Halted);
         } else {
-//            std::cout<<"params->workload[i]: "<<params->workload[i]<<std::endl;
             thread = new Minor::MinorThread(this, i, params->system,
                     params->workload[i], params->itb, params->dtb,
                     params->isa[i]);
-             std::cout<<"MINCPU create thread "<<i<<std::endl;
         }
 
         threads.push_back(thread);

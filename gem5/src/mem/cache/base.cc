@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, 2018 ARM Limited
+ * Copyright (c) 2012-2013, 2018-2019 ARM Limited
  * All rights reserved.
  *
  * The license below extends only to copyright in the software and shall
@@ -51,12 +51,17 @@
 #include "base/compiler.hh"
 #include "base/logging.hh"
 #include "debug/Cache.hh"
+#include "debug/CacheComp.hh"
 #include "debug/CachePort.hh"
+#include "debug/CacheRepl.hh"
 #include "debug/CacheVerbose.hh"
+#include "mem/cache/compressors/base.hh"
 #include "mem/cache/mshr.hh"
 #include "mem/cache/prefetch/base.hh"
 #include "mem/cache/queue_entry.hh"
+#include "mem/cache/tags/super_blk.hh"
 #include "params/BaseCache.hh"
+#include "params/WriteAllocator.hh"
 #include "sim/core.hh"
 
 class BaseMasterPort;
@@ -67,21 +72,23 @@ using namespace std;
 BaseCache::CacheSlavePort::CacheSlavePort(const std::string &_name,
                                           BaseCache *_cache,
                                           const std::string &_label)
-    : QueuedSlavePort(_name, _cache, queue), queue(*_cache, *this, _label),
+    : QueuedSlavePort(_name, _cache, queue),
+      queue(*_cache, *this, true, _label),
       blocked(false), mustSendRetry(false),
       sendRetryEvent([this]{ processSendRetry(); }, _name)
 {
 }
 
 BaseCache::BaseCache(const BaseCacheParams *p, unsigned blk_size)
-    : MemObject(p),
+    : ClockedObject(p),
       cpuSidePort (p->name + ".cpu_side", this, "CpuSidePort"),
       memSidePort(p->name + ".mem_side", this, "MemSidePort"),
       mshrQueue("MSHRs", p->mshrs, 0, p->demand_mshr_reserve), // see below
       writeBuffer("write buffer", p->write_buffers, p->mshrs), // see below
       tags(p->tags),
+      compressor(p->compressor),
       prefetcher(p->prefetcher),
-      prefetchOnAccess(p->prefetch_on_access),
+      writeAllocator(p->write_allocator),
       writebackClean(p->writeback_clean),
       tempBlockWriteback(nullptr),
       writebackTempBlockAtomicEvent([this]{ writebackTempBlockAtomic(); },
@@ -93,6 +100,7 @@ BaseCache::BaseCache(const BaseCacheParams *p, unsigned blk_size)
       forwardLatency(p->tag_latency),
       fillLatency(p->data_latency),
       responseLatency(p->response_latency),
+      sequentialAccess(p->sequential_access),
       numTarget(p->tgts_per_mshr),
       forwardSnoops(true),
       clusivity(p->clusivity),
@@ -115,7 +123,7 @@ BaseCache::BaseCache(const BaseCacheParams *p, unsigned blk_size)
 
     tempBlock = new TempCacheBlk(blkSize);
 
-    tags->setCache(this);
+    tags->tagsInit();
     if (prefetcher)
         prefetcher->setCache(this);
 }
@@ -181,23 +189,15 @@ BaseCache::init()
     forwardSnoops = cpuSidePort.isSnooping();
 }
 
-BaseMasterPort &
-BaseCache::getMasterPort(const std::string &if_name, PortID idx)
+Port &
+BaseCache::getPort(const std::string &if_name, PortID idx)
 {
     if (if_name == "mem_side") {
         return memSidePort;
-    }  else {
-        return MemObject::getMasterPort(if_name, idx);
-    }
-}
-
-BaseSlavePort &
-BaseCache::getSlavePort(const std::string &if_name, PortID idx)
-{
-    if (if_name == "cpu_side") {
+    } else if (if_name == "cpu_side") {
         return cpuSidePort;
-    } else {
-        return MemObject::getSlavePort(if_name, idx);
+    }  else {
+        return ClockedObject::getPort(if_name, idx);
     }
 }
 
@@ -216,16 +216,18 @@ void
 BaseCache::handleTimingReqHit(PacketPtr pkt, CacheBlk *blk, Tick request_time)
 {
     if (pkt->needsResponse()) {
+        // These delays should have been consumed by now
+        assert(pkt->headerDelay == 0);
+        assert(pkt->payloadDelay == 0);
+
         pkt->makeTimingResponse();
-        // @todo: Make someone pay for this
-        pkt->headerDelay = pkt->payloadDelay = 0;
 
         // In this case we are considering request_time that takes
         // into account the delay of the xbar, if any, and just
         // lat, neglecting responseLatency, modelling hit latency
-        // just as lookupLatency or or the value of lat overriden
-        // by access(), that calls accessBlock() function.
-        cpuSidePort.schedTimingResp(pkt, request_time, true);
+        // just as the value of lat overriden by access(), which calls
+        // the calculateAccessLatency() function.
+        cpuSidePort.schedTimingResp(pkt, request_time);
     } else {
         DPRINTF(Cache, "%s satisfied %s, no response needed\n", __func__,
                 pkt->print());
@@ -242,6 +244,12 @@ void
 BaseCache::handleTimingReqMiss(PacketPtr pkt, MSHR *mshr, CacheBlk *blk,
                                Tick forward_time, Tick request_time)
 {
+    if (writeAllocator &&
+        pkt && pkt->isWrite() && !pkt->req->isUncacheable()) {
+        writeAllocator->updateMode(pkt->getAddr(), pkt->getSize(),
+                                   pkt->getBlockAddr(blkSize));
+    }
+
     if (mshr) {
         /// MSHR hit
         /// @note writebacks will be checked in getNextMSHR()
@@ -334,73 +342,52 @@ BaseCache::recvTimingReq(PacketPtr pkt)
     // the delay provided by the crossbar
     Tick forward_time = clockEdge(forwardLatency) + pkt->headerDelay;
 
-    // We use lookupLatency here because it is used to specify the latency
-    // to access.
-    Cycles lat = lookupLatency;
+    Cycles lat;
     CacheBlk *blk = nullptr;
     bool satisfied = false;
     {
         PacketList writebacks;
         // Note that lat is passed by reference here. The function
-        // access() calls accessBlock() which can modify lat value.
+        // access() will set the lat value.
         satisfied = access(pkt, blk, lat, writebacks);
 
-        // copy writebacks to write buffer here to ensure they logically
-        // precede anything happening below
-        doWritebacks(writebacks, forward_time);
+        // After the evicted blocks are selected, they must be forwarded
+        // to the write buffer to ensure they logically precede anything
+        // happening below
+        doWritebacks(writebacks, clockEdge(lat + forwardLatency));
     }
 
     // Here we charge the headerDelay that takes into account the latencies
     // of the bus, if the packet comes from it.
-    // The latency charged it is just lat that is the value of lookupLatency
-    // modified by access() function, or if not just lookupLatency.
+    // The latency charged is just the value set by the access() function.
     // In case of a hit we are neglecting response latency.
     // In case of a miss we are neglecting forward latency.
-    Tick request_time = clockEdge(lat) + pkt->headerDelay;
+    Tick request_time = clockEdge(lat);
     // Here we reset the timing of the packet.
     pkt->headerDelay = pkt->payloadDelay = 0;
-    // track time of availability of next prefetch, if any
-    Tick next_pf_time = MaxTick;
 
     if (satisfied) {
-        // if need to notify the prefetcher we have to do it before
-        // anything else as later handleTimingReqHit might turn the
-        // packet in a response
-        if (prefetcher &&
-            (prefetchOnAccess || (blk && blk->wasPrefetched()))) {
-            if (blk)
-                blk->status &= ~BlkHWPrefetched;
+        // notify before anything else as later handleTimingReqHit might turn
+        // the packet in a response
+        ppHit->notify(pkt);
 
-            // Don't notify on SWPrefetch
-            if (!pkt->cmd.isSWPrefetch()) {
-                assert(!pkt->req->isCacheMaintenance());
-                next_pf_time = prefetcher->notify(pkt);
-            }
+        if (prefetcher && blk && blk->wasPrefetched()) {
+            blk->status &= ~BlkHWPrefetched;
         }
 
         handleTimingReqHit(pkt, blk, request_time);
     } else {
         handleTimingReqMiss(pkt, blk, forward_time, request_time);
 
-        // We should call the prefetcher reguardless if the request is
-        // satisfied or not, reguardless if the request is in the MSHR
-        // or not. The request could be a ReadReq hit, but still not
-        // satisfied (potentially because of a prior write to the same
-        // cache line. So, even when not satisfied, there is an MSHR
-        // already allocated for this, we need to let the prefetcher
-        // know about the request
-
-        // Don't notify prefetcher on SWPrefetch or cache maintenance
-        // operations
-        if (prefetcher && pkt &&
-            !pkt->cmd.isSWPrefetch() &&
-            !pkt->req->isCacheMaintenance()) {
-            next_pf_time = prefetcher->notify(pkt);
-        }
+        ppMiss->notify(pkt);
     }
 
-    if (next_pf_time != MaxTick) {
-        schedMemSideSendEvent(next_pf_time);
+    if (prefetcher) {
+        // track time of availability of next prefetch, if any
+        Tick next_pf_time = prefetcher->nextPrefetchReadyTime();
+        if (next_pf_time != MaxTick) {
+            schedMemSideSendEvent(next_pf_time);
+        }
     }
 }
 
@@ -413,7 +400,7 @@ BaseCache::handleUncacheableWriteResp(PacketPtr pkt)
     // Reset the bus additional time as it is now accounted for
     pkt->headerDelay = pkt->payloadDelay = 0;
 
-    cpuSidePort.schedTimingResp(pkt, completion_time, true);
+    cpuSidePort.schedTimingResp(pkt, completion_time);
 }
 
 void
@@ -456,7 +443,7 @@ BaseCache::recvTimingResp(PacketPtr pkt)
     }
 
     // Initial target is used just for stats
-    MSHR::Target *initial_tgt = mshr->getTarget();
+    QueueEntry::Target *initial_tgt = mshr->getTarget();
     int stats_cmd_idx = initial_tgt->pkt->cmdToIndex();
     Tick miss_latency = curTick() - initial_tgt->recvTime;
 
@@ -473,7 +460,12 @@ BaseCache::recvTimingResp(PacketPtr pkt)
     PacketList writebacks;
 
     bool is_fill = !mshr->isForward &&
-        (pkt->isRead() || pkt->cmd == MemCmd::UpgradeResp);
+        (pkt->isRead() || pkt->cmd == MemCmd::UpgradeResp ||
+         mshr->wasWholeLineWrite);
+
+    // make sure that if the mshr was due to a whole line write then
+    // the response is an invalidation
+    assert(!mshr->wasWholeLineWrite || pkt->isInvalidate());
 
     CacheBlk *blk = tags->findBlock(pkt->getAddr(), pkt->isSecure());
 
@@ -481,8 +473,11 @@ BaseCache::recvTimingResp(PacketPtr pkt)
         DPRINTF(Cache, "Block for addr %#llx being updated in Cache\n",
                 pkt->getAddr());
 
-        blk = handleFill(pkt, blk, writebacks, mshr->allocOnFill());
+        const bool allocate = (writeAllocator && mshr->wasWholeLineWrite) ?
+            writeAllocator->allocate() : mshr->allocOnFill();
+        blk = handleFill(pkt, blk, writebacks, allocate);
         assert(blk != nullptr);
+        ppFill->notify(pkt);
     }
 
     if (blk && blk->isValid() && pkt->isClean() && !pkt->isInvalidate()) {
@@ -504,7 +499,7 @@ BaseCache::recvTimingResp(PacketPtr pkt)
         mshr->promoteWritable();
     }
 
-    serviceMSHRTargets(mshr, pkt, blk, writebacks);
+    serviceMSHRTargets(mshr, pkt, blk);
 
     if (mshr->promoteDeferredTargets()) {
         // avoid later read getting stale data while write miss is
@@ -551,28 +546,13 @@ BaseCache::recvTimingResp(PacketPtr pkt)
 Tick
 BaseCache::recvAtomic(PacketPtr pkt)
 {
-    // We are in atomic mode so we pay just for lookupLatency here.
-    Cycles lat = lookupLatency;
-
-    // follow the same flow as in recvTimingReq, and check if a cache
-    // above us is responding
-    if (pkt->cacheResponding() && !pkt->isClean()) {
-        assert(!pkt->req->isCacheInvalidate());
-        DPRINTF(Cache, "Cache above responding to %s: not responding\n",
-                pkt->print());
-
-        // if a cache is responding, and it had the line in Owned
-        // rather than Modified state, we need to invalidate any
-        // copies that are not on the same path to memory
-        assert(pkt->needsWritable() && !pkt->responderHadWritable());
-        lat += ticksToCycles(memSidePort.sendAtomic(pkt));
-
-        return lat * clockPeriod();
-    }
-
     // should assert here that there are no outstanding MSHRs or
     // writebacks... that would mean that someone used an atomic
     // access in timing mode
+
+    // We use lookupLatency here because it is used to specify the latency
+    // to access.
+    Cycles lat = lookupLatency;
 
     CacheBlk *blk = nullptr;
     PacketList writebacks;
@@ -673,8 +653,8 @@ BaseCache::functionalAccess(PacketPtr pkt, bool from_cpu_side)
 
     bool done = have_dirty ||
         cpuSidePort.trySatisfyFunctional(pkt) ||
-        mshrQueue.trySatisfyFunctional(pkt, blk_addr) ||
-        writeBuffer.trySatisfyFunctional(pkt, blk_addr) ||
+        mshrQueue.trySatisfyFunctional(pkt) ||
+        writeBuffer.trySatisfyFunctional(pkt) ||
         memSidePort.trySatisfyFunctional(pkt);
 
     DPRINTF(CacheVerbose, "%s: %s %s%s%s\n", __func__,  pkt->print(),
@@ -753,9 +733,7 @@ BaseCache::getNextQueueEntry()
     // full write buffer, otherwise we favour the miss requests
     if (wq_entry && (writeBuffer.isFull() || !miss_mshr)) {
         // need to search MSHR queue for conflicting earlier miss.
-        MSHR *conflict_mshr =
-            mshrQueue.findPending(wq_entry->blkAddr,
-                                  wq_entry->isSecure);
+        MSHR *conflict_mshr = mshrQueue.findPending(wq_entry);
 
         if (conflict_mshr && conflict_mshr->order < wq_entry->order) {
             // Service misses in order until conflict is cleared.
@@ -768,9 +746,7 @@ BaseCache::getNextQueueEntry()
         return wq_entry;
     } else if (miss_mshr) {
         // need to check for conflicting earlier writeback
-        WriteQueueEntry *conflict_mshr =
-            writeBuffer.findPending(miss_mshr->blkAddr,
-                                    miss_mshr->isSecure);
+        WriteQueueEntry *conflict_mshr = writeBuffer.findPending(miss_mshr);
         if (conflict_mshr) {
             // not sure why we don't check order here... it was in the
             // original code but commented out.
@@ -822,6 +798,105 @@ BaseCache::getNextQueueEntry()
     return nullptr;
 }
 
+bool
+BaseCache::updateCompressionData(CacheBlk *blk, const uint64_t* data,
+                                 PacketList &writebacks)
+{
+    // tempBlock does not exist in the tags, so don't do anything for it.
+    if (blk == tempBlock) {
+        return true;
+    }
+
+    // Get superblock of the given block
+    CompressionBlk* compression_blk = static_cast<CompressionBlk*>(blk);
+    const SuperBlk* superblock = static_cast<const SuperBlk*>(
+        compression_blk->getSectorBlock());
+
+    // The compressor is called to compress the updated data, so that its
+    // metadata can be updated.
+    std::size_t compression_size = 0;
+    Cycles compression_lat = Cycles(0);
+    Cycles decompression_lat = Cycles(0);
+    compressor->compress(data, compression_lat, decompression_lat,
+                         compression_size);
+
+    // If block's compression factor increased, it may not be co-allocatable
+    // anymore. If so, some blocks might need to be evicted to make room for
+    // the bigger block
+
+    // Get previous compressed size
+    const std::size_t M5_VAR_USED prev_size = compression_blk->getSizeBits();
+
+    // Check if new data is co-allocatable
+    const bool is_co_allocatable = superblock->isCompressed(compression_blk) &&
+        superblock->canCoAllocate(compression_size);
+
+    // If block was compressed, possibly co-allocated with other blocks, and
+    // cannot be co-allocated anymore, one or more blocks must be evicted to
+    // make room for the expanded block. As of now we decide to evict the co-
+    // allocated blocks to make room for the expansion, but other approaches
+    // that take the replacement data of the superblock into account may
+    // generate better results
+    std::vector<CacheBlk*> evict_blks;
+    const bool was_compressed = compression_blk->isCompressed();
+    if (was_compressed && !is_co_allocatable) {
+        // Get all co-allocated blocks
+        for (const auto& sub_blk : superblock->blks) {
+            if (sub_blk->isValid() && (compression_blk != sub_blk)) {
+                // Check for transient state allocations. If any of the
+                // entries listed for eviction has a transient state, the
+                // allocation fails
+                const Addr repl_addr = regenerateBlkAddr(sub_blk);
+                const MSHR *repl_mshr =
+                    mshrQueue.findMatch(repl_addr, sub_blk->isSecure());
+                if (repl_mshr) {
+                    DPRINTF(CacheRepl, "Aborting data expansion of %s due " \
+                            "to replacement of block in transient state: %s\n",
+                            compression_blk->print(), sub_blk->print());
+                    // Too hard to replace block with transient state, so it
+                    // cannot be evicted. Mark the update as failed and expect
+                    // the caller to evict this block. Since this is called
+                    // only when writebacks arrive, and packets do not contain
+                    // compressed data, there is no need to decompress
+                    compression_blk->setSizeBits(blkSize * 8);
+                    compression_blk->setDecompressionLatency(Cycles(0));
+                    compression_blk->setUncompressed();
+                    return false;
+                }
+
+                evict_blks.push_back(sub_blk);
+            }
+        }
+
+        // Update the number of data expansions
+        dataExpansions++;
+
+        DPRINTF(CacheComp, "Data expansion: expanding [%s] from %d to %d bits"
+                "\n", blk->print(), prev_size, compression_size);
+    }
+
+    // We always store compressed blocks when possible
+    if (is_co_allocatable) {
+        compression_blk->setCompressed();
+    } else {
+        compression_blk->setUncompressed();
+    }
+    compression_blk->setSizeBits(compression_size);
+    compression_blk->setDecompressionLatency(decompression_lat);
+
+    // Evict valid blocks
+    for (const auto& evict_blk : evict_blks) {
+        if (evict_blk->isValid()) {
+            if (evict_blk->wasPrefetched()) {
+                unusedPrefetches++;
+            }
+            evictBlock(evict_blk, writebacks);
+        }
+    }
+
+    return true;
+}
+
 void
 BaseCache::satisfyRequest(PacketPtr pkt, CacheBlk *blk, bool, bool)
 {
@@ -843,10 +918,9 @@ BaseCache::satisfyRequest(PacketPtr pkt, CacheBlk *blk, bool, bool)
         if (pkt->isAtomicOp()) {
             // extract data from cache and save it into the data field in
             // the packet as a return value from this atomic op
-
             int offset = tags->extractBlkOffset(pkt->getAddr());
             uint8_t *blk_data = blk->data + offset;
-            std::memcpy(pkt->getPtr<uint8_t>(), blk_data, pkt->getSize());
+            pkt->setData(blk_data);
 
             // execute AMO operation
             (*(pkt->getAtomicOp()))(blk_data);
@@ -906,6 +980,48 @@ BaseCache::satisfyRequest(PacketPtr pkt, CacheBlk *blk, bool, bool)
 // Access path: requests coming in from the CPU side
 //
 /////////////////////////////////////////////////////
+Cycles
+BaseCache::calculateTagOnlyLatency(const uint32_t delay,
+                                   const Cycles lookup_lat) const
+{
+    // A tag-only access has to wait for the packet to arrive in order to
+    // perform the tag lookup.
+    return ticksToCycles(delay) + lookup_lat;
+}
+
+Cycles
+BaseCache::calculateAccessLatency(const CacheBlk* blk, const uint32_t delay,
+                                  const Cycles lookup_lat) const
+{
+    Cycles lat(0);
+
+    if (blk != nullptr) {
+        // As soon as the access arrives, for sequential accesses first access
+        // tags, then the data entry. In the case of parallel accesses the
+        // latency is dictated by the slowest of tag and data latencies.
+        if (sequentialAccess) {
+            lat = ticksToCycles(delay) + lookup_lat + dataLatency;
+        } else {
+            lat = ticksToCycles(delay) + std::max(lookup_lat, dataLatency);
+        }
+
+        // Check if the block to be accessed is available. If not, apply the
+        // access latency on top of when the block is ready to be accessed.
+        const Tick tick = curTick() + delay;
+        const Tick when_ready = blk->getWhenReady();
+        if (when_ready > tick &&
+            ticksToCycles(when_ready - tick) > lat) {
+            lat += ticksToCycles(when_ready - tick);
+        }
+    } else {
+        // In case of a miss, we neglect the data access in a parallel
+        // configuration (i.e., the data access will be stopped as soon as
+        // we find out it is a miss), and use the tag-only latency.
+        lat = calculateTagOnlyLatency(delay, lookup_lat);
+    }
+
+    return lat;
+}
 
 bool
 BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
@@ -918,9 +1034,9 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
                   "Should never see a write in a read-only cache %s\n",
                   name());
 
-    // Here lat is the value passed as parameter to accessBlock() function
-    // that can modify its value.
-    blk = tags->accessBlock(pkt->getAddr(), pkt->isSecure(), lat);
+    // Access block in the tags
+    Cycles tag_latency(0);
+    blk = tags->accessBlock(pkt->getAddr(), pkt->isSecure(), tag_latency);
 
     DPRINTF(Cache, "%s for %s %s\n", __func__, pkt->print(),
             blk ? "hit " + blk->print() : "miss");
@@ -932,6 +1048,11 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
         // We defer any changes to the state of the block until we
         // create and mark as in service the mshr for the downstream
         // packet.
+
+        // Calculate access latency on top of when the packet arrives. This
+        // takes into account the bus delay.
+        lat = calculateTagOnlyLatency(pkt->headerDelay, tag_latency);
+
         return false;
     }
 
@@ -961,6 +1082,10 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
                 // BLOCK_CACHED flag in the Writeback if set and
                 // discard the CleanEvict by returning true.
                 wbPkt->clearBlockCached();
+
+                // A clean evict does not need to access the data array
+                lat = calculateTagOnlyLatency(pkt->headerDelay, tag_latency);
+
                 return true;
             } else {
                 assert(pkt->cmd == MemCmd::WritebackDirty);
@@ -986,6 +1111,14 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
             mshrQueue.findMatch(pkt->getAddr(), pkt->isSecure())) {
             DPRINTF(Cache, "Clean writeback %#llx to block with MSHR, "
                     "dropping\n", pkt->getAddr());
+
+            // A writeback searches for the block, then writes the data.
+            // As the writeback is being dropped, the data is not touched,
+            // and we just had to wait for the time to find a match in the
+            // MSHR. As of now assume a mshr queue search takes as long as
+            // a tag lookup for simplicity.
+            lat = calculateTagOnlyLatency(pkt->headerDelay, tag_latency);
+
             return true;
         }
 
@@ -995,11 +1128,35 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
             if (!blk) {
                 // no replaceable block available: give up, fwd to next level.
                 incMissCount(pkt);
+
+                // A writeback searches for the block, then writes the data.
+                // As the block could not be found, it was a tag-only access.
+                lat = calculateTagOnlyLatency(pkt->headerDelay, tag_latency);
+
                 return false;
             }
 
-            blk->status |= (BlkValid | BlkReadable);
+            blk->status |= BlkReadable;
+        } else if (compressor) {
+            // This is an overwrite to an existing block, therefore we need
+            // to check for data expansion (i.e., block was compressed with
+            // a smaller size, and now it doesn't fit the entry anymore).
+            // If that is the case we might need to evict blocks.
+            if (!updateCompressionData(blk, pkt->getConstPtr<uint64_t>(),
+                writebacks)) {
+                // This is a failed data expansion (write), which happened
+                // after finding the replacement entries and accessing the
+                // block's data. There were no replaceable entries available
+                // to make room for the expanded block, and since it does not
+                // fit anymore and it has been properly updated to contain
+                // the new data, forward it to the next level
+                lat = calculateAccessLatency(blk, pkt->headerDelay,
+                                             tag_latency);
+                invalidateBlock(blk);
+                return false;
+            }
         }
+
         // only mark the block dirty if we got a writeback command,
         // and leave it as is for a clean writeback
         if (pkt->cmd == MemCmd::WritebackDirty) {
@@ -1017,11 +1174,21 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
         pkt->writeDataToBlock(blk->data, blkSize);
         DPRINTF(Cache, "%s new state is %s\n", __func__, blk->print());
         incHitCount(pkt);
-        // populate the time when the block will be ready to access.
-        blk->whenReady = clockEdge(fillLatency) + pkt->headerDelay +
-            pkt->payloadDelay;
+
+        // A writeback searches for the block, then writes the data
+        lat = calculateAccessLatency(blk, pkt->headerDelay, tag_latency);
+
+        // When the packet metadata arrives, the tag lookup will be done while
+        // the payload is arriving. Then the block will be ready to access as
+        // soon as the fill is done
+        blk->setWhenReady(clockEdge(fillLatency) + pkt->headerDelay +
+            std::max(cyclesToTicks(tag_latency), (uint64_t)pkt->payloadDelay));
+
         return true;
     } else if (pkt->cmd == MemCmd::CleanEvict) {
+        // A CleanEvict does not need to access the data array
+        lat = calculateTagOnlyLatency(pkt->headerDelay, tag_latency);
+
         if (blk) {
             // Found the block in the tags, need to stop CleanEvict from
             // propagating further down the hierarchy. Returning true will
@@ -1043,6 +1210,10 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
 
         if (!blk) {
             if (pkt->writeThrough()) {
+                // A writeback searches for the block, then writes the data.
+                // As the block could not be found, it was a tag-only access.
+                lat = calculateTagOnlyLatency(pkt->headerDelay, tag_latency);
+
                 // if this is a write through packet, we don't try to
                 // allocate if the block is not present
                 return false;
@@ -1053,10 +1224,35 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
                     // no replaceable block available: give up, fwd to
                     // next level.
                     incMissCount(pkt);
+
+                    // A writeback searches for the block, then writes the
+                    // data. As the block could not be found, it was a tag-only
+                    // access.
+                    lat = calculateTagOnlyLatency(pkt->headerDelay,
+                                                  tag_latency);
+
                     return false;
                 }
 
-                blk->status |= (BlkValid | BlkReadable);
+                blk->status |= BlkReadable;
+            }
+        } else if (compressor) {
+            // This is an overwrite to an existing block, therefore we need
+            // to check for data expansion (i.e., block was compressed with
+            // a smaller size, and now it doesn't fit the entry anymore).
+            // If that is the case we might need to evict blocks.
+            if (!updateCompressionData(blk, pkt->getConstPtr<uint64_t>(),
+                writebacks)) {
+                // This is a failed data expansion (write), which happened
+                // after finding the replacement entries and accessing the
+                // block's data. There were no replaceable entries available
+                // to make room for the expanded block, and since it does not
+                // fit anymore and it has been properly updated to contain
+                // the new data, forward it to the next level
+                lat = calculateAccessLatency(blk, pkt->headerDelay,
+                                             tag_latency);
+                invalidateBlock(blk);
+                return false;
             }
         }
 
@@ -1074,16 +1270,36 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
         DPRINTF(Cache, "%s new state is %s\n", __func__, blk->print());
 
         incHitCount(pkt);
-        // populate the time when the block will be ready to access.
-        blk->whenReady = clockEdge(fillLatency) + pkt->headerDelay +
-            pkt->payloadDelay;
-        // if this a write-through packet it will be sent to cache
-        // below
+
+        // A writeback searches for the block, then writes the data
+        lat = calculateAccessLatency(blk, pkt->headerDelay, tag_latency);
+
+        // When the packet metadata arrives, the tag lookup will be done while
+        // the payload is arriving. Then the block will be ready to access as
+        // soon as the fill is done
+        blk->setWhenReady(clockEdge(fillLatency) + pkt->headerDelay +
+            std::max(cyclesToTicks(tag_latency), (uint64_t)pkt->payloadDelay));
+
+        // If this a write-through packet it will be sent to cache below
         return !pkt->writeThrough();
     } else if (blk && (pkt->needsWritable() ? blk->isWritable() :
                        blk->isReadable())) {
         // OK to satisfy access
         incHitCount(pkt);
+
+        // Calculate access latency based on the need to access the data array
+        if (pkt->isRead() || pkt->isWrite()) {
+            lat = calculateAccessLatency(blk, pkt->headerDelay, tag_latency);
+
+            // When a block is compressed, it must first be decompressed
+            // before being read. This adds to the access latency.
+            if (compressor && pkt->isRead()) {
+                lat += compressor->getDecompressionLatency(blk);
+            }
+        } else {
+            lat = calculateTagOnlyLatency(pkt->headerDelay, tag_latency);
+        }
+
         satisfyRequest(pkt, blk);
         maintainClusivity(pkt->fromCache(), blk);
 
@@ -1094,6 +1310,8 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
     // or have block but need writable
 
     incMissCount(pkt);
+
+    lat = calculateAccessLatency(blk, pkt->headerDelay, tag_latency);
 
     if (!blk && pkt->isLLSC() && pkt->isWrite()) {
         // complete miss on store conditional... just give up now
@@ -1120,7 +1338,7 @@ CacheBlk*
 BaseCache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
                       bool allocate)
 {
-    assert(pkt->isResponse() || pkt->cmd == MemCmd::WriteLineReq);
+    assert(pkt->isResponse());
     Addr addr = pkt->getAddr();
     bool is_secure = pkt->isSecure();
 #if TRACING_ON
@@ -1133,12 +1351,7 @@ BaseCache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
 
     if (!blk) {
         // better have read new data...
-        assert(pkt->hasData());
-
-        // only read responses and write-line requests have data;
-        // note that we don't write the data here for write-line - that
-        // happens in the subsequent call to satisfyRequest
-        assert(pkt->isRead() || pkt->cmd == MemCmd::WriteLineReq);
+        assert(pkt->hasData() || pkt->cmd == MemCmd::InvalidateResp);
 
         // need to do a replacement if allocating, otherwise we stick
         // with the temporary storage
@@ -1148,31 +1361,28 @@ BaseCache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
             // No replaceable block or a mostly exclusive
             // cache... just use temporary storage to complete the
             // current request and then get rid of it
-            assert(!tempBlock->isValid());
             blk = tempBlock;
             tempBlock->insert(addr, is_secure);
             DPRINTF(Cache, "using temp block for %#llx (%s)\n", addr,
                     is_secure ? "s" : "ns");
         }
-
-        // we should never be overwriting a valid block
-        assert(!blk->isValid());
     } else {
         // existing block... probably an upgrade
-        assert(regenerateBlkAddr(blk) == addr);
-        assert(blk->isSecure() == is_secure);
-        // either we're getting new data or the block should already be valid
-        assert(pkt->hasData() || blk->isValid());
         // don't clear block status... if block is already dirty we
         // don't want to lose that
     }
 
-    blk->status |= BlkValid | BlkReadable;
+    // Block is guaranteed to be valid at this point
+    assert(blk->isValid());
+    assert(blk->isSecure() == is_secure);
+    assert(regenerateBlkAddr(blk) == addr);
+
+    blk->status |= BlkReadable;
 
     // sanity check for whole-line writes, which should always be
     // marked as writable as part of the fill, and then later marked
     // dirty as part of satisfyRequest
-    if (pkt->cmd == MemCmd::WriteLineReq) {
+    if (pkt->cmd == MemCmd::InvalidateResp) {
         assert(!pkt->hasSharers());
     }
 
@@ -1198,6 +1408,31 @@ BaseCache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
 
             chatty_assert(!isReadOnly, "Should never see dirty snoop response "
                           "in read-only cache %s\n", name());
+
+        } else if (pkt->cmd.isSWPrefetch() && pkt->needsWritable()) {
+            // All other copies of the block were invalidated and we
+            // have an exclusive copy.
+
+            // The coherence protocol assumes that if we fetched an
+            // exclusive copy of the block, we have the intention to
+            // modify it. Therefore the MSHR for the PrefetchExReq has
+            // been the point of ordering and this cache has commited
+            // to respond to snoops for the block.
+            //
+            // In most cases this is true anyway - a PrefetchExReq
+            // will be followed by a WriteReq. However, if that
+            // doesn't happen, the block is not marked as dirty and
+            // the cache doesn't respond to snoops that has committed
+            // to do so.
+            //
+            // To avoid deadlocks in cases where there is a snoop
+            // between the PrefetchExReq and the expected WriteReq, we
+            // proactively mark the block as Dirty.
+
+            blk->status |= BlkDirty;
+
+            panic_if(!isReadOnly, "Prefetch exclusive requests from read-only "
+                     "cache %s\n", name());
         }
     }
 
@@ -1213,9 +1448,9 @@ BaseCache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
 
         pkt->writeDataToBlock(blk->data, blkSize);
     }
-    // We pay for fillLatency here.
-    blk->whenReady = clockEdge() + fillLatency * clockPeriod() +
-        pkt->payloadDelay;
+    // The block will be ready when the payload arrives and the fill is done
+    blk->setWhenReady(clockEdge(fillLatency) + pkt->headerDelay +
+                      pkt->payloadDelay);
 
     return blk;
 }
@@ -1229,18 +1464,42 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
     // Get secure bit
     const bool is_secure = pkt->isSecure();
 
+    // Block size and compression related access latency. Only relevant if
+    // using a compressor, otherwise there is no extra delay, and the block
+    // is fully sized
+    std::size_t blk_size_bits = blkSize*8;
+    Cycles compression_lat = Cycles(0);
+    Cycles decompression_lat = Cycles(0);
+
+    // If a compressor is being used, it is called to compress data before
+    // insertion. Although in Gem5 the data is stored uncompressed, even if a
+    // compressor is used, the compression/decompression methods are called to
+    // calculate the amount of extra cycles needed to read or write compressed
+    // blocks.
+    if (compressor) {
+        compressor->compress(pkt->getConstPtr<uint64_t>(), compression_lat,
+                             decompression_lat, blk_size_bits);
+    }
+
     // Find replacement victim
     std::vector<CacheBlk*> evict_blks;
-    CacheBlk *victim = tags->findVictim(addr, is_secure, evict_blks);
+    CacheBlk *victim = tags->findVictim(addr, is_secure, blk_size_bits,
+                                        evict_blks);
 
     // It is valid to return nullptr if there is no victim
     if (!victim)
         return nullptr;
 
+    // Print victim block's information
+    DPRINTF(CacheRepl, "Replacement victim: %s\n", victim->print());
+
     // Check for transient state allocations. If any of the entries listed
     // for eviction has a transient state, the allocation fails
+    bool replacement = false;
     for (const auto& blk : evict_blks) {
         if (blk->isValid()) {
+            replacement = true;
+
             Addr repl_addr = regenerateBlkAddr(blk);
             MSHR *repl_mshr = mshrQueue.findMatch(repl_addr, blk->isSecure());
             if (repl_mshr) {
@@ -1258,25 +1517,30 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
 
     // The victim will be replaced by a new entry, so increase the replacement
     // counter if a valid block is being replaced
-    if (victim->isValid()) {
-        DPRINTF(Cache, "replacement: replacing %#llx (%s) with %#llx "
-                "(%s): %s\n", regenerateBlkAddr(victim),
-                victim->isSecure() ? "s" : "ns",
-                addr, is_secure ? "s" : "ns",
-                victim->isDirty() ? "writeback" : "clean");
+    if (replacement) {
+        // Evict valid blocks associated to this victim block
+        for (const auto& blk : evict_blks) {
+            if (blk->isValid()) {
+                DPRINTF(CacheRepl, "Evicting %s (%#llx) to make room for " \
+                        "%#llx (%s)\n", blk->print(), regenerateBlkAddr(blk),
+                        addr, is_secure);
+
+                if (blk->wasPrefetched()) {
+                    unusedPrefetches++;
+                }
+
+                evictBlock(blk, writebacks);
+            }
+        }
 
         replacements++;
     }
 
-    // Evict valid blocks associated to this victim block
-    for (const auto& blk : evict_blks) {
-        if (blk->isValid()) {
-            if (blk->wasPrefetched()) {
-                unusedPrefetches++;
-            }
-
-            evictBlock(blk, writebacks);
-        }
+    // If using a compressor, set compression data. This must be done before
+    // block insertion, as compressed tags use this information.
+    if (compressor) {
+        compressor->setSizeBits(victim, blk_size_bits);
+        compressor->setDecompressionLatency(victim, decompression_lat);
     }
 
     // Insert new block at victimized entry
@@ -1288,9 +1552,22 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
 void
 BaseCache::invalidateBlock(CacheBlk *blk)
 {
-    if (blk != tempBlock)
+    // If handling a block present in the Tags, let it do its invalidation
+    // process, which will update stats and invalidate the block itself
+    if (blk != tempBlock) {
         tags->invalidate(blk);
-    blk->invalidate();
+    } else {
+        tempBlock->invalidate();
+    }
+}
+
+void
+BaseCache::evictBlock(CacheBlk *blk, PacketList &writebacks)
+{
+    PacketPtr pkt = evictBlock(blk);
+    if (pkt) {
+        writebacks.push_back(pkt);
+    }
 }
 
 PacketPtr
@@ -1332,6 +1609,12 @@ BaseCache::writebackBlk(CacheBlk *blk)
     pkt->allocate();
     pkt->setDataFromBlock(blk->data, blkSize);
 
+    // When a block is compressed, it must first be decompressed before being
+    // sent for writeback.
+    if (compressor) {
+        pkt->payloadDelay = compressor->getDecompressionLatency(blk);
+    }
+
     return pkt;
 }
 
@@ -1371,6 +1654,12 @@ BaseCache::writecleanBlk(CacheBlk *blk, Request::Flags dest, PacketId id)
     pkt->allocate();
     pkt->setDataFromBlock(blk->data, blkSize);
 
+    // When a block is compressed, it must first be decompressed before being
+    // sent for writeback.
+    if (compressor) {
+        pkt->payloadDelay = compressor->getDecompressionLatency(blk);
+    }
+
     return pkt;
 }
 
@@ -1391,6 +1680,12 @@ bool
 BaseCache::isDirty() const
 {
     return tags->anyBlk([](CacheBlk &blk) { return blk.isDirty(); });
+}
+
+bool
+BaseCache::coalesce() const
+{
+    return writeAllocator && writeAllocator->coalesce();
 }
 
 void
@@ -1456,11 +1751,35 @@ BaseCache::sendMSHRQueuePacket(MSHR* mshr)
 
     DPRINTF(Cache, "%s: MSHR %s\n", __func__, tgt_pkt->print());
 
+    // if the cache is in write coalescing mode or (additionally) in
+    // no allocation mode, and we have a write packet with an MSHR
+    // that is not a whole-line write (due to incompatible flags etc),
+    // then reset the write mode
+    if (writeAllocator && writeAllocator->coalesce() && tgt_pkt->isWrite()) {
+        if (!mshr->isWholeLineWrite()) {
+            // if we are currently write coalescing, hold on the
+            // MSHR as many cycles extra as we need to completely
+            // write a cache line
+            if (writeAllocator->delay(mshr->blkAddr)) {
+                Tick delay = blkSize / tgt_pkt->getSize() * clockPeriod();
+                DPRINTF(CacheVerbose, "Delaying pkt %s %llu ticks to allow "
+                        "for write coalescing\n", tgt_pkt->print(), delay);
+                mshrQueue.delay(mshr, delay);
+                return false;
+            } else {
+                writeAllocator->reset();
+            }
+        } else {
+            writeAllocator->resetDelay(mshr->blkAddr);
+        }
+    }
+
     CacheBlk *blk = tags->findBlock(mshr->blkAddr, mshr->isSecure);
 
     // either a prefetch that is not present upstream, or a normal
     // MSHR request, proceed to get the packet to send downstream
-    PacketPtr pkt = createMissPacket(tgt_pkt, blk, mshr->needsWritable());
+    PacketPtr pkt = createMissPacket(tgt_pkt, blk, mshr->needsWritable(),
+                                     mshr->isWholeLineWrite());
 
     mshr->isForward = (pkt == nullptr);
 
@@ -1584,7 +1903,7 @@ BaseCache::unserialize(CheckpointIn &cp)
 void
 BaseCache::regStats()
 {
-    MemObject::regStats();
+    ClockedObject::regStats();
 
     using namespace Stats;
 
@@ -1613,7 +1932,7 @@ BaseCache::regStats()
 
 // should writebacks be included here?  prior code was inconsistent...
 #define SUM_NON_DEMAND(s) \
-    (s[MemCmd::SoftPFReq] + s[MemCmd::HardPFReq])
+    (s[MemCmd::SoftPFReq] + s[MemCmd::HardPFReq] + s[MemCmd::SoftPFExReq])
 
     demandHits
         .name(name() + ".demand_hits")
@@ -2027,38 +2346,6 @@ BaseCache::regStats()
         overallMshrUncacheableLatency.subname(i, system->getMasterName(i));
     }
 
-#if 0
-    // MSHR access formulas
-    for (int access_idx = 0; access_idx < MemCmd::NUM_MEM_CMDS; ++access_idx) {
-        MemCmd cmd(access_idx);
-        const string &cstr = cmd.toString();
-
-        mshrAccesses[access_idx]
-            .name(name() + "." + cstr + "_mshr_accesses")
-            .desc("number of " + cstr + " mshr accesses(hits+misses)")
-            .flags(total | nozero | nonan)
-            ;
-        mshrAccesses[access_idx] =
-            mshr_hits[access_idx] + mshr_misses[access_idx]
-            + mshr_uncacheable[access_idx];
-    }
-
-    demandMshrAccesses
-        .name(name() + ".demand_mshr_accesses")
-        .desc("number of demand (read+write) mshr accesses")
-        .flags(total | nozero | nonan)
-        ;
-    demandMshrAccesses = demandMshrHits + demandMshrMisses;
-
-    overallMshrAccesses
-        .name(name() + ".overall_mshr_accesses")
-        .desc("number of overall (read+write) mshr accesses")
-        .flags(total | nozero | nonan)
-        ;
-    overallMshrAccesses = overallMshrHits + overallMshrMisses
-        + overallMshrUncacheable;
-#endif
-
     // MSHR miss rate formulas
     for (int access_idx = 0; access_idx < MemCmd::NUM_MEM_CMDS; ++access_idx) {
         MemCmd cmd(access_idx);
@@ -2170,6 +2457,20 @@ BaseCache::regStats()
         .name(name() + ".replacements")
         .desc("number of replacements")
         ;
+
+    dataExpansions
+        .name(name() + ".data_expansions")
+        .desc("number of data expansions")
+        .flags(nozero | nonan)
+        ;
+}
+
+void
+BaseCache::regProbePoints()
+{
+    ppHit = new ProbePointArg<PacketPtr>(this->getProbeManager(), "Hit");
+    ppMiss = new ProbePointArg<PacketPtr>(this->getProbeManager(), "Miss");
+    ppFill = new ProbePointArg<PacketPtr>(this->getProbeManager(), "Fill");
 }
 
 ///////////////
@@ -2328,7 +2629,7 @@ BaseCache::CacheReqPacketQueue::sendDeferredPacket()
     } else {
         // let our snoop responses go first if there are responses to
         // the same addresses
-        if (checkConflictingSnoop(entry->blkAddr)) {
+        if (checkConflictingSnoop(entry->getTarget()->pkt)) {
             return;
         }
         waitingOnRetry = entry->sendPacket(cache);
@@ -2348,6 +2649,46 @@ BaseCache::MemSidePort::MemSidePort(const std::string &_name,
                                     const std::string &_label)
     : CacheMasterPort(_name, _cache, _reqQueue, _snoopRespQueue),
       _reqQueue(*_cache, *this, _snoopRespQueue, _label),
-      _snoopRespQueue(*_cache, *this, _label), cache(_cache)
+      _snoopRespQueue(*_cache, *this, true, _label), cache(_cache)
 {
+}
+
+void
+WriteAllocator::updateMode(Addr write_addr, unsigned write_size,
+                           Addr blk_addr)
+{
+    // check if we are continuing where the last write ended
+    if (nextAddr == write_addr) {
+        delayCtr[blk_addr] = delayThreshold;
+        // stop if we have already saturated
+        if (mode != WriteMode::NO_ALLOCATE) {
+            byteCount += write_size;
+            // switch to streaming mode if we have passed the lower
+            // threshold
+            if (mode == WriteMode::ALLOCATE &&
+                byteCount > coalesceLimit) {
+                mode = WriteMode::COALESCE;
+                DPRINTF(Cache, "Switched to write coalescing\n");
+            } else if (mode == WriteMode::COALESCE &&
+                       byteCount > noAllocateLimit) {
+                // and continue and switch to non-allocating mode if we
+                // pass the upper threshold
+                mode = WriteMode::NO_ALLOCATE;
+                DPRINTF(Cache, "Switched to write-no-allocate\n");
+            }
+        }
+    } else {
+        // we did not see a write matching the previous one, start
+        // over again
+        byteCount = write_size;
+        mode = WriteMode::ALLOCATE;
+        resetDelay(blk_addr);
+    }
+    nextAddr = write_addr + write_size;
+}
+
+WriteAllocator*
+WriteAllocatorParams::create()
+{
+    return new WriteAllocator(this);
 }
