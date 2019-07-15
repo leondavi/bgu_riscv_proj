@@ -58,13 +58,14 @@
 #include "config/the_isa.hh"
 #include "enums/MemoryMode.hh"
 #include "mem/mem_master.hh"
-#include "mem/mem_object.hh"
 #include "mem/physical.hh"
 #include "mem/port.hh"
 #include "mem/port_proxy.hh"
 #include "params/System.hh"
 #include "sim/futex_map.hh"
+#include "sim/redirect_path.hh"
 #include "sim/se_signal.hh"
+#include "sim/sim_object.hh"
 
 /**
  * To avoid linking errors with LTO, only include the header if we
@@ -80,7 +81,7 @@ class KvmVM;
 class ObjectFile;
 class ThreadContext;
 
-class System : public MemObject
+class System : public SimObject
 {
   private:
 
@@ -96,7 +97,7 @@ class System : public MemObject
         /**
          * Create a system port with a name and an owner.
          */
-        SystemPort(const std::string &_name, MemObject *_owner)
+        SystemPort(const std::string &_name, SimObject *_owner)
             : MasterPort(_name, _owner)
         { }
         bool recvTimingResp(PacketPtr pkt) override
@@ -128,8 +129,8 @@ class System : public MemObject
     /**
      * Additional function to return the Port of a memory object.
      */
-    BaseMasterPort& getMasterPort(const std::string &if_name,
-                                  PortID idx = InvalidPortID) override;
+    Port &getPort(const std::string &if_name,
+                  PortID idx=InvalidPortID) override;
 
     /** @{ */
     /**
@@ -325,6 +326,12 @@ class System : public MemObject
 
     ThermalModel * thermalModel;
 
+  protected:
+    /**
+     * Strips off the system name from a master name
+     */
+    std::string stripSystemName(const std::string& master_name) const;
+
   public:
 
     /**
@@ -370,19 +377,32 @@ class System : public MemObject
      * @param masterName full name of the master
      * @return the master's ID.
      */
-    MasterID getGlobalMasterId(std::string master_name);
+    MasterID getGlobalMasterId(const std::string& master_name);
 
     /**
      * Get the name of an object for a given request id.
      */
     std::string getMasterName(MasterID master_id);
 
+    /**
+     * Looks up the MasterID for a given SimObject
+     * returns an invalid MasterID (invldMasterId) if not found.
+     */
+    MasterID lookupMasterId(const SimObject* obj) const;
+
+    /**
+     * Looks up the MasterID for a given object name string
+     * returns an invalid MasterID (invldMasterId) if not found.
+     */
+    MasterID lookupMasterId(const std::string& name) const;
+
     /** Get the number of masters registered in the system */
     MasterID maxMasters() { return masters.size(); }
 
   protected:
     /** helper function for getMasterId */
-    MasterID _getMasterId(const SimObject* master, std::string master_name);
+    MasterID _getMasterId(const SimObject* master,
+                          const std::string& master_name);
 
     /**
      * Helper function for constructing the full (sub)master name
@@ -609,6 +629,11 @@ class System : public MemObject
     // receiver will delete the signal upon reception.
     std::list<BasicSignal> signalList;
 
+    // Used by syscall-emulation mode. This member contains paths which need
+    // to be redirected to the faux-filesystem (a duplicate filesystem
+    // intended to replace certain files on the host filesystem).
+    std::vector<RedirectPath*> redirectPaths;
+
   protected:
 
     /**
@@ -628,7 +653,6 @@ class System : public MemObject
      * @param section relevant section in the checkpoint
      */
     virtual void unserializeSymtab(CheckpointIn &cp) {}
-
 };
 
 void printSystems();

@@ -61,98 +61,98 @@ namespace Minor
  *  them to Fetch2 */
 class Fetch1 : public Named
 {
-protected:
-	/** Exposable fetch port */
-	class IcachePort : public MinorCPU::MinorCPUPort
-	{
-	protected:
-		/** My owner */
-		Fetch1 &fetch;
+  protected:
+    /** Exposable fetch port */
+    class IcachePort : public MinorCPU::MinorCPUPort
+    {
+      protected:
+        /** My owner */
+        Fetch1 &fetch;
 
-	public:
-		IcachePort(std::string name, Fetch1 &fetch_, MinorCPU &cpu) :
-			MinorCPU::MinorCPUPort(name, cpu), fetch(fetch_)
-		{ }
+      public:
+        IcachePort(std::string name, Fetch1 &fetch_, MinorCPU &cpu) :
+            MinorCPU::MinorCPUPort(name, cpu), fetch(fetch_)
+        { }
 
-	protected:
-		bool recvTimingResp(PacketPtr pkt)
-		{ return fetch.recvTimingResp(pkt); }
+      protected:
+        bool recvTimingResp(PacketPtr pkt)
+        { return fetch.recvTimingResp(pkt); }
 
-		void recvReqRetry() { fetch.recvReqRetry(); }
-	};
+        void recvReqRetry() { fetch.recvReqRetry(); }
+    };
 
-	/** Memory access queuing.
-	 *
-	 *  A request can be submitted by pushing it onto the requests queue after
-	 *  issuing an ITLB lookup (state becomes InTranslation) with a
-	 *  FetchSenderState senderState containing the current lineSeqNum and
-	 *  stream/predictionSeqNum.
-	 *
-	 *  Translated packets (state becomes Translation) are then passed to the
-	 *  memory system and the transfers queue (state becomes RequestIssuing).
-	 *  Retries are handled by leaving the packet on the requests queue and
-	 *  changing the state to IcacheNeedsRetry).
-	 *
-	 *  Responses from the memory system alter the request object (state
-	 *  become Complete).  Responses can be picked up from the head of the
-	 *  transfers queue to pass on to Fetch2. */
+    /** Memory access queuing.
+     *
+     *  A request can be submitted by pushing it onto the requests queue after
+     *  issuing an ITLB lookup (state becomes InTranslation) with a
+     *  FetchSenderState senderState containing the current lineSeqNum and
+     *  stream/predictionSeqNum.
+     *
+     *  Translated packets (state becomes Translation) are then passed to the
+     *  memory system and the transfers queue (state becomes RequestIssuing).
+     *  Retries are handled by leaving the packet on the requests queue and
+     *  changing the state to IcacheNeedsRetry).
+     *
+     *  Responses from the memory system alter the request object (state
+     *  become Complete).  Responses can be picked up from the head of the
+     *  transfers queue to pass on to Fetch2. */
 
-	/** Structure to hold SenderState info through
-	 *  translation and memory accesses. */
-	class FetchRequest :
-			public BaseTLB::Translation, /* For TLB lookups */
-			public Packet::SenderState /* For packing into a Packet */
-			{
-			protected:
-		/** Owning fetch unit */
-		Fetch1 &fetch;
+    /** Structure to hold SenderState info through
+     *  translation and memory accesses. */
+    class FetchRequest :
+        public BaseTLB::Translation, /* For TLB lookups */
+        public Packet::SenderState /* For packing into a Packet */
+    {
+      protected:
+        /** Owning fetch unit */
+        Fetch1 &fetch;
 
-			public:
-		/** Progress of this request through address translation and
-		 *  memory */
-		enum FetchRequestState
-		{
-			NotIssued, /* Just been made */
-			InTranslation, /* Issued to ITLB, must wait for reqply */
-			Translated, /* Translation complete */
-			RequestIssuing, /* Issued to memory, must wait for response */
-			Complete /* Complete.  Either a fault, or a fetched line */
-		};
+      public:
+        /** Progress of this request through address translation and
+         *  memory */
+        enum FetchRequestState
+        {
+            NotIssued, /* Just been made */
+            InTranslation, /* Issued to ITLB, must wait for reqply */
+            Translated, /* Translation complete */
+            RequestIssuing, /* Issued to memory, must wait for response */
+            Complete /* Complete.  Either a fault, or a fetched line */
+        };
 
-		FetchRequestState state;
+        FetchRequestState state;
 
-		/** Identity of the line that this request will generate */
-		InstId id;
+        /** Identity of the line that this request will generate */
+        InstId id;
 
-		/** FetchRequests carry packets while they're in the requests and
-		 * transfers responses queues.  When a Packet returns from the memory
-		 * system, its request needs to have its packet updated as this may
-		 * have changed in flight */
-		PacketPtr packet;
+        /** FetchRequests carry packets while they're in the requests and
+         * transfers responses queues.  When a Packet returns from the memory
+         * system, its request needs to have its packet updated as this may
+         * have changed in flight */
+        PacketPtr packet;
 
-		/** The underlying request that this fetch represents */
-		RequestPtr request;
+        /** The underlying request that this fetch represents */
+        RequestPtr request;
 
-		/** PC to fixup with line address */
-		TheISA::PCState pc;
+        /** PC to fixup with line address */
+        TheISA::PCState pc;
 
-		/** Fill in a fault if one happens during fetch, check this by
-		 *  picking apart the response packet */
-		Fault fault;
+        /** Fill in a fault if one happens during fetch, check this by
+         *  picking apart the response packet */
+        Fault fault;
 
-		/** Make a packet to use with the memory transaction */
-		void makePacket();
+        /** Make a packet to use with the memory transaction */
+        void makePacket();
 
-		/** Report interface */
-		void reportData(std::ostream &os) const;
+        /** Report interface */
+        void reportData(std::ostream &os) const;
 
-		/** Is this line out of date with the current stream/prediction
-		 *  sequence and can it be discarded without orphaning in flight
-		 *  TLB lookups/memory accesses? */
-		bool isDiscardable() const;
+        /** Is this line out of date with the current stream/prediction
+         *  sequence and can it be discarded without orphaning in flight
+         *  TLB lookups/memory accesses? */
+        bool isDiscardable() const;
 
-		/** Is this a complete read line or fault */
-		bool isComplete() const { return state == Complete; }
+        /** Is this a complete read line or fault */
+        bool isComplete() const { return state == Complete; }
 
 			protected:
 		/** BaseTLB::Translation interface */

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2010 ARM Limited
  * All rights reserved

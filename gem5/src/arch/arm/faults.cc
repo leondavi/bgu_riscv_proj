@@ -297,16 +297,9 @@ ArmFault::getVector(ThreadContext *tc)
 {
     Addr base;
 
-    // ARM ARM issue C B1.8.1
-    bool haveSecurity = ArmSystem::haveSecurity(tc);
-
-    // panic if SCTLR.VE because I have no idea what to do with vectored
-    // interrupts
-    SCTLR sctlr = tc->readMiscReg(MISCREG_SCTLR);
-    assert(!sctlr.ve);
     // Check for invalid modes
     CPSR cpsr = tc->readMiscRegNoEffect(MISCREG_CPSR);
-    assert(haveSecurity                      || cpsr.mode != MODE_MON);
+    assert(ArmSystem::haveSecurity(tc) || cpsr.mode != MODE_MON);
     assert(ArmSystem::haveVirtualization(tc) || cpsr.mode != MODE_HYP);
 
     switch (cpsr.mode)
@@ -318,13 +311,16 @@ ArmFault::getVector(ThreadContext *tc)
         base = tc->readMiscReg(MISCREG_HVBAR);
         break;
       default:
+        SCTLR sctlr = tc->readMiscReg(MISCREG_SCTLR);
         if (sctlr.v) {
             base = HighVecs;
         } else {
-            base = haveSecurity ? tc->readMiscReg(MISCREG_VBAR) : 0;
+            base = ArmSystem::haveSecurity(tc) ?
+                tc->readMiscReg(MISCREG_VBAR) : 0;
         }
         break;
     }
+
     return base + offset(tc);
 }
 
@@ -500,10 +496,7 @@ ArmFault::invoke(ThreadContext *tc, const StaticInstPtr &inst)
     // if we have a valid instruction then use it to annotate this fault with
     // extra information. This is used to generate the correct fault syndrome
     // information
-    if (inst) {
-        ArmStaticInst *armInst = static_cast<ArmStaticInst *>(inst.get());
-        armInst->annotateFault(this);
-    }
+    ArmStaticInst *arm_inst M5_VAR_USED = instrAnnotate(inst);
 
     // Ensure Secure state if initially in Monitor mode
     if (have_security && saved_cpsr.mode == MODE_MON) {
@@ -591,8 +584,10 @@ ArmFault::invoke(ThreadContext *tc, const StaticInstPtr &inst)
     }
 
     Addr newPc = getVector(tc);
-    DPRINTF(Faults, "Invoking Fault:%s cpsr:%#x PC:%#x lr:%#x newVec: %#x\n",
-            name(), cpsr, curPc, tc->readIntReg(INTREG_LR), newPc);
+    DPRINTF(Faults, "Invoking Fault:%s cpsr:%#x PC:%#x lr:%#x newVec: %#x "
+            "%s\n", name(), cpsr, curPc, tc->readIntReg(INTREG_LR),
+            newPc, arm_inst ? csprintf("inst: %#x", arm_inst->encoding()) :
+            std::string());
     PCState pc(newPc);
     pc.thumb(cpsr.t);
     pc.nextThumb(pc.thumb());
@@ -677,24 +672,56 @@ ArmFault::invoke64(ThreadContext *tc, const StaticInstPtr &inst)
     cpsr.ss = 0;
     tc->setMiscReg(MISCREG_CPSR, cpsr);
 
+    // If we have a valid instruction then use it to annotate this fault with
+    // extra information. This is used to generate the correct fault syndrome
+    // information
+    ArmStaticInst *arm_inst M5_VAR_USED = instrAnnotate(inst);
+
     // Set PC to start of exception handler
     Addr new_pc = purifyTaggedAddr(vec_address, tc, toEL);
     DPRINTF(Faults, "Invoking Fault (AArch64 target EL):%s cpsr:%#x PC:%#x "
-            "elr:%#x newVec: %#x\n", name(), cpsr, curr_pc, ret_addr, new_pc);
+            "elr:%#x newVec: %#x %s\n", name(), cpsr, curr_pc, ret_addr,
+            new_pc, arm_inst ? csprintf("inst: %#x", arm_inst->encoding()) :
+            std::string());
     PCState pc(new_pc);
     pc.aarch64(!cpsr.width);
     pc.nextAArch64(!cpsr.width);
     pc.illegalExec(false);
     tc->pcState(pc);
 
-    // If we have a valid instruction then use it to annotate this fault with
-    // extra information. This is used to generate the correct fault syndrome
-    // information
-    if (inst)
-        static_cast<ArmStaticInst *>(inst.get())->annotateFault(this);
     // Save exception syndrome
     if ((nextMode() != MODE_IRQ) && (nextMode() != MODE_FIQ))
         setSyndrome(tc, getSyndromeReg64());
+}
+
+ArmStaticInst *
+ArmFault::instrAnnotate(const StaticInstPtr &inst)
+{
+    if (inst) {
+        auto arm_inst = static_cast<ArmStaticInst *>(inst.get());
+        arm_inst->annotateFault(this);
+        return arm_inst;
+    } else {
+        return nullptr;
+    }
+}
+
+Addr
+Reset::getVector(ThreadContext *tc)
+{
+    Addr base;
+
+    // Check for invalid modes
+    CPSR M5_VAR_USED cpsr = tc->readMiscRegNoEffect(MISCREG_CPSR);
+    assert(ArmSystem::haveSecurity(tc) || cpsr.mode != MODE_MON);
+    assert(ArmSystem::haveVirtualization(tc) || cpsr.mode != MODE_HYP);
+
+    // RVBAR is aliased (implemented as) MVBAR in gem5, since the two
+    // are mutually exclusive; there is no need to check here for
+    // which register to use since they hold the same value
+    base = tc->readMiscReg(MISCREG_MVBAR);
+
+    return base + offset(tc);
 }
 
 void
@@ -718,7 +745,7 @@ Reset::invoke(ThreadContext *tc, const StaticInstPtr &inst)
         }
     } else {
         // Advance the PC to the IMPLEMENTATION DEFINED reset value
-        PCState pc = ArmSystem::resetAddr64(tc);
+        PCState pc = ArmSystem::resetAddr(tc);
         pc.aarch64(true);
         pc.nextAArch64(true);
         tc->pcState(pc);
@@ -735,15 +762,16 @@ UndefinedInstruction::invoke(ThreadContext *tc, const StaticInstPtr &inst)
 
     // If the mnemonic isn't defined this has to be an unknown instruction.
     assert(unknown || mnemonic != NULL);
+    auto arm_inst = static_cast<ArmStaticInst *>(inst.get());
     if (disabled) {
         panic("Attempted to execute disabled instruction "
-                "'%s' (inst 0x%08x)", mnemonic, machInst);
+                "'%s' (inst 0x%08x)", mnemonic, arm_inst->encoding());
     } else if (unknown) {
         panic("Attempted to execute unknown instruction (inst 0x%08x)",
-              machInst);
+              arm_inst->encoding());
     } else {
         panic("Attempted to execute unimplemented instruction "
-                "'%s' (inst 0x%08x)", mnemonic, machInst);
+                "'%s' (inst 0x%08x)", mnemonic, arm_inst->encoding());
     }
 }
 

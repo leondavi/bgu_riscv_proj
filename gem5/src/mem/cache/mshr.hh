@@ -38,6 +38,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * Authors: Erik Hallnor
+ *          Nikos Nikoleris
  */
 
 /**
@@ -52,11 +53,13 @@
 #include <iosfwd>
 #include <list>
 #include <string>
+#include <vector>
 
 #include "base/printable.hh"
 #include "base/types.hh"
 #include "mem/cache/queue_entry.hh"
 #include "mem/packet.hh"
+#include "mem/request.hh"
 #include "sim/core.hh"
 
 class BaseCache;
@@ -115,10 +118,13 @@ class MSHR : public QueueEntry, public Printable
 
   public:
 
+    /** Track if we sent this as a whole line write or not */
+    bool wasWholeLineWrite;
+
     /** True if the entry is just a simple forward from an upper level */
     bool isForward;
 
-    class Target {
+    class Target : public QueueEntry::Target {
       public:
 
         enum Source {
@@ -127,10 +133,6 @@ class MSHR : public QueueEntry, public Printable
             FromPrefetcher
         };
 
-        const Tick recvTime;  //!< Time when request was received (for stats)
-        const Tick readyTime; //!< Time when request is ready to be serviced
-        const Counter order;  //!< Global order (for memory consistency mgmt)
-        const PacketPtr pkt;  //!< Pending request packet.
         const Source source;  //!< Request from cpu, memory, or prefetcher?
 
         /**
@@ -155,9 +157,8 @@ class MSHR : public QueueEntry, public Printable
 
         Target(PacketPtr _pkt, Tick _readyTime, Counter _order,
                Source _source, bool _markedPending, bool alloc_on_fill)
-            : recvTime(curTick()), readyTime(_readyTime), order(_order),
-              pkt(_pkt), source(_source), markedPending(_markedPending),
-              allocOnFill(alloc_on_fill)
+            : QueueEntry::Target(_pkt, _readyTime, _order), source(_source),
+              markedPending(_markedPending), allocOnFill(alloc_on_fill)
         {}
     };
 
@@ -187,7 +188,24 @@ class MSHR : public QueueEntry, public Printable
         void updateFlags(PacketPtr pkt, Target::Source source,
                          bool alloc_on_fill);
 
+        /**
+         * Reset state
+         *
+         * @param blk_addr Address of the cache block
+         * @param blk_size Size of the cache block
+         */
+        void init(Addr blk_addr, Addr blk_size) {
+            blkAddr = blk_addr;
+            blkSize = blk_size;
+            writesBitmap.resize(blk_size);
+
+            resetFlags();
+        }
+
         void resetFlags() {
+            onlyWrites = true;
+            std::fill(writesBitmap.begin(), writesBitmap.end(), false);
+
             needsWritable = false;
             hasUpgrade = false;
             allocOnFill = false;
@@ -203,12 +221,44 @@ class MSHR : public QueueEntry, public Printable
         void populateFlags();
 
         /**
+         * Add the specified packet in the TargetList. This function
+         * stores information related to the added packet and updates
+         * accordingly the flags.
+         *
+         * @param pkt Packet considered for adding
+         */
+        void updateWriteFlags(PacketPtr pkt) {
+             const Request::FlagsType noMergeFlags =
+                 Request::UNCACHEABLE |
+                 Request::STRICT_ORDER | Request::MMAPPED_IPR |
+                 Request::PRIVILEGED | Request::LLSC |
+                 Request::MEM_SWAP | Request::MEM_SWAP_COND |
+                 Request::SECURE;
+
+             // if we have already seen writes for the full block stop
+             // here, this might be a full line write followed by
+             // other compatible requests (e.g., reads)
+             if (!isWholeLineWrite()) {
+                 bool can_merge_write = pkt->isWrite() &&
+                     ((pkt->req->getFlags() & noMergeFlags) == 0);
+                 onlyWrites &= can_merge_write;
+                 if (onlyWrites) {
+                     auto offset = pkt->getOffset(blkSize);
+                     auto begin = writesBitmap.begin() + offset;
+                     std::fill(begin, begin + pkt->getSize(), true);
+                 }
+             }
+         }
+
+        /**
          * Tests if the flags of this TargetList have their default
          * values.
+         *
+         * @return True if the TargetList are reset, false otherwise.
          */
         bool isReset() const {
             return !needsWritable && !hasUpgrade && !allocOnFill &&
-                !hasFromCache;
+                !hasFromCache && onlyWrites;
         }
 
         /**
@@ -224,8 +274,7 @@ class MSHR : public QueueEntry, public Printable
          * @param alloc_on_fill Whether it should allocate on a fill
          */
         void add(PacketPtr pkt, Tick readyTime, Counter order,
-                 Target::Source source, bool markPending,
-                 bool alloc_on_fill);
+                 Target::Source source, bool markPending, bool alloc_on_fill);
 
         /**
          * Convert upgrades to the equivalent request if the cache line they
@@ -238,6 +287,39 @@ class MSHR : public QueueEntry, public Printable
         bool trySatisfyFunctional(PacketPtr pkt);
         void print(std::ostream &os, int verbosity,
                    const std::string &prefix) const;
+
+        /**
+         * Check if this list contains only compatible writes, and if they
+         * span the entire cache line. This is used as part of the
+         * miss-packet creation. Note that new requests may arrive after a
+         * miss-packet has been created, and for the fill we therefore use
+         * the wasWholeLineWrite field.
+         */
+        bool isWholeLineWrite() const
+        {
+            return onlyWrites &&
+                std::all_of(writesBitmap.begin(),
+                            writesBitmap.end(), [](bool i) { return i; });
+        }
+
+      private:
+        /** Address of the cache block for this list of targets. */
+        Addr blkAddr;
+
+        /** Size of the cache block. */
+        Addr blkSize;
+
+        /** Are we only dealing with writes. */
+        bool onlyWrites;
+
+        // NOTE: std::vector<bool> might not meet satisfy the
+        // ForwardIterator requirement and therefore cannot be used
+        // for writesBitmap.
+        /**
+         * Track which bytes are written by requests in this target
+         * list.
+         */
+        std::vector<char> writesBitmap;
     };
 
     /** A list of MSHRs. */
@@ -270,7 +352,7 @@ class MSHR : public QueueEntry, public Printable
         assert(inService); return postDowngrade;
     }
 
-    bool sendPacket(BaseCache &cache);
+    bool sendPacket(BaseCache &cache) override;
 
     bool allocOnFill() const {
         return targets.allocOnFill;
@@ -315,6 +397,16 @@ class MSHR : public QueueEntry, public Printable
     TargetList deferredTargets;
 
   public:
+    /**
+     * Check if this MSHR contains only compatible writes, and if they
+     * span the entire cache line. This is used as part of the
+     * miss-packet creation. Note that new requests may arrive after a
+     * miss-packet has been created, and for the fill we therefore use
+     * the wasWholeLineWrite field.
+     */
+    bool isWholeLineWrite() const {
+        return targets.isWholeLineWrite();
+    }
 
     /**
      * Allocate a miss to this MSHR.
@@ -379,7 +471,7 @@ class MSHR : public QueueEntry, public Printable
      * Returns a reference to the first target.
      * @return A pointer to the first target.
      */
-    Target *getTarget()
+    QueueEntry::Target *getTarget() override
     {
         assert(hasTargets());
         return &targets.front();
@@ -417,11 +509,21 @@ class MSHR : public QueueEntry, public Printable
     bool trySatisfyFunctional(PacketPtr pkt);
 
     /**
+     * Adds a delay relative to the current tick to the current MSHR
+     * @param delay_ticks the desired delay in ticks
+     */
+    void delay(Tick delay_ticks)
+    {
+        assert(readyTime <= curTick());
+        readyTime = curTick() + delay_ticks;
+    }
+
+    /**
      * Prints the contents of this MSHR for debugging.
      */
     void print(std::ostream &os,
                int verbosity = 0,
-               const std::string &prefix = "") const;
+               const std::string &prefix = "") const override;
     /**
      * A no-args wrapper of print(std::ostream...)  meant to be
      * invoked from DPRINTFs avoiding string overheads in fast mode
@@ -429,6 +531,10 @@ class MSHR : public QueueEntry, public Printable
      * @return string with mshr fields + [deferred]targets
      */
     std::string print() const;
+
+    bool matchBlockAddr(const Addr addr, const bool is_secure) const override;
+    bool matchBlockAddr(const PacketPtr pkt) const override;
+    bool conflictAddr(const QueueEntry* entry) const override;
 };
 
 #endif // __MEM_CACHE_MSHR_HH__

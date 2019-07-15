@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2013, 2016 ARM Limited
+ * Copyright (c) 2010-2013, 2016, 2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -152,6 +152,10 @@ class TLB : public BaseTLB
     int size;            // TLB Size
     bool isStage2;       // Indicates this TLB is part of the second stage MMU
     bool stage2Req;      // Indicates whether a stage 2 lookup is also required
+    // Indicates whether a stage 2 lookup of the table descriptors is required.
+    // Certain address translation instructions will intercept the IPA but the
+    // table descriptors still need to be translated by the stage2.
+    bool stage2DescReq;
     uint64_t _attr;      // Memory attributes for last accessed TLB entry
     bool directToStage2; // Indicates whether all translation requests should
                          // be routed directly to the stage 2 TLB
@@ -250,9 +254,8 @@ class TLB : public BaseTLB
 
     /** Remove all entries in the non secure world, depending on whether they
      *  were allocated in hyp mode or not
-     * @param hyp if the opperation affects hyp mode
      */
-    void flushAllNs(bool hyp, uint8_t target_el, bool ignore_el = false);
+    void flushAllNs(uint8_t target_el, bool ignore_el = false);
 
 
     /** Reset the entire TLB. Used for CPU switching to prevent stale
@@ -281,18 +284,16 @@ class TLB : public BaseTLB
     /** Remove all entries that match the va regardless of asn
      * @param mva address to flush from cache
      * @param secure_lookup if the operation affects the secure world
-     * @param hyp if the operation affects hyp mode
      */
-    void flushMva(Addr mva, bool secure_lookup, bool hyp, uint8_t target_el);
+    void flushMva(Addr mva, bool secure_lookup, uint8_t target_el);
 
     /**
      * Invalidate all entries in the stage 2 TLB that match the given ipa
      * and the current VMID
      * @param ipa the address to invalidate
      * @param secure_lookup if the operation affects the secure world
-     * @param hyp if the operation affects hyp mode
      */
-    void flushIpaVmid(Addr ipa, bool secure_lookup, bool hyp, uint8_t target_el);
+    void flushIpaVmid(Addr ipa, bool secure_lookup, uint8_t target_el);
 
     Fault trickBoxCheck(const RequestPtr &req, Mode mode,
                         TlbEntry::DomainType domain);
@@ -388,7 +389,7 @@ class TLB : public BaseTLB
     void regProbePoints() override;
 
     /**
-     * Get the table walker master port. This is used for migrating
+     * Get the table walker port. This is used for migrating
      * port connections during a CPU takeOverFrom() call. For
      * architectures that do not have a table walker, NULL is
      * returned, hence the use of a pointer rather than a
@@ -397,7 +398,7 @@ class TLB : public BaseTLB
      *
      * @return A pointer to the walker master port
      */
-    BaseMasterPort* getMasterPort() override;
+    Port *getTableWalkerPort() override;
 
     // Caching misc register values here.
     // Writing to misc registers needs to invalidate them.
@@ -446,11 +447,10 @@ private:
      * @param mva virtual address to flush
      * @param asn contextid/asn to flush on match
      * @param secure_lookup if the operation affects the secure world
-     * @param hyp if the operation affects hyp mode
      * @param ignore_asn if the flush should ignore the asn
      */
     void _flushMva(Addr mva, uint64_t asn, bool secure_lookup,
-                   bool hyp, bool ignore_asn, uint8_t target_el);
+                   bool ignore_asn, uint8_t target_el);
 
     bool checkELMatch(uint8_t target_el, uint8_t tentry_el, bool ignore_el);
 

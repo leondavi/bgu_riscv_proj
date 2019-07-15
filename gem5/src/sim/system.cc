@@ -70,6 +70,7 @@
 #include "sim/byteswap.hh"
 #include "sim/debug.hh"
 #include "sim/full_system.hh"
+#include "sim/redirect_path.hh"
 
 /**
  * To avoid linking errors with LTO, only include the header if we
@@ -88,7 +89,7 @@ vector<System *> System::systemList;
 int System::numSystemsRunning = 0;
 
 System::System(Params *p)
-    : MemObject(p), _systemPort("system_port", this),
+    : SimObject(p), _systemPort("system_port", this),
       multiThread(p->multi_thread),
       pagePtr(0),
       init_param(p->init_param),
@@ -111,8 +112,10 @@ System::System(Params *p)
       thermalModel(p->thermal_model),
       _params(p),
       totalNumInsts(0),
-      instEventQueue("system instruction-based event queue")
+      instEventQueue("system instruction-based event queue"),
+      redirectPaths(p->redirect_paths)
 {
+
     // add self to global system list
     systemList.push_back(this);
 
@@ -218,8 +221,8 @@ System::init()
         panic("System port on %s is not connected.\n", name());
 }
 
-BaseMasterPort&
-System::getMasterPort(const std::string &if_name, PortID idx)
+Port &
+System::getPort(const std::string &if_name, PortID idx)
 {
     // no need to distinguish at the moment (besides checking)
     return _systemPort;
@@ -291,7 +294,8 @@ System::numRunningContexts()
         threadContexts.cbegin(),
         threadContexts.cend(),
         [] (ThreadContext* tc) {
-            return tc->status() != ThreadContext::Halted;
+            return ((tc->status() != ThreadContext::Halted) &&
+                    (tc->status() != ThreadContext::Halting));
         }
     );
 }
@@ -440,7 +444,7 @@ System::unserialize(CheckpointIn &cp)
 void
 System::regStats()
 {
-    MemObject::regStats();
+    SimObject::regStats();
 
     for (uint32_t j = 0; j < numWorkIds ; j++) {
         workItemStats[j] = new Stats::Histogram();
@@ -491,8 +495,55 @@ printSystems()
     System::printSystems();
 }
 
+std::string
+System::stripSystemName(const std::string& master_name) const
+{
+    if (startswith(master_name, name())) {
+        return master_name.substr(name().size());
+    } else {
+        return master_name;
+    }
+}
+
 MasterID
-System::getGlobalMasterId(std::string master_name)
+System::lookupMasterId(const SimObject* obj) const
+{
+    MasterID id = Request::invldMasterId;
+
+    // number of occurrences of the SimObject pointer
+    // in the master list.
+    auto obj_number = 0;
+
+    for (int i = 0; i < masters.size(); i++) {
+        if (masters[i].obj == obj) {
+            id = i;
+            obj_number++;
+        }
+    }
+
+    fatal_if(obj_number > 1,
+        "Cannot lookup MasterID by SimObject pointer: "
+        "More than one master is sharing the same SimObject\n");
+
+    return id;
+}
+
+MasterID
+System::lookupMasterId(const std::string& master_name) const
+{
+    std::string name = stripSystemName(master_name);
+
+    for (int i = 0; i < masters.size(); i++) {
+        if (masters[i].masterName == name) {
+            return i;
+        }
+    }
+
+    return Request::invldMasterId;
+}
+
+MasterID
+System::getGlobalMasterId(const std::string& master_name)
 {
     return _getMasterId(nullptr, master_name);
 }
@@ -505,14 +556,13 @@ System::getMasterId(const SimObject* master, std::string submaster)
 }
 
 MasterID
-System::_getMasterId(const SimObject* master, std::string master_name)
+System::_getMasterId(const SimObject* master, const std::string& master_name)
 {
-    if (startswith(master_name, name()))
-        master_name = master_name.erase(0, name().size() + 1);
+    std::string name = stripSystemName(master_name);
 
     // CPUs in switch_cpus ask for ids again after switching
     for (int i = 0; i < masters.size(); i++) {
-        if (masters[i].masterName == master_name) {
+        if (masters[i].masterName == name) {
             return i;
         }
     }
@@ -530,7 +580,7 @@ System::_getMasterId(const SimObject* master, std::string master_name)
     MasterID master_id = masters.size();
 
     // Append the new Master metadata to the group of system Masters.
-    masters.emplace_back(master, master_name, master_id);
+    masters.emplace_back(master, name, master_id);
 
     return masters.back().masterId;
 }
