@@ -20,13 +20,13 @@ RioCPU::RioCPU(RioCPUParams *params) :
 		BaseCPU(params)
 {
 	/* create threads */
-	RioThread *thread;
+	Rio::RioThread *thread;
 
 	for (ThreadID i = 0; i < numThreads; i++) {
 		if (FullSystem) {
 			fatal("The Rio Model does not support FullSystem yet\n");
 		} else {
-			thread = new RioThread(this, i, params->system,
+			thread = new Rio::RioThread(this, i, params->system,
 					params->workload[i], params->itb, params->dtb,
 					params->isa[i]);
 		}
