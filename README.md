@@ -29,8 +29,11 @@ riscv architecture for gem5
 1. Go to debug configurations
 2. Under Main tab, within C/C++ application bar browse to ```build/RISCV/gem5.opt```.
 3. You might choose to add more arguments e.g ```--debug-flag=BGUTrace $GEM5/config/bgu/some_script.py```
-  
-
+### Eclipse - Fix std libs unresolved warnning
+1. Go to Project -> Properties -> C/C++ General -> Preprocessor Includes -> Providers and select both:
+"CDT GCC Built-in Compiler Settings"
+"CDT CROSS GCC Built-in Compiler Settings"
+For each one of those also select the sub-entry: "Use global provider shared between projects".
 
 ## IDE - QT Creator (optional)
 1. sudo apt-get update
