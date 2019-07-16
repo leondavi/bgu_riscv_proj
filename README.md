@@ -33,7 +33,7 @@ riscv architecture for gem5
 1. Go to Project -> Properties -> C/C++ General -> Preprocessor Includes -> Providers and select both: 
 <br /> "CDT GCC Built-in Compiler Settings"
 <br /> "CDT CROSS GCC Built-in Compiler Settings"
-For each one of those also select the sub-entry: "Use global provider shared between projects".
+<br /> For each one of those also select the sub-entry: "Use global provider shared between projects".
 
 ## IDE - QT Creator (optional)
 1. sudo apt-get update
