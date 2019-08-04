@@ -58,7 +58,8 @@ system.mem_ranges = [AddrRange('512MB')] # Create an address range
 
 # Create a simple CPU
 #system.cpu = TimingSimpleCPU()
-system.cpu = RioCPU()
+#system.cpu = RioCPU()
+system.cpu = FlexCPU()
 
 # Create a memory bus, a system crossbar, in this case
 system.membus = SystemXBar()
@@ -89,7 +90,9 @@ system.system_port = system.membus.slave
 isa = str(m5.defines.buildEnv['TARGET_ISA']).lower()
 
 # Run 'hello' and use the compiled ISA to find the binary
-binary = 'tests/test-progs/hello/bin/' + isa + '/linux/hello'
+#binary = 'tests/test-progs/hello/bin/' + isa + '/linux/hello'
+#binary = '/home/yossi/workspace/bgu_riscv_proj/mibench/rv64gcc_obj/automotive_basicmath_small'
+binary = '/home/yossi/workspace/bgu_riscv_proj/mibench/sum.o'
 
 # Create a process for a simple "Hello World" application
 process = Process()

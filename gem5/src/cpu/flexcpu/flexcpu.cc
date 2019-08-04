@@ -47,7 +47,7 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
                             0, name() + ".dtbUnit"),
     executionUnit(this, params->execution_latency,
                   params->execution_bandwidth, name() + ".executionUnit"),
-    instFetchUnit(this, 0, name() + ".iFetchUnit"),
+    instFetchUnit(this, params->fetch_bandwidth, name() + ".iFetchUnit"),
     instAddrTranslationUnit(this, Cycles(0),
                             0, name() + ".itbUnit"),
     issueUnit(this, params->issue_latency,

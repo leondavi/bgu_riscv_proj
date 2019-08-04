@@ -228,7 +228,9 @@ def buildFlexCPU(options,system):
     # Makes all microops except the last for a macroop take zero time 
     #(default False)
     system.cpu.zero_time_microop_execution = False
-
+    
+    # New parameters
+    system.cpu.fetch_bandwidth = 1
 
 
     for i in range(0,options.num_threads):
