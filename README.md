@@ -34,6 +34,8 @@ riscv architecture for gem5
 <br /> "CDT GCC Built-in Compiler Settings"
 <br /> "CDT CROSS GCC Built-in Compiler Settings"
 <br /> For each one of those also select the sub-entry: "Use global provider shared between projects".
+2. Find the correct include location of C++ by using find for example: ```sudo find / -name vector -print```
+3. ```Project->Properties->C/C++ General->Paths and Symbols->GNU C++->(Add)->"/usr/include/c++/<N>" ```
 
 ## IDE - QT Creator (optional)
 1. sudo apt-get update
