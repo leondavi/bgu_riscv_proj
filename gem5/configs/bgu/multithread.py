@@ -127,7 +127,7 @@ def buildSystem(options):
 # Build CPU
 #==============================================================================
 # Based on the parameters build the CPU model
-def buildCPU(options,system):
+def buildMinorCPU(options,system):
     # TODO - currently not supporting multicore and the cpu modle is minor
     system.cpu = MinorCPU()
     
@@ -184,6 +184,60 @@ def buildCPU(options,system):
 
     return system
 
+# ==============================================================================
+def buildFlexCPU(options,system):
+    system.cpu = FlexCPU()
+
+    system.multi_thread = True
+    system.cpu.numThreads = options.num_threads
+    system.cpu.createThreads()
+    
+    system.cpu.createInterruptController()
+
+    # Flex CPU parameters
+    # Number of cycles for each instruction to execute (default 0)
+    system.cpu.execution_latency = 3 
+    # Number of executions each cycle Assumes a fully-pipelined unit and 0 
+    # (default 0)
+    # implies infinite bandwidth.
+    system.cpu.execution_bandwidth = 3
+    #Size of fetch buffer in bytes. Also determines size of fetch requests. 
+    # Should not be larger than a cache line. (default Parenet.cache_line_size)
+    # system.cpu.fetch_buffer_size = 
+    # Serialize dependent instruction execution. Allows parallel execution of 
+    # sequential and independent instructions (default False)
+    system.cpu.in_order_begin_execute = False 
+    # Serialize all instruction execution (default False)
+    system.cpu.in_order_execute = True 
+    # Size of the dynamic instruction buffer. This buffer is used for 
+    # maintaining the commit order of instructions. Limiting this limits the 
+    # number of instructions that can be handled at once before commit (out of
+    # order). 0 implies an infinitely large buffer (default 0)
+    system.cpu.instruction_buffer_size = 0 
+    # Number of cycles each instruction takes to issue (default 0).
+    system.cpu.issue_latency = 1 
+    # Number of instructions/micro-ops that can be issued each cycle 
+    # (default 0)
+    system.cpu.issue_bandwidth = 1
+    # Controls behavior of serializing flags on instructions. As of the 
+    # development of this CPU model, gem5 defines flags for "serialization only
+    # in specific directions, but doesn't seem to use them consistently, so we 
+    # default to forcing serialization in both directions when the flags are 
+    # present (default True).
+    system.cpu.strict_serialization = True
+    # Makes all microops except the last for a macroop take zero time 
+    #(default False)
+    system.cpu.zero_time_microop_execution = False
+
+
+
+    for i in range(0,options.num_threads):
+        process = Process()
+        process.cmd = [options.binary]
+        process.pid = 100+i
+        system.cpu.workload.append(process)
+    return system
+    
  # Build Mem
 #==============================================================================
 def buildMem(options,system):
@@ -239,7 +293,8 @@ def main():
     system = buildSystem(options)
 
     # CPU
-    system = buildCPU(options,system)
+    #system = buildMinorCPU(options,system)
+    system = buildFlexCPU(options,system)
     
     # Memory hierarchy  connection
     syestm = buildMem(options,system)
