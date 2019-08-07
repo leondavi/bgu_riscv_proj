@@ -230,8 +230,10 @@ def buildFlexCPU(options,system):
     system.cpu.zero_time_microop_execution = False
     
     # New parameters
+    # Number of request fetch unit can send
     system.cpu.fetch_bandwidth = 1
-
+    # Number of memory outstaning request 
+    system.cpu.mem_bandwidth = 4
 
     for i in range(0,options.num_threads):
         process = Process()

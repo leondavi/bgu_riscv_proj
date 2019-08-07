@@ -81,6 +81,7 @@ class FlexCPU(BaseCPU):
                                    "be issued each cycle.")
 
     fetch_bandwidth =  Param.Int(0, "Number of request fetch unit can send")
+    mem_bandwidth =  Param.Int(0, "Number of memory outstaning request ")
 
     strict_serialization = Param.Bool(True, "Controls behavior of serializing "
                                             "flags on instructions. As of the "
