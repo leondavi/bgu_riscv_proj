@@ -280,8 +280,9 @@ FlexCPU::requestExecution(StaticInstPtr inst,
         const Tick execution_time = zeroTimeMicroopExecution
                                  && inst->isMicroop()
                                  && !inst->isLastMicroop() ?
-                                     0 :
-                                     cyclesToTicks(executionLatency);
+                                     0 : 0; // Changed to zero - since we work with RISC and
+        									// We don't want the extra latency add here.
+        							// cyclesToTicks(executionLatency);
         schedule(e, curTick() + execution_time);
 
         return true;
@@ -992,11 +993,13 @@ FlexCPU::Resource::addRequest(
     DPRINTF(FlexCPUCoreEvent, "Adding request. %d on queue\n",
                               requests.size());
     requests.push_back(run_function);
+    reqCycle.push_back(curTick());
 }
 
 void
 FlexCPU::Resource::attemptAllRequests()
 {
+	Tick tmpLatency;
     DPRINTF(FlexCPUCoreEvent, "Attempting all requests. %d on queue\n",
             requests.size());
 
@@ -1030,6 +1033,7 @@ FlexCPU::Resource::attemptAllRequests()
         if (req()) usedBandwidth++;
 
         requests.pop_front();
+        reqCycle.pop_front();
     }
 
     if (!requests.empty()) {
@@ -1039,7 +1043,11 @@ FlexCPU::Resource::attemptAllRequests()
         if (latency == 0) {
             next_time = cpu->nextCycle();
         } else {
-            next_time = cpu->clockEdge(latency);
+        	tmpLatency = latency + reqCycle.front() - curTick();
+        	tmpLatency = tmpLatency < 1 ? 1 : tmpLatency;
+        	std::cout << "YE latency " << tmpLatency << "\n";
+        	std::cout << "YE req" << reqCycle.front() << "\n";
+            next_time = cpu->clockEdge(Cycles(tmpLatency));
         }
         assert(next_time != curTick());
         // Note: it could be scheduled if one of the requests above schedules
@@ -1069,7 +1077,7 @@ FlexCPU::Resource::schedule()
     DPRINTF(FlexCPUCoreEvent, "Trying to schedule resource\n");
     if (!requests.empty() && !attemptAllEvent.scheduled()) {
         DPRINTF(FlexCPUCoreEvent, "Scheduling attempt all\n");
-        cpu->schedule(&attemptAllEvent, cpu->clockEdge());
+        cpu->schedule(&attemptAllEvent, cpu->clockEdge(latency));
     }
 }
 
