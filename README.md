@@ -89,8 +89,8 @@ riscv architecture for gem5
 It's recommended to make a workspace folder as in those alias configuration. 
 Add the following to ~/.bashrc:
 ```
-GEM5_FOLDER=$(echo "$HOME/workspace/bgu_riscv_proj/gem5" | tr -d '\r')
+GEM5=$(echo "$HOME/workspace/bgu_riscv_proj/gem5" | tr -d '\r')
 alias cdws='cd ~/workspace'
 alias cdgem='cd ~/workspace/bgu_riscv_proj/gem5'
-alias g5gui='cd $GEM5_FOLDER/g5gui/src ; python3 main.py'
+alias g5gui='cd $GEM5/g5gui/src ; python3 main.py'
 ```
