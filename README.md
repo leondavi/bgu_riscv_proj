@@ -29,8 +29,13 @@ riscv architecture for gem5
 1. Go to debug configurations
 2. Under Main tab, within C/C++ application bar browse to ```build/RISCV/gem5.opt```.
 3. You might choose to add more arguments e.g ```--debug-flag=BGUTrace $GEM5/config/bgu/some_script.py```
-  
-
+### Eclipse - Fix std libs unresolved warnning
+1. Go to Project -> Properties -> C/C++ General -> Preprocessor Includes -> Providers and select both: 
+<br /> "CDT GCC Built-in Compiler Settings"
+<br /> "CDT CROSS GCC Built-in Compiler Settings"
+<br /> For each one of those also select the sub-entry: "Use global provider shared between projects".
+2. Find the correct include location of C++ by using find for example: ```sudo find / -name vector -print```
+3. ```Project->Properties->C/C++ General->Paths and Symbols->GNU C++->(Add)->"/usr/include/c++/<N>" ```
 
 ## IDE - QT Creator (optional)
 1. sudo apt-get update
@@ -84,8 +89,8 @@ riscv architecture for gem5
 It's recommended to make a workspace folder as in those alias configuration. 
 Add the following to ~/.bashrc:
 ```
-GEM5_FOLDER=$(echo "$HOME/workspace/bgu_riscv_proj/gem5" | tr -d '\r')
+GEM5=$(echo "$HOME/workspace/bgu_riscv_proj/gem5" | tr -d '\r')
 alias cdws='cd ~/workspace'
 alias cdgem='cd ~/workspace/bgu_riscv_proj/gem5'
-alias g5gui='cd $GEM5_FOLDER/g5gui/src ; python3 main.py'
+alias g5gui='cd $GEM5/g5gui/src ; python3 main.py'
 ```
