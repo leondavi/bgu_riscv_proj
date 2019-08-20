@@ -993,13 +993,13 @@ FlexCPU::Resource::addRequest(
     DPRINTF(FlexCPUCoreEvent, "Adding request. %d on queue\n",
                               requests.size());
     requests.push_back(run_function);
-    reqCycle.push_back(curTick());
+    reqCycle.push_back(cpu->curCycle());
 }
 
 void
 FlexCPU::Resource::attemptAllRequests()
 {
-	Tick tmpLatency;
+	Cycles tmpLatency;
     DPRINTF(FlexCPUCoreEvent, "Attempting all requests. %d on queue\n",
             requests.size());
 
@@ -1043,11 +1043,12 @@ FlexCPU::Resource::attemptAllRequests()
         if (latency == 0) {
             next_time = cpu->nextCycle();
         } else {
-        	tmpLatency = latency + reqCycle.front() - curTick();
-        	tmpLatency = tmpLatency < 1 ? 1 : tmpLatency;
+        	tmpLatency = latency + reqCycle.front() - cpu->curCycle();
+        	tmpLatency = tmpLatency < Cycles(1) ? Cycles(1) : tmpLatency;
         	std::cout << "YE latency " << tmpLatency << "\n";
         	std::cout << "YE req" << reqCycle.front() << "\n";
             next_time = cpu->clockEdge(Cycles(tmpLatency));
+//            next_time = cpu->clockEdge(Cycles(latency));
         }
         assert(next_time != curTick());
         // Note: it could be scheduled if one of the requests above schedules
