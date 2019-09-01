@@ -50,10 +50,6 @@ public:
 
 class BGUInfoPackage : public std::enable_shared_from_this<BGUInfoPackage>
 {
-
-
-	#define STRING_VAR(name) var_to_string((char*) #name)
-
 	enum PCKG_STATE{PCKG_UNREGISTERED,PCKG_REGISTERED,PCKG_SENT};
 
 private:
@@ -81,13 +77,6 @@ private:
 	std::weak_ptr<InflightInst> wk_ptr_inst;
 
 
-	inline std::string var_to_string(char* name)
-	{
-		std::stringstream ss;
-		ss<<name;
-		return ss.str();
-	}
-
 	inline std::string dec_to_hex_str(unsigned dec)
 	{
 		std::stringstream stream;
@@ -96,7 +85,7 @@ private:
 	}
 
 public:
-	BGUInfoPackage(uint pipe_stage,ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst);
+	BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst);
 
 	std::shared_ptr <BGUInfoPackage> get_a_BGUInfoPackage()
 	{

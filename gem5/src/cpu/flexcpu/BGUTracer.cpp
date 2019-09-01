@@ -18,8 +18,7 @@ BGUTracer::BGUTracer() {
 //		BGUInfoPackage 				  //
 //------------------------------------//
 
-BGUInfoPackage::BGUInfoPackage(uint pipe_stage,ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst):
-		pipe_stage(pipe_stage),
+BGUInfoPackage::BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst):
 		tid(tid),
 		wk_ptr_inst(wk_ptr_inst)
 {
