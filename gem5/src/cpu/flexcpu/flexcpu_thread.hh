@@ -45,6 +45,7 @@
 #include "cpu/reg_class.hh"
 #include "cpu/simple_thread.hh"
 #include "mem/request.hh"
+#include "BGUTracer.h"
 
 class FlexCPU;
 
