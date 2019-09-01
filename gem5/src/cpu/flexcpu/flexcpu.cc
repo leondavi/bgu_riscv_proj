@@ -1045,8 +1045,8 @@ FlexCPU::Resource::attemptAllRequests()
         } else {
         	tmpLatency = latency + reqCycle.front() - cpu->curCycle();
         	tmpLatency = tmpLatency < Cycles(1) ? Cycles(1) : tmpLatency;
-        	std::cout << "YE latency " << tmpLatency << "\n";
-        	std::cout << "YE req" << reqCycle.front() << "\n";
+        	//std::cout << "YE latency " << tmpLatency << "\n";
+        	//std::cout << "YE req" << reqCycle.front() << "\n";
             next_time = cpu->clockEdge(Cycles(tmpLatency));
 //            next_time = cpu->clockEdge(Cycles(latency));
         }

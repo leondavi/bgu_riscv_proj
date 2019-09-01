@@ -12,9 +12,11 @@ enum PIPE_STAGES{E_FETCH,E_ISSUE,E_EXECUTE,TOTAL_PIPELINE_STAGES,NULL_STAGE};
 
 #include "inflight_inst.hh"
 #include "cpu/simple_thread.hh"
-#include <vector>
+#include <queue>
+#include <string>
 
 namespace tracer {
+
 
 class BGUInfoPackage;
 /**
@@ -23,7 +25,9 @@ class BGUInfoPackage;
  */
 class BGUTracer {
 private:
-	std::vector<std::shared_ptr<BGUInfoPackage>> packages;
+	std::queue<std::shared_ptr<BGUInfoPackage>> packages_buffer;
+
+	~BGUTracer() {}
 	BGUTracer();
 public:
 	BGUTracer(const BGUTracer&) = delete;
@@ -31,13 +35,13 @@ public:
 	BGUTracer(BGUTracer &&) = delete; //rvalue reference is forbidden
 	BGUTracer & operator=(BGUTracer &&) = delete;
 
-	int32_t register_package_event(std::shared_ptr<BGUInfoPackage> info_pckg)
+	void update_tracer(std::shared_ptr<BGUInfoPackage> info_pckg)
 	{
-		packages.push_back(info_pckg);
+		packages_buffer.push(info_pckg);
 	}
 
 
-	static auto& get_inst()
+	static BGUTracer& get_inst()
 	{
 		static BGUTracer tracer;
 		return tracer;
@@ -46,22 +50,60 @@ public:
 
 class BGUInfoPackage : public std::enable_shared_from_this<BGUInfoPackage>
 {
+
+
+	#define STRING_VAR(name) var_to_string((char*) #name)
+
+	enum PCKG_STATE{PCKG_UNREGISTERED,PCKG_REGISTERED,PCKG_SENT};
+
 private:
-	uint state = NULL_STATE;
-	bool was_send = false;
+
+	std::vector<std::string> status_strings = {
+			        "Inv" //0,
+			        "Empt", //1 Dynamic instruction slot has been created but not yet filled.
+			        "DE", //2 A StaticInst has been provided.
+			        // Perhaps an independent rename stage may be useful. Most
+			        // functionality conventionally called rename is packaged with issue
+			        // right now.
+			        "IS", //3 Dependencies and results have been identified and recorded.
+			        "EX", //4 Request for execution sent, but waiting for results.
+			        "EfAd", //5 Effective address calculated, but not yet sent to memory.
+			        "Memo", //6 Request for memory sent, but waiting for results.
+			        "Comp", //7 Results have been received, but not yet committed.
+			        "Cmtd", //8 Values have been committed, but this object might be
+			                   // alive for a little longer due to the shared_ptr being in
+			                   // the call-stack.
+					};
+
+	uint pipe_stage = NULL_STAGE;
+	bool pckg_state = PCKG_UNREGISTERED;
 	ThreadID tid;
-	int32_t package_id_in_tracer = -1;
+	std::weak_ptr<InflightInst> wk_ptr_inst;
+
+
+	inline std::string var_to_string(char* name)
+	{
+		std::stringstream ss;
+		ss<<name;
+		return ss.str();
+	}
+
+	inline std::string dec_to_hex_str(unsigned dec)
+	{
+		std::stringstream stream;
+		stream << std::hex << dec;
+		return stream.str();
+	}
 
 public:
-	BGUInfoPackage(ThreadID tid);
+	BGUInfoPackage(uint pipe_stage,ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst);
 
 	std::shared_ptr <BGUInfoPackage> get_a_BGUInfoPackage()
 	{
 		return shared_from_this();
 	}
 
-
-	bool was_send() { return this->was_send; }
+	std::vector<std::string> inflightinst_to_string(std::weak_ptr<InflightInst> wk_ptr_inst);
 
 };
 

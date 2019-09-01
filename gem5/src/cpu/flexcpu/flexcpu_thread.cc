@@ -283,7 +283,7 @@ FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
     _cpuPtr->requestInstAddrTranslation(fetch_req, this,
         callback, [weak_inst]{
             shared_ptr<InflightInst> inst_ptr = weak_inst.lock();
-            return !inst_ptr || inst_ptr->isSquashed();
+            return !inst_ptr || inst_ptr->isSquashed();//if ptr expired or inst is squashed
         });
 }
 
