@@ -14,6 +14,8 @@ enum PIPE_STAGES{E_FETCH,E_ISSUE,E_EXECUTE,TOTAL_PIPELINE_STAGES,NULL_STAGE};
 #include "cpu/simple_thread.hh"
 #include <queue>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace tracer {
 
@@ -46,6 +48,8 @@ public:
 		static BGUTracer tracer;
 		return tracer;
 	}
+
+	void get_package();//TODO
 };
 
 class BGUInfoPackage : public std::enable_shared_from_this<BGUInfoPackage>
@@ -71,6 +75,8 @@ private:
 			                   // the call-stack.
 					};
 
+	std::unordered_map <std::string,std::string> pckg_attributes;
+
 	uint pipe_stage = NULL_STAGE;
 	bool pckg_state = PCKG_UNREGISTERED;
 	ThreadID tid;
@@ -84,6 +90,16 @@ private:
 		return stream.str();
 	}
 
+	void update_package_attributes(); // works on pckg_attributes - needs wk_ptr_inst
+	void inflightinst_to_string(); // works on pckg_attributes - needs wk_ptr_inst
+	void decode_to_string();//TODO  // works on pckg_attributes - needs wk_ptr_inst
+	void issue_to_string();//TODO  // works on pckg_attributes - needs wk_ptr_inst
+	void execute_to_string();//TODO // works on pckg_attributes - needs wk_ptr_inst
+	void fetch_to_string();//TODO // works on pckg_attributes - needs wk_ptr_inst
+
+
+
+
 public:
 	BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst);
 
@@ -92,7 +108,8 @@ public:
 		return shared_from_this();
 	}
 
-	std::vector<std::string> inflightinst_to_string(std::weak_ptr<InflightInst> wk_ptr_inst);
+	void update_package_stage();//TODO
+	void send_packet_to_tracer();//TODO
 
 };
 

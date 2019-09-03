@@ -25,7 +25,7 @@ BGUInfoPackage::BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_i
 
 }
 
-std::vector<std::string> BGUInfoPackage::inflightinst_to_string(std::weak_ptr<InflightInst> wk_ptr_inst)
+void BGUInfoPackage::inflightinst_to_string()
 {
 	std::vector<std::string> res_string;
 
@@ -35,10 +35,6 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string(std::weak_ptr<In
 
 	//-------------- pc ------------------//
 	res_string.push_back("pc"); res_string.push_back("0x"+dec_to_hex_str(inst->pcState().instAddr()));
-
-
-
-	return res_string;
 
 	/*
 	 * inline std::vector<bgu::var_attr_t> clear_and_add_default_vars()
