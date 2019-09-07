@@ -25,8 +25,6 @@ BGUTracer::BGUTracer(std::string CsvFilePath,bool FilterByThread,ThreadID Filter
  */
 bgu_ipckg_status BGUTracer::get_bgu_info_package(std::weak_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid)
 {
-	bgu_ipckg_status return_status;
-
 	std::shared_ptr<BGUInfoPackage> pckg_inst = rcv_pckg.lock();
 
 	bool continue_cond = (filter_by_thread && filter_which_thread == tid) || !filter_by_thread;
