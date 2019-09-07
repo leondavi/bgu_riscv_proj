@@ -17,8 +17,13 @@ enum PIPE_STAGES{E_FETCH,E_ISSUE,E_EXECUTE,TOTAL_PIPELINE_STAGES,NULL_STAGE};
 #include <unordered_map>
 #include <vector>
 
+#include <sstream>
+#include <iostream>
+#include <fstream>
+
 namespace tracer {
 
+#define DEFAULT_CSV_FILE "output.csv"
 
 class BGUInfoPackage;
 /**
@@ -27,21 +32,20 @@ class BGUInfoPackage;
  */
 class BGUTracer {
 private:
-	std::queue<std::shared_ptr<BGUInfoPackage>> packages_buffer;
 
 	~BGUTracer() {}
 	BGUTracer();
+
+	//------------- flags ---------------//
+	bool filter_by_thread;
+	ThreadID filter_which_thread;
+
+
 public:
 	BGUTracer(const BGUTracer&) = delete;
 	BGUTracer& operator=(const BGUTracer &) = delete;
 	BGUTracer(BGUTracer &&) = delete; //rvalue reference is forbidden
 	BGUTracer & operator=(BGUTracer &&) = delete;
-
-	void update_tracer(std::shared_ptr<BGUInfoPackage> info_pckg)
-	{
-		packages_buffer.push(info_pckg);
-	}
-
 
 	static BGUTracer& get_inst()
 	{
@@ -49,7 +53,7 @@ public:
 		return tracer;
 	}
 
-	void get_package();//TODO
+	void get_package(std::weak_ptr<BGUInfoPackage> rcv_pckg);
 };
 
 class BGUInfoPackage : public std::enable_shared_from_this<BGUInfoPackage>
@@ -58,7 +62,7 @@ class BGUInfoPackage : public std::enable_shared_from_this<BGUInfoPackage>
 
 private:
 
-	std::vector<std::string> status_strings = {
+	std::vector<std::string> status_strings = { //TODO we have to add fetch to status somehow
 			        "Inv" //0,
 			        "Empt", //1 Dynamic instruction slot has been created but not yet filled.
 			        "DE", //2 A StaticInst has been provided.
@@ -80,6 +84,8 @@ private:
 	uint pipe_stage = NULL_STAGE;
 	bool pckg_state = PCKG_UNREGISTERED;
 	ThreadID tid;
+	std::vector<std::string> data;
+
 	std::weak_ptr<InflightInst> wk_ptr_inst;
 
 
@@ -90,12 +96,18 @@ private:
 		return stream.str();
 	}
 
-	void update_package_attributes(); // works on pckg_attributes - needs wk_ptr_inst
-	void inflightinst_to_string(); // works on pckg_attributes - needs wk_ptr_inst
-	void decode_to_string();//TODO  // works on pckg_attributes - needs wk_ptr_inst
-	void issue_to_string();//TODO  // works on pckg_attributes - needs wk_ptr_inst
-	void execute_to_string();//TODO // works on pckg_attributes - needs wk_ptr_inst
-	void fetch_to_string();//TODO // works on pckg_attributes - needs wk_ptr_inst
+	std::vector<std::string> default_attributes = {"pc","status"};
+	std::vector<std::string> decode_attributes = {};//TODO
+	std::vector<std::string> issue_attribtues = {};//TODO
+	std::vector<std::string> execute_attributes = {};//TODO
+	std::vector<std::string> fetch_attributes = {};//TODO
+
+
+	std::vector<std::string> inflightinst_to_string(); // works on pckg_attributes - needs wk_ptr_inst
+	std::vector<std::string> decode_to_string(std::shared_ptr<InflightInst> inst);//TODO  // works on pckg_attributes - needs wk_ptr_inst
+	std::vector<std::string> issue_to_string(std::shared_ptr<InflightInst> inst);//TODO  // works on pckg_attributes - needs wk_ptr_inst
+	std::vector<std::string> execute_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst
+	std::vector<std::string> fetch_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst
 
 
 
@@ -108,7 +120,7 @@ public:
 		return shared_from_this();
 	}
 
-	void update_package_stage();//TODO
+	void update_package_attributes(); // works on pckg_attributes - needs wk_ptr_inst
 	void send_packet_to_tracer();//TODO
 
 };
