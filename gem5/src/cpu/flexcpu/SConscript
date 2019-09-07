@@ -37,6 +37,7 @@ if 'FlexCPU' in env['CPU_MODELS']:
     Source('flexcpu_thread.cc')
     Source('inflight_inst.cc')
     Source('BGUTracer.cpp')
+    Source('BGUInfoPackage.cpp')
 
     DebugFlag('InflightInst')
 

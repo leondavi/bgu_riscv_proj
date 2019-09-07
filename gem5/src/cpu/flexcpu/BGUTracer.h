@@ -20,10 +20,27 @@ enum PIPE_STAGES{E_FETCH,E_ISSUE,E_EXECUTE,TOTAL_PIPELINE_STAGES,NULL_STAGE};
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
+
+inline std::string get_cwd()
+{
+	char cwd[256];
+	if (getcwd(cwd,sizeof(cwd))== NULL)
+	{
+		perror("getcwd() error");
+	}
+	else
+	{
+		return std::string(cwd);
+	}
+	return std::string();
+}
 
 namespace tracer {
 
-#define DEFAULT_CSV_FILE "output.csv"
+#define DEFAULT_CSV_FILE get_cwd()+"/output.csv"
+
+typedef enum {BGUI_PCKG_FILTERED,BGUI_PCKG_ERR,BGUI_PCKG_ADDED} bgu_ipckg_status;
 
 class BGUInfoPackage;
 /**
@@ -34,12 +51,20 @@ class BGUTracer {
 private:
 
 	~BGUTracer() {}
-	BGUTracer();
+	BGUTracer(std::string CsvFilePath = DEFAULT_CSV_FILE,bool FilterByThread = false,ThreadID FilterWhichThread = 0);
 
 	//------------- flags ---------------//
+
+	//------------- private variables -------------//
+
+	std::fstream csvfile;
+	std::string filepath;
+	bool initialized = false;
+
 	bool filter_by_thread;
 	ThreadID filter_which_thread;
 
+	bool add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
 
 public:
 	BGUTracer(const BGUTracer&) = delete;
@@ -53,7 +78,7 @@ public:
 		return tracer;
 	}
 
-	void get_package(std::weak_ptr<BGUInfoPackage> rcv_pckg);
+	bgu_ipckg_status get_bgu_info_package(std::weak_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
 };
 
 class BGUInfoPackage : public std::enable_shared_from_this<BGUInfoPackage>
