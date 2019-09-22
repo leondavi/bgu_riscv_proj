@@ -9,7 +9,7 @@
 
 namespace tracer {
 
-BGUTracer::BGUTracer(std::string CsvFilePath, uint16_t MaxNumOfThreads, bool FilterByThread,ThreadID FilterWhichThread) :
+BGUTracer::BGUTracer(std::string CsvFilePath, uint32_t MaxNumOfThreads, bool FilterByThread,ThreadID FilterWhichThread) :
 		filepath(CsvFilePath),
 		filter_by_thread(FilterByThread),
         filter_which_thread(FilterWhichThread),
