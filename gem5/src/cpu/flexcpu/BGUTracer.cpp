@@ -9,10 +9,13 @@
 
 namespace tracer {
 
-BGUTracer::BGUTracer(std::string CsvFilePath,bool FilterByThread,ThreadID FilterWhichThread) :
+BGUTracer::BGUTracer(std::string CsvFilePath, uint16_t MaxNumOfThreads, bool FilterByThread,ThreadID FilterWhichThread) :
 		filepath(CsvFilePath),
 		filter_by_thread(FilterByThread),
-        filter_which_thread(FilterWhichThread)
+        filter_which_thread(FilterWhichThread),
+		max_num_of_threads(MaxNumOfThreads),
+		last_tick(curTick()),
+		curr_tick(curTick())
 {
 	// TODO Auto-generated constructor stub
 	//csvfile.open(path_csv.str(),std::ofstream::out | std::ofstream::app);
@@ -46,8 +49,11 @@ bgu_ipckg_status BGUTracer::get_bgu_info_package(std::weak_ptr<BGUInfoPackage> r
 
 bool BGUTracer::add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid)
 {
+
 	return true;//TODO
 }
+
+
 
 
 

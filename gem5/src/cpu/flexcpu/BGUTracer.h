@@ -51,7 +51,7 @@ class BGUTracer {
 private:
 
 	~BGUTracer() {}
-	BGUTracer(std::string CsvFilePath = DEFAULT_CSV_FILE,bool FilterByThread = false,ThreadID FilterWhichThread = 0);
+	BGUTracer(std::string CsvFilePath = DEFAULT_CSV_FILE, uint32_t MaxNumOfThreads = 1, bool FilterByThread = false,ThreadID FilterWhichThread = 0);
 
 	//------------- flags ---------------//
 
@@ -63,8 +63,11 @@ private:
 
 	bool filter_by_thread;
 	ThreadID filter_which_thread;
+	uint32_t max_num_of_threads;
 
-	bool add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
+	Tick last_tick;
+	Tick curr_tick;
+
 
 public:
 	BGUTracer(const BGUTracer&) = delete;
@@ -78,6 +81,7 @@ public:
 		return tracer;
 	}
 
+	bool add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
 	bgu_ipckg_status get_bgu_info_package(std::weak_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
 };
 
@@ -121,7 +125,7 @@ private:
 		return stream.str();
 	}
 
-	std::vector<std::string> default_attributes = {"pc","status"};
+	std::vector<std::string> default_attributes = {"tid","pc","status"};
 	std::vector<std::string> decode_attributes = {};//TODO
 	std::vector<std::string> issue_attribtues = {};//TODO
 	std::vector<std::string> execute_attributes = {};//TODO
@@ -133,9 +137,6 @@ private:
 	std::vector<std::string> issue_to_string(std::shared_ptr<InflightInst> inst);//TODO  // works on pckg_attributes - needs wk_ptr_inst
 	std::vector<std::string> execute_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst
 	std::vector<std::string> fetch_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst
-
-
-
 
 public:
 	BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst);

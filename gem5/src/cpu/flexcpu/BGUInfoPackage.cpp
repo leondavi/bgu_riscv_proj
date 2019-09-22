@@ -27,6 +27,7 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 
 	//-------------- status ---------------//
 	std::shared_ptr<InflightInst> inst = wk_ptr_inst.lock();
+	res_string.push_back("tid"); res_string.push_back(std::to_string(this->tid));
 	res_string.push_back("status"); res_string.push_back(status_strings[inst->status()]);
 
 	//-------------- pc ------------------//
@@ -36,20 +37,22 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 	{
 	case InflightInst::Status::Decoded :
 		{
-			//std::vector<std::string> vec_str = decode_to_string(inst);
-			//res_string.insert(res_string.end(),vec_str.begin(),vec_str.end());
+			res_string = decode_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::Executing :
 		{
+			res_string = execute_to_string();
 			break;
 		}
 	case InflightInst::Status::Issued :
 		{
+			res_string = issue_to_string();
 			break;
 		}
-	case InflightInst::Status::Memorying :
+	case InflightInst::Status::Empty : //equivalent to fetch
 		{
+			res_string = fetch_to_string();
 			break;
 		}
 	case InflightInst::Status::Committed :
@@ -68,6 +71,11 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 	}
 
 	return res_string;
+}
+void BGUInfoPackage::send_packet_to_tracer()
+{
+	BGUTracer* tracer_p = BGUTracer::get_inst();
+	tracer_p->add_package_to_current_tick_line(std::make_shared<BGUInfoPackage>(this),this->tid);
 }
 
 }//end of namespace

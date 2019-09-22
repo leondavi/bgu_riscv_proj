@@ -59,7 +59,7 @@ class InflightInst : public ExecContext,
     enum Status
     {
         Invalid = 0,
-        Empty, // Dynamic instruction slot has been created but not yet filled.
+        Empty, // Dynamic instruction slot has been created but not yet filled. - equivalent to fetch
         Decoded, // A StaticInst has been provided.
         // Perhaps an independent rename stage may be useful. Most
         // functionality conventionally called rename is packaged with issue
