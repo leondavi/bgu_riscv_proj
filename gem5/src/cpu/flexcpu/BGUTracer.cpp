@@ -47,7 +47,7 @@ bgu_ipckg_status BGUTracer::get_bgu_info_package(std::weak_ptr<BGUInfoPackage> r
 	return bgu_ipckg_status::BGUI_PCKG_ERR;
 }
 
-bool BGUTracer::add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid)
+bool BGUTracer::add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg)
 {
 
 	return true;//TODO
