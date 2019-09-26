@@ -35,7 +35,7 @@ bgu_ipckg_status BGUTracer::get_bgu_info_package(std::weak_ptr<BGUInfoPackage> r
 	if (continue_cond)
 	{
 		// handle the packet
-		if(BGUTracer::add_package_to_current_tick_line(pckg_inst,tid))
+		if(BGUTracer::add_package_to_current_tick_line(pckg_inst))
 		{
 			return bgu_ipckg_status::BGUI_PCKG_ADDED;
 		}

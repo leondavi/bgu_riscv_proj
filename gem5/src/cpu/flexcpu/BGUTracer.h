@@ -22,6 +22,8 @@ enum PIPE_STAGES{E_FETCH,E_ISSUE,E_EXECUTE,TOTAL_PIPELINE_STAGES,NULL_STAGE};
 #include <fstream>
 #include <unistd.h>
 
+#include <sstream>
+
 inline std::string get_cwd()
 {
 	char cwd[256];
@@ -81,7 +83,7 @@ public:
 		return tracer;
 	}
 
-	bool add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
+	bool add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg);
 	bgu_ipckg_status get_bgu_info_package(std::weak_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
 };
 
@@ -93,7 +95,7 @@ private:
 
 	std::vector<std::string> status_strings = { //TODO we have to add fetch to status somehow
 			        "Inv" //0,
-			        "Empt", //1 Dynamic instruction slot has been created but not yet filled.
+			        "Empt", //1 Dynamic instruction slot has been created but not yet filled. This is fetch
 			        "DE", //2 A StaticInst has been provided.
 			        // Perhaps an independent rename stage may be useful. Most
 			        // functionality conventionally called rename is packaged with issue
@@ -115,6 +117,24 @@ private:
 	ThreadID tid;
 	std::vector<std::string> data;
 
+	enum Pstatus
+	{
+		PST_FE,PST_DE,PST_IS,PST_EX,PST_TOTAL
+	};
+	Pstatus packet_status;
+	std::vector<std::string> Pstatus_strings = {"FE","DE","IS","EX"};
+
+	enum e_attributes
+	{
+		//Note: the order of attributes is important!
+		ATTR_DEFAULT,
+		ATTR_FE,
+		ATTR_DE,
+		ATTR_IS,
+		ATTR_EX,
+		ATTR_TOTAL
+	};
+
 	std::weak_ptr<InflightInst> wk_ptr_inst;
 
 
@@ -125,11 +145,7 @@ private:
 		return stream.str();
 	}
 
-	std::vector<std::string> default_attributes = {"tid","pc","status"};
-	std::vector<std::string> decode_attributes = {};//TODO
-	std::vector<std::string> issue_attribtues = {};//TODO
-	std::vector<std::string> execute_attributes = {};//TODO
-	std::vector<std::string> fetch_attributes = {};//TODO
+	std::vector<std::vector<std::string>> attributes;
 
 
 	std::vector<std::string> inflightinst_to_string(); // works on pckg_attributes - needs wk_ptr_inst
@@ -148,6 +164,10 @@ public:
 
 	void update_package_attributes(); // works on pckg_attributes - needs wk_ptr_inst
 	void send_packet_to_tracer();//TODO
+	std::string get_all_attributes_comma_seperated();
+	std::string get_Pstatus_headers();
+	inline Pstatus get_packet_status() { return this->packet_status; }
+
 
 };
 
