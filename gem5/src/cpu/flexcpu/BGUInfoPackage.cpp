@@ -37,7 +37,8 @@ BGUInfoPackage::BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_i
 
 
 /**
- *
+ * This constructor is used by tracer to create a dummy package to generate the
+ * headlines
  */
 BGUInfoPackage::BGUInfoPackage()
 {
