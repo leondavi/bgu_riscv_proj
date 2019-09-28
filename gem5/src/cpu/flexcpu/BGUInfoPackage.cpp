@@ -114,23 +114,23 @@ std::vector<std::string> BGUInfoPackage::fetch_to_string(std::shared_ptr<Infligh
 }
 
 std::string BGUInfoPackage::get_all_attributes_comma_seperated()
+{
+	std::stringstream res;
+	for (auto &att_vec : this->attributes)
 	{
-		std::stringstream res;
-		for (auto &att_vec : this->attributes)
+		for (int i=0; i < att_vec.size(); i++)
 		{
-			for (int i=0; i < att_vec.size(); i++)
+			res<<att_vec[i];
+			if(i<att_vec.size()-1)
 			{
-				res<<att_vec[i];
-				if(i<att_vec.size()-1)
-				{
-					res<<"\",";//put comma to string
-				}
+				res<<"\",";//put comma to string
 			}
-			res<<",";
 		}
-
-		return res.str();
+		res<<",";
 	}
+
+	return res.str();
+}
 
 std::string BGUInfoPackage::get_Pstatus_headers()
 {
