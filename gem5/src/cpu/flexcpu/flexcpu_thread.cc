@@ -275,9 +275,11 @@ FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
                        Request::INST_FETCH, _cpuPtr->instMasterId(), pc_addr);
 
     weak_ptr<InflightInst> weak_inst(inst_ptr);
+    auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
 
-    auto callback = [this, weak_inst](Fault f, const RequestPtr& r) {
+    auto callback = [this, weak_inst,inf_pckg](Fault f, const RequestPtr& r) {
         onPCTranslated(weak_inst, f, r);
+    	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
     };
 
     _cpuPtr->requestInstAddrTranslation(fetch_req, this,

@@ -55,7 +55,7 @@ private:
 
 
 	~BGUTracer() {}
-	BGUTracer(std::string CsvFileFullPath = DEFAULT_CSV_FILE, uint32_t MaxNumOfThreads = 1, bool FilterByThread = false,ThreadID FilterWhichThread = 0);
+	BGUTracer(std::string CsvFileFullPath = DEFAULT_CSV_FILE, bool FilterByThread = false,ThreadID FilterWhichThread = 0);
 
 	//------------- flags ---------------//
 
@@ -64,10 +64,8 @@ private:
 	std::fstream csv_table_fstr;
 	std::string full_file_path;
 	bool initialized = false;
-
 	bool filter_by_thread;
 	ThreadID filter_which_thread;
-	uint32_t max_num_of_threads;
 
 	Tick last_tick;
 	Tick curr_tick;
@@ -75,6 +73,7 @@ private:
 	//lines buffers:
 	std::unordered_map<ThreadID,std::string> tid_buffer_strings;
 
+	bool add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg);
 
 
 public:
@@ -83,14 +82,18 @@ public:
 	BGUTracer(BGUTracer &&) = delete; //rvalue reference is forbidden
 	BGUTracer & operator=(BGUTracer &&) = delete;
 
+	//getters
+
 	static BGUTracer& get_inst()
 	{
 		static BGUTracer tracer;
 		return tracer;
 	}
 
-	bool add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg);
-	bgu_ipckg_status get_bgu_info_package(std::weak_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
+	bgu_ipckg_status receive_bgu_info_package(std::weak_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
+
+	//setters
+
 };
 
 /*********************************************************************************************************************/
@@ -170,8 +173,8 @@ private:
 	std::vector<std::string> fetch_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst
 
 public:
-	BGUInfoPackage(); // [used by Tracer]
 	BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst);
+	BGUInfoPackage(); // [used by Tracer]
 
 	std::shared_ptr <BGUInfoPackage> get_a_BGUInfoPackage()
 	{

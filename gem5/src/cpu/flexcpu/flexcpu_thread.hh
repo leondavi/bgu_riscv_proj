@@ -44,8 +44,8 @@
 #include "cpu/pred/bpred_unit.hh"
 #include "cpu/reg_class.hh"
 #include "cpu/simple_thread.hh"
+#include "cpu/flexcpu/BGUTracer.h"
 #include "mem/request.hh"
-#include "BGUTracer.h"
 
 class FlexCPU;
 

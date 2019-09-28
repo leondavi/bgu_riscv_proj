@@ -44,7 +44,6 @@ BGUInfoPackage::BGUInfoPackage()
 {
     packet_status = PST_NOT_INITIALIZED;
     tid = 0;
-
     generate_attributes();
 }
 
