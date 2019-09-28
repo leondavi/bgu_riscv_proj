@@ -52,15 +52,17 @@ class BGUInfoPackage;
 class BGUTracer {
 private:
 
+
+
 	~BGUTracer() {}
-	BGUTracer(std::string CsvFilePath = DEFAULT_CSV_FILE, uint32_t MaxNumOfThreads = 1, bool FilterByThread = false,ThreadID FilterWhichThread = 0);
+	BGUTracer(std::string CsvFileFullPath = DEFAULT_CSV_FILE, uint32_t MaxNumOfThreads = 1, bool FilterByThread = false,ThreadID FilterWhichThread = 0);
 
 	//------------- flags ---------------//
 
 	//------------- private variables -------------//
 
-	std::fstream csvfile;
-	std::string filepath;
+	std::fstream csv_table_fstr;
+	std::string full_file_path;
 	bool initialized = false;
 
 	bool filter_by_thread;
@@ -69,6 +71,10 @@ private:
 
 	Tick last_tick;
 	Tick curr_tick;
+
+	//lines buffers:
+	std::unordered_map<ThreadID,std::string> tid_buffer_strings;
+
 
 
 public:
@@ -86,6 +92,10 @@ public:
 	bool add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg);
 	bgu_ipckg_status get_bgu_info_package(std::weak_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
 };
+
+/*********************************************************************************************************************/
+/*********************************************************************************************************************/
+/*********************************************************************************************************************/
 
 class BGUInfoPackage : public std::enable_shared_from_this<BGUInfoPackage>
 {
@@ -117,23 +127,26 @@ private:
 	ThreadID tid;
 	std::vector<std::string> data;
 
-	enum Pstatus
-	{
-		PST_FE,PST_DE,PST_IS,PST_EX,PST_TOTAL
-	};
-	Pstatus packet_status;
 	std::vector<std::string> Pstatus_strings = {"FE","DE","IS","EX"};
 
-	enum e_attributes
+	enum e_stages
 	{
 		//Note: the order of attributes is important!
-		ATTR_DEFAULT,
-		ATTR_FE,
-		ATTR_DE,
-		ATTR_IS,
-		ATTR_EX,
-		ATTR_TOTAL
+		STG_FE,
+		STG_DE,
+		STG_IS,
+		STG_EX,
+		STG_TOTAL,
+		PST_NOT_INITIALIZED
 	};
+
+	typedef e_stages Pstatus;
+
+	Pstatus packet_status;
+
+
+
+	const std::string tid_str = "tid", pc_str = "pc", status_str = "status";
 
 	std::weak_ptr<InflightInst> wk_ptr_inst;
 
@@ -145,6 +158,8 @@ private:
 		return stream.str();
 	}
 
+	void generate_attributes();
+
 	std::vector<std::vector<std::string>> attributes;
 
 
@@ -155,6 +170,7 @@ private:
 	std::vector<std::string> fetch_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst
 
 public:
+	BGUInfoPackage(); // [used by Tracer]
 	BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst);
 
 	std::shared_ptr <BGUInfoPackage> get_a_BGUInfoPackage()
@@ -164,9 +180,13 @@ public:
 
 	void update_package_attributes(); // works on pckg_attributes - needs wk_ptr_inst
 	void send_packet_to_tracer();//TODO
-	std::string get_all_attributes_comma_seperated();
-	std::string get_Pstatus_headers();
+
 	inline Pstatus get_packet_status() { return this->packet_status; }
+
+	std::string get_1st_headline_stages_comma_seperated(); // [used by Tracer]
+	std::string get_2nd_headline_attributes_comma_seperated(); // [used_by Tracer]
+
+	inline uint16_t get_total_stages_count() { return STG_TOTAL;}
 
 
 };

@@ -9,8 +9,8 @@
 
 namespace tracer {
 
-BGUTracer::BGUTracer(std::string CsvFilePath, uint32_t MaxNumOfThreads, bool FilterByThread,ThreadID FilterWhichThread) :
-		filepath(CsvFilePath),
+BGUTracer::BGUTracer(std::string CsvFileFullPath, uint32_t MaxNumOfThreads, bool FilterByThread,ThreadID FilterWhichThread) :
+		full_file_path(CsvFileFullPath),
 		filter_by_thread(FilterByThread),
         filter_which_thread(FilterWhichThread),
 		max_num_of_threads(MaxNumOfThreads),
@@ -18,9 +18,12 @@ BGUTracer::BGUTracer(std::string CsvFilePath, uint32_t MaxNumOfThreads, bool Fil
 		curr_tick(curTick())
 {
 	// TODO Auto-generated constructor stub
-	//csvfile.open(path_csv.str(),std::ofstream::out | std::ofstream::app);
+	csv_table_fstr.open(full_file_path.c_str(),std::ofstream::out | std::ofstream::app);
 
+	BGUInfoPackage dummy_package; //using this to initialize the table
 }
+
+
 
 /**
  * This function update the tracer with bguinfopacket

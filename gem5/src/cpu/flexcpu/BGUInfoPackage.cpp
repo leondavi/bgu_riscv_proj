@@ -9,19 +9,42 @@ namespace tracer {
 //		BGUInfoPackage 				  //
 //------------------------------------//
 
-BGUInfoPackage::BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst):
+void BGUInfoPackage::generate_attributes()
+{
+		attributes.resize(STG_TOTAL);
+		attributes[STG_FE] = {};//TODO
+		attributes[STG_DE] = {};//TODO
+		attributes[STG_EX] = {};//TODO
+		attributes[STG_IS] = {};//TODO
+
+		std::vector<std::string> default_vec = {tid_str,status_str,pc_str};
+
+		for (auto &att_vec : this->attributes) //adding the default attributes
+		{
+			att_vec.insert(att_vec.begin(),default_vec.begin(),default_vec.end());
+		}
+}
+
+
+BGUInfoPackage::BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst) :
 		tid(tid),
 		wk_ptr_inst(wk_ptr_inst)
 {
-	//generate attributes vector:
-	attributes.resize(ATTR_TOTAL);
-	attributes[ATTR_DEFAULT] = {"tid","status","pc"};
-	attributes[ATTR_FE] = {};//TODO
-	attributes[ATTR_DE] = {};//TODO
-	attributes[ATTR_EX] = {};//TODO
-	attributes[ATTR_IS] = {};//TODO
-
+    packet_status = PST_NOT_INITIALIZED;
+    generate_attributes();
 	update_package_attributes();
+}
+
+
+/**
+ *
+ */
+BGUInfoPackage::BGUInfoPackage()
+{
+    packet_status = PST_NOT_INITIALIZED;
+    tid = 0;
+
+    generate_attributes();
 }
 
 void BGUInfoPackage::update_package_attributes()
@@ -47,25 +70,25 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 	{
 	case InflightInst::Status::Decoded :
 		{
-			this->packet_status = PST_DE;
+			this->packet_status = STG_DE;
 			res_string = decode_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::Executing :
 		{
-			this->packet_status = PST_EX;
+			this->packet_status = STG_EX;
 			res_string = execute_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::Issued :
 		{
-			this->packet_status = PST_IS;
+			this->packet_status = STG_IS;
 			res_string = issue_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::Empty : //equivalent to fetch
 		{
-			this->packet_status = PST_FE;
+			this->packet_status = STG_FE;
 			res_string = fetch_to_string(inst);
 			break;
 		}
@@ -113,34 +136,48 @@ std::vector<std::string> BGUInfoPackage::fetch_to_string(std::shared_ptr<Infligh
 		return res;
 }
 
-std::string BGUInfoPackage::get_all_attributes_comma_seperated()
+/**
+ * This function is used by Tracer instance in order to generate the headline of the table
+ */
+std::string BGUInfoPackage::get_1st_headline_stages_comma_seperated()
+{
+	std::string res = "";
+	for (int i=0; i < Pstatus_strings.size(); i++)
+	{
+		res += Pstatus_strings[i];
+		if(i < Pstatus_strings.size()-1)
+		{
+			res += ",";
+		}
+	}
+	res += "\n"; //new line - ending this one
+
+	return res;
+}
+
+/**
+ * This function is used by Tracer instance in order to generate the second headline of the table
+ */
+std::string BGUInfoPackage::get_2nd_headline_attributes_comma_seperated()
 {
 	std::stringstream res;
-	for (auto &att_vec : this->attributes)
+	for (int i=0; i<this->attributes.size(); i++)
 	{
-		for (int i=0; i < att_vec.size(); i++)
+		for (int j=0; j < this->attributes[i].size(); j++) //att_vec is vector of strings
 		{
-			res<<att_vec[i];
-			if(i<att_vec.size()-1)
+			res<<this->attributes[i][j];
+			if(j<this->attributes[i].size()-1)
 			{
 				res<<"\",";//put comma to string
 			}
 		}
-		res<<",";
-	}
-
-	return res.str();
-}
-
-std::string BGUInfoPackage::get_Pstatus_headers()
-{
-	std::stringstream res;
-	for (int i=0; i<Pstatus_strings.size(); i++)
-	{
-		res<<Pstatus_strings[i];
-		if(i<Pstatus_strings.size()-1)
+		if(i < this->attributes.size()-1) //put commas
 		{
-			res<<","; //put the comma separator
+			res<<",";
+		}
+		else //last iteration put an end to this line
+		{
+			res<<std::endl;
 		}
 	}
 
