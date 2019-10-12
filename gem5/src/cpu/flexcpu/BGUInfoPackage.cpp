@@ -150,8 +150,6 @@ std::string BGUInfoPackage::get_1st_headline_stages_comma_seperated()
 			res += ",";
 		}
 	}
-	res += "\n"; //new line - ending this one
-
 	return res;
 }
 
@@ -174,10 +172,6 @@ std::string BGUInfoPackage::get_2nd_headline_attributes_comma_seperated()
 		if(i < this->attributes.size()-1) //put commas
 		{
 			res<<",";
-		}
-		else //last iteration put an end to this line
-		{
-			res<<std::endl;
 		}
 	}
 

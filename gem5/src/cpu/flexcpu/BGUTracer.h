@@ -41,6 +41,7 @@ inline std::string get_cwd()
 namespace tracer {
 
 #define DEFAULT_CSV_FILE get_cwd()+"/output.csv"
+#define X_VAL "x"
 
 typedef enum {BGUI_PCKG_FILTERED,BGUI_PCKG_ERR,BGUI_PCKG_ADDED} bgu_ipckg_status;
 
@@ -50,6 +51,7 @@ class BGUInfoPackage;
  * BGUTracer - generates the trace by receiving BGUInfoPackages
  */
 class BGUTracer {
+	using buffer_attr = std::pair<Tick,std::vector<std::string>>; //tick and what to print
 private:
 
 
@@ -71,9 +73,19 @@ private:
 	Tick curr_tick;
 
 	//lines buffers:
-	std::unordered_map<ThreadID,std::string> tid_buffer_strings;
+	std::unordered_map<ThreadID,buffer_attr> tid_buffer_strings;
 
-	bool add_package_to_current_tick_line(std::shared_ptr<BGUInfoPackage> rcv_pckg);
+	uint16_t total_stages;
+
+	bool add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv_pckg);
+	void start_a_new_line(Tick newTick);
+
+	bool check_if_empty(std::vector<std::string> &in_vec);
+
+
+	bool thread_string_buffer_exit_check(ThreadID tid);
+	void add_and_resize_string_buffer(ThreadID tid,Tick curr_tick);
+	void reset_string_buffers_all_threads(Tick new_tick);
 
 
 public:
@@ -185,6 +197,8 @@ public:
 	void send_packet_to_tracer();//TODO
 
 	inline Pstatus get_packet_status() { return this->packet_status; }
+	inline std::vector<std::string> get_data() { return this->data; }
+	inline ThreadID get_ThreadID() { return this->tid; }
 
 	std::string get_1st_headline_stages_comma_seperated(); // [used by Tracer]
 	std::string get_2nd_headline_attributes_comma_seperated(); // [used_by Tracer]
