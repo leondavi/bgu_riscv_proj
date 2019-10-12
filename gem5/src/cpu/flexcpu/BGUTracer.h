@@ -80,8 +80,10 @@ private:
 	bool add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv_pckg);
 	void start_a_new_line(Tick newTick);
 
+	void deploy_string_buffers_to_table();
 	bool check_if_empty(std::vector<std::string> &in_vec);
 
+	std::string generate_comma_seperated_lines(std::vector<std::vector<std::string>> lines_matrix);
 
 	bool thread_string_buffer_exit_check(ThreadID tid);
 	void add_and_resize_string_buffer(ThreadID tid,Tick curr_tick);

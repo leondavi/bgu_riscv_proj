@@ -38,9 +38,12 @@ bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::weak_ptr<BGUInfoPackag
 {
 	std::shared_ptr<BGUInfoPackage> pckg_inst = rcv_pckg.lock();
 
-	curTick = curTick();
+	curr_tick = curTick();
 	if (curr_tick - last_tick > 0)
 	{
+		deploy_string_buffers_to_table();
+
+		reset_string_buffers_all_threads(curr_tick);
 		last_tick = curr_tick;
 	}
 
@@ -65,14 +68,37 @@ bool BGUTracer::add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv
 {
 	uint16_t curr_status = rcv_pckg->get_packet_status();
 	ThreadID curr_tid = rcv_pckg->get_ThreadID();
+	add_and_resize_string_buffer(curr_tid,curr_tick);
+	if (curr_status < this->tid_buffer_strings[curr_tid].second.size()) //update relevant stage
+	{
+		this->tid_buffer_strings[curr_tid].second[curr_status] = rcv_pckg->get_data();
+		return true;
+	}
 
+	return false;
+}
 
+std::string convert_comma_seperated_from_vec_of_string(std::vector<std::string> &in_vec)
+{
+	std::string res;
+	res="\"";//printing commas
+	for(int i=0; i<in_vec.size(); i++)
+	{
+		res+=in_vec[i];
+		if(i<in_vec.size()-1)
+		{
+			res+=",";
+		}
+	}
+	res="\"";
 
-	return true;//TODO
+	return res;
 }
 
 
-
+/**
+ * This function writes the content of string buffers to csv table
+ */
 void BGUTracer::deploy_string_buffers_to_table()
 {
 	std::vector<std::vector<std::string>> lines_matrix;
@@ -86,6 +112,8 @@ void BGUTracer::deploy_string_buffers_to_table()
 		it_over_buffers++;
 	}
 
+
+	csv_table_fstr<<this->generate_comma_seperated_lines(lines_matrix);
 }
 
 /**
@@ -100,23 +128,38 @@ bool BGUTracer::check_if_empty(std::vector<std::string> &in_vec)
 			return false;
 		}
 	}
+
+	return true;
 }
 
 std::string BGUTracer::generate_comma_seperated_lines(std::vector<std::vector<std::string>> lines_matrix)
 {
-	std::vector<std::stringstream> res_vec;
+	std::stringstream res_vec;
+
+	//TODO add here the merge rows function
+
 	for (int l=0; l<lines_matrix.size(); l++) //scanning line
 	{
-		res_vec<<curr_tick<<",";
-		for (int cell=0 ; cell < lines_matrix[l].size(); cell++) //scanning cells
+		if (!check_if_empty(lines_matrix[l])) //if not an empty line then add it to string
 		{
-			res_vec<<lines_matrix[l][cell]<<",";
+			res_vec<<curr_tick<<",";
+			for (int cell=0 ; cell < lines_matrix[l].size(); cell++) //scanning cells
+			{
+				res_vec<<lines_matrix[l][cell];
+				if (cell < lines_matrix[l].size()-1)
+				{
+					res_vec<<",";
+				}
+			}
 		}
+		res_vec<<"\n"; //start a new line at the end of each line
 	}
+
+	return res_vec.str();
 }
 
-std::vector<std::vector<std::string>> BGUTracer::merge_rows(std::vector<std::vector<std::string>> &lines_matrix)
-{
+//std::vector<std::vector<std::string>> BGUTracer::merge_rows(std::vector<std::vector<std::string>> &lines_matrix)
+//{
 	//TODO
 //	for (int col = 0; col < lines_matrix.front().size(); col++)
 //	{
@@ -126,7 +169,8 @@ std::vector<std::vector<std::string>> BGUTracer::merge_rows(std::vector<std::vec
 //		}
 //	}
 
-}
+//}
+
 /**
  * return true if there is such trhead
  */
@@ -154,9 +198,9 @@ void BGUTracer::reset_string_buffers_all_threads(Tick new_tick)
 	while (it_over_buffers != this->tid_buffer_strings.end())
 	{
 		it_over_buffers->second.first = new_tick;
-		for (int stage = 0 ; stage < it_over_buffers->second.second; stage++)
+		for (int stage = 0 ; stage < it_over_buffers->second.second.size() ; stage++)
 		{
-			stage < it_over_buffers->second.second[stage] = X_VAL;
+			it_over_buffers->second.second[stage] = X_VAL;
 		}
 		it_over_buffers++;
 	}

@@ -19,9 +19,9 @@ void BGUInfoPackage::generate_attributes()
 
 		std::vector<std::string> default_vec = {tid_str,status_str,pc_str};
 
-		for (auto &att_vec : this->attributes) //adding the default attributes
+		for (int i=0; i<attributes.size(); i++) //adding the default attributes
 		{
-			att_vec.insert(att_vec.begin(),default_vec.begin(),default_vec.end());
+			attributes[i].insert(attributes[i].begin(),default_vec.begin(),default_vec.end());
 		}
 }
 
@@ -60,11 +60,11 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 	//*****************************************//
 	std::shared_ptr<InflightInst> inst = wk_ptr_inst.lock();
 	//-------------- tid ---------------//
-	res_string.push_back("tid"); res_string.push_back(std::to_string(this->tid));
+	res_string.push_back(std::to_string(this->tid));
 	//-------------- status ---------------//
-	res_string.push_back("status"); res_string.push_back(status_strings[inst->status()]);
+	res_string.push_back(status_strings[inst->status()]);
 	//-------------- pc ------------------//
-	res_string.push_back("pc"); res_string.push_back("0x"+dec_to_hex_str(inst->pcState().instAddr()));
+	res_string.push_back("0x"+dec_to_hex_str(inst->pcState().instAddr()));
 
 	switch (inst->status())
 	{
