@@ -9,7 +9,7 @@
 
 namespace tracer {
 
-BGUTracer::BGUTracer(std::string CsvFileFullPath,bool FilterByThread,ThreadID FilterWhichThread) :
+BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool FilterByThread,ThreadID FilterWhichThread):
 		full_file_path(CsvFileFullPath),
 		filter_by_thread(FilterByThread),
         filter_which_thread(FilterWhichThread),
@@ -34,10 +34,8 @@ BGUTracer::BGUTracer(std::string CsvFileFullPath,bool FilterByThread,ThreadID Fi
  * This function update the tracer with bguinfopacket
  * This function is called by the packet itself when calling packet's send function
  */
-bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::weak_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid)
+bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid)
 {
-	std::shared_ptr<BGUInfoPackage> pckg_inst = rcv_pckg.lock();
-
 	curr_tick = curTick();
 	if (curr_tick - last_tick > 0)
 	{
@@ -52,7 +50,7 @@ bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::weak_ptr<BGUInfoPackag
 	if (continue_cond)
 	{
 		// handle the packet
-		if(BGUTracer::add_package_to_string_buffer(pckg_inst))
+		if(BGUTracer::add_package_to_string_buffer(rcv_pckg))
 		{
 			return bgu_ipckg_status::BGUI_PCKG_ADDED;
 		}
@@ -71,14 +69,15 @@ bool BGUTracer::add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv
 	add_and_resize_string_buffer(curr_tid,curr_tick);
 	if (curr_status < this->tid_buffer_strings[curr_tid].second.size()) //update relevant stage
 	{
-		this->tid_buffer_strings[curr_tid].second[curr_status] = rcv_pckg->get_data();
+		std::vector<std::string> data = rcv_pckg->get_data();
+		this->tid_buffer_strings[curr_tid].second.at(curr_status) = generate_comma_seperated_from_vec_of_string(data);
 		return true;
 	}
 
 	return false;
 }
 
-std::string convert_comma_seperated_from_vec_of_string(std::vector<std::string> &in_vec)
+std::string BGUTracer::generate_comma_seperated_from_vec_of_string(std::vector<std::string> &in_vec)
 {
 	std::string res;
 	res="\"";//printing commas

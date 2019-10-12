@@ -53,11 +53,7 @@ class BGUInfoPackage;
 class BGUTracer {
 	using buffer_attr = std::pair<Tick,std::vector<std::string>>; //tick and what to print
 private:
-
-
-
-	~BGUTracer() {}
-	BGUTracer(std::string CsvFileFullPath = DEFAULT_CSV_FILE, bool FilterByThread = false,ThreadID FilterWhichThread = 0);
+	BGUTracer(std::string CsvFileFullPath = DEFAULT_CSV_FILE ,bool FilterByThread = false ,ThreadID FilterWhichThread = 0);
 
 	//------------- flags ---------------//
 
@@ -77,6 +73,8 @@ private:
 
 	uint16_t total_stages;
 
+
+	std::string generate_comma_seperated_from_vec_of_string(std::vector<std::string> &in_vec);
 	bool add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv_pckg);
 	void start_a_new_line(Tick newTick);
 
@@ -88,7 +86,6 @@ private:
 	bool thread_string_buffer_exit_check(ThreadID tid);
 	void add_and_resize_string_buffer(ThreadID tid,Tick curr_tick);
 	void reset_string_buffers_all_threads(Tick new_tick);
-
 
 public:
 	BGUTracer(const BGUTracer&) = delete;
@@ -104,7 +101,7 @@ public:
 		return tracer;
 	}
 
-	bgu_ipckg_status receive_bgu_info_package(std::weak_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
+	bgu_ipckg_status receive_bgu_info_package(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
 
 	//setters
 
