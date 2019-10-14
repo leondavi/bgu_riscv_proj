@@ -55,6 +55,7 @@ void BGUInfoPackage::update_package_attributes()
 std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 {
 	std::vector<std::string> res_string;
+	std::vector<std::string> stage_vec_strings;
 	//******************************************//
 	//			Default attributes 				//
 	//*****************************************//
@@ -71,25 +72,25 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 	case InflightInst::Status::Decoded :
 		{
 			this->packet_status = STG_DE;
-			res_string = decode_to_string(inst);
+			stage_vec_strings = decode_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::Executing :
 		{
 			this->packet_status = STG_EX;
-			res_string = execute_to_string(inst);
+			stage_vec_strings = execute_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::Issued :
 		{
 			this->packet_status = STG_IS;
-			res_string = issue_to_string(inst);
+			stage_vec_strings = issue_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::Empty : //equivalent to fetch
 		{
 			this->packet_status = STG_FE;
-			res_string = fetch_to_string(inst);
+			stage_vec_strings = fetch_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::Committed :
@@ -107,10 +108,13 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 
 	}
 
+	res_string.insert(res_string.end(),stage_vec_strings.begin(),stage_vec_strings.end());
+
 	return res_string;
 }
 void BGUInfoPackage::send_packet_to_tracer()
 {
+	update_package_attributes();
 	BGUTracer::get_inst().receive_bgu_info_package(shared_from_this(),this->tid);
 }
 
