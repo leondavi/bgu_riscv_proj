@@ -33,6 +33,7 @@ BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool FilterByThread,ThreadID F
 /**
  * This function update the tracer with bguinfopacket
  * This function is called by the packet itself when calling packet's send function
+ * TODO add functionality of filters to filter out whatever user wants
  */
 bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid)
 {
@@ -70,6 +71,7 @@ bool BGUTracer::add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv
 	if (curr_status < this->tid_buffer_strings[curr_tid].second.size()) //update relevant stage
 	{
 		std::vector<std::string> data = rcv_pckg->get_data();
+		//std::cout<<"tid: "<<curr_tid<<" cur st"<<curr_status<<" stringD: "<<generate_comma_seperated_from_vec_of_string(data)<<std::endl;
 		this->tid_buffer_strings[curr_tid].second.at(curr_status) = generate_comma_seperated_from_vec_of_string(data);
 		return true;
 	}
@@ -79,19 +81,19 @@ bool BGUTracer::add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv
 
 std::string BGUTracer::generate_comma_seperated_from_vec_of_string(std::vector<std::string> &in_vec)
 {
-	std::string res;
-	res="\"";//printing commas
+	std::stringstream res;
+	res<<"\"";
 	for(int i=0; i<in_vec.size(); i++)
 	{
-		res+=in_vec[i];
+		res<<in_vec[i];
 		if(i<in_vec.size()-1)
 		{
-			res+=",";
+			res<<",";
 		}
 	}
-	res="\"";
+	res<<"\"";
+	return res.str();
 
-	return res;
 }
 
 

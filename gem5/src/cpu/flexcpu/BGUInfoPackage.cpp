@@ -164,14 +164,16 @@ std::string BGUInfoPackage::get_2nd_headline_attributes_comma_seperated()
 	std::stringstream res;
 	for (int i=0; i<this->attributes.size(); i++)
 	{
+		res<<"\"";
 		for (int j=0; j < this->attributes[i].size(); j++) //att_vec is vector of strings
 		{
 			res<<this->attributes[i][j];
 			if(j<this->attributes[i].size()-1)
 			{
-				res<<"\",";//put comma to string
+				res<<",";//put comma to string
 			}
 		}
+		res<<"\"";
 		if(i < this->attributes.size()-1) //put commas
 		{
 			res<<",";
