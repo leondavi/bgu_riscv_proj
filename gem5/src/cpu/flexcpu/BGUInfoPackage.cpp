@@ -114,8 +114,11 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 }
 void BGUInfoPackage::send_packet_to_tracer()
 {
-	update_package_attributes();
-	BGUTracer::get_inst().receive_bgu_info_package(shared_from_this(),this->tid);
+	if(!this->wk_ptr_inst.expired())
+	{
+		update_package_attributes();
+		BGUTracer::get_inst().receive_bgu_info_package(shared_from_this(),this->tid);
+	}
 }
 
 std::vector<std::string> BGUInfoPackage::decode_to_string(std::shared_ptr<InflightInst> inst)

@@ -118,8 +118,8 @@ class BGUInfoPackage : public std::enable_shared_from_this<BGUInfoPackage>
 private:
 
 	std::vector<std::string> status_strings = { //TODO we have to add fetch to status somehow
-			        "Inv" //0,
-			        "Empt", //1 Dynamic instruction slot has been created but not yet filled. This is fetch
+			        "Inv", //0,
+			        "FE", //1 Dynamic instruction slot has been created but not yet filled. This is fetch
 			        "DE", //2 A StaticInst has been provided.
 			        // Perhaps an independent rename stage may be useful. Most
 			        // functionality conventionally called rename is packaged with issue

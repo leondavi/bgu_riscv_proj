@@ -275,11 +275,9 @@ FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
                        Request::INST_FETCH, _cpuPtr->instMasterId(), pc_addr);
 
     weak_ptr<InflightInst> weak_inst(inst_ptr);
-    auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
 
-    auto callback = [this, weak_inst,inf_pckg](Fault f, const RequestPtr& r) {
+    auto callback = [this, weak_inst](Fault f, const RequestPtr& r) {
         onPCTranslated(weak_inst, f, r);
-    	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
     };
 
     _cpuPtr->requestInstAddrTranslation(fetch_req, this,
@@ -481,7 +479,9 @@ FlexCPUThread::executeInstruction(shared_ptr<InflightInst> inst_ptr)
                 if (fault != NoFault) markFault(inst_ptr, fault);
             };
     } else {
-        callback = [this, weak_inst](Fault fault) {
+        auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
+        callback = [this, weak_inst,inf_pckg](Fault fault) {
+        	    inf_pckg->send_packet_to_tracer();
                 onExecutionCompleted(weak_inst, fault);
             };
     }
@@ -587,9 +587,15 @@ FlexCPUThread::issueInstruction(shared_ptr<InflightInst> inst_ptr)
                               inst_ptr->seqNum());
 
     weak_ptr<InflightInst> weak_inst = inst_ptr;
-    auto callback = [this, weak_inst] {
+    auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
+
+    auto callback = [this, weak_inst,inf_pckg] {
         onIssueAccessed(weak_inst);
+       	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
     };
+
+
+
     auto squasher = [weak_inst] {
         shared_ptr<InflightInst> inst_ptr = weak_inst.lock();
         return !inst_ptr || inst_ptr->isSquashed();
@@ -987,7 +993,11 @@ FlexCPUThread::onPCTranslated(weak_ptr<InflightInst> inst, Fault fault,
     DPRINTF(FlexCPUThreadEvent, "Received PC translation (va: %#x, pa: %#x)\n",
             vaddr, req->getPaddr());
 
-    auto callback = [this, inst, vaddr](uint8_t* data) {
+
+    auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst); //creating bguinfo packet instance
+
+    auto callback = [this, inst, vaddr,inf_pckg](uint8_t* data) {
+    	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
         bufferInstructionData(vaddr, data);
         attemptFetch(inst);
     };
