@@ -590,8 +590,8 @@ FlexCPUThread::issueInstruction(shared_ptr<InflightInst> inst_ptr)
     auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
 
     auto callback = [this, weak_inst,inf_pckg] {
-        onIssueAccessed(weak_inst);
        	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
+        onIssueAccessed(weak_inst);
     };
 
 

@@ -16,6 +16,10 @@ BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool FilterByThread,ThreadID F
 		last_tick(curTick()),
 		curr_tick(curTick())
 {
+	if(file_exists(full_file_path))
+	{
+		std::remove(full_file_path.c_str());
+	}
 	// TODO Auto-generated constructor stub
 	csv_table_fstr.open(full_file_path.c_str(),std::ofstream::out | std::ofstream::app);
 

@@ -14,8 +14,8 @@ void BGUInfoPackage::generate_attributes()
 		attributes.resize(STG_TOTAL);
 		attributes[STG_FE] = {};//TODO
 		attributes[STG_DE] = {};//TODO
-		attributes[STG_EX] = {};//TODO
-		attributes[STG_IS] = {};//TODO
+		attributes[STG_EX] = {opcode};//TODO
+		attributes[STG_IS] = {opcode};//TODO
 
 		std::vector<std::string> default_vec = {tid_str,status_str,pc_str};
 
@@ -129,11 +129,16 @@ std::vector<std::string> BGUInfoPackage::decode_to_string(std::shared_ptr<Inflig
 std::vector<std::string> BGUInfoPackage::issue_to_string(std::shared_ptr<InflightInst> inst)
 {
 	std::vector<std::string> res;
-		return res;
+	//--------------opcode ---------------//
+	res.push_back(inst->staticInst()->disassemble(inst->pcState().instAddr()));
+
+	return res;
 }
 std::vector<std::string> BGUInfoPackage::execute_to_string(std::shared_ptr<InflightInst> inst)
 {
 	std::vector<std::string> res;
+	//--------------opcode ---------------//
+		res.push_back(inst->staticInst()->disassemble(inst->pcState().instAddr()));
 		return res;
 }
 std::vector<std::string> BGUInfoPackage::fetch_to_string(std::shared_ptr<InflightInst> inst)

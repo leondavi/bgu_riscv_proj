@@ -11,6 +11,7 @@
 enum PIPE_STAGES{E_FETCH,E_ISSUE,E_EXECUTE,TOTAL_PIPELINE_STAGES,NULL_STAGE};
 
 #include "inflight_inst.hh"
+#include "base/output.hh"
 #include "cpu/simple_thread.hh"
 #include <queue>
 #include <string>
@@ -38,6 +39,11 @@ inline std::string get_cwd()
 	return std::string();
 }
 
+inline bool file_exists (const std::string& name) {
+    std::ifstream f(name.c_str());
+    return f.good();
+}
+
 namespace tracer {
 
 #define DEFAULT_CSV_FILE get_cwd()+"/output.csv"
@@ -53,7 +59,7 @@ class BGUInfoPackage;
 class BGUTracer {
 	using buffer_attr = std::pair<Tick,std::vector<std::string>>; //tick and what to print
 private:
-	BGUTracer(std::string CsvFileFullPath = DEFAULT_CSV_FILE ,bool FilterByThread = false ,ThreadID FilterWhichThread = 0);
+	BGUTracer(std::string CsvFileFullPath = simout.directory()+"/output.csv" ,bool FilterByThread = false ,ThreadID FilterWhichThread = 0);
 
 	//------------- flags ---------------//
 
@@ -159,8 +165,8 @@ private:
 	Pstatus packet_status;
 
 
-
 	const std::string tid_str = "tid", pc_str = "pc", status_str = "status";
+	const std::string opcode = "op";
 
 	std::weak_ptr<InflightInst> wk_ptr_inst;
 
