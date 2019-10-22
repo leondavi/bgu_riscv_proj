@@ -57,7 +57,7 @@ class BGUInfoPackage;
  * BGUTracer - generates the trace by receiving BGUInfoPackages
  */
 class BGUTracer {
-	using buffer_attr = std::pair<Tick,std::vector<std::string>>; //tick and what to print
+	//using buffer_attr = std::pair<Tick,std::vector<std::string>>; //tick and what to print
 private:
 	BGUTracer(std::string CsvFileFullPath = simout.directory()+"/output.csv" ,bool FilterByThread = false ,ThreadID FilterWhichThread = 0);
 
@@ -75,7 +75,7 @@ private:
 	Tick curr_tick;
 
 	//lines buffers:
-	std::unordered_map<ThreadID,buffer_attr> tid_buffer_strings;
+	std::vector<std::string> tid_buffer_strings;
 
 	uint16_t total_stages;
 
@@ -84,14 +84,9 @@ private:
 	bool add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv_pckg);
 	void start_a_new_line(Tick newTick);
 
-	void deploy_string_buffers_to_table();
+	void deploy_string_buffers_to_table(Tick tick_to_print);
 	bool check_if_empty(std::vector<std::string> &in_vec);
-
-	std::string generate_comma_seperated_lines(std::vector<std::vector<std::string>> lines_matrix);
-
-	bool thread_string_buffer_exit_check(ThreadID tid);
-	void add_and_resize_string_buffer(ThreadID tid,Tick curr_tick);
-	void reset_string_buffers_all_threads(Tick new_tick);
+	void reset_string_buffers();
 
 public:
 	BGUTracer(const BGUTracer&) = delete;

@@ -17,7 +17,7 @@ void BGUInfoPackage::generate_attributes()
 		attributes[STG_EX] = {opcode};//TODO
 		attributes[STG_IS] = {opcode};//TODO
 
-		std::vector<std::string> default_vec = {tid_str,status_str,pc_str};
+		std::vector<std::string> default_vec = {tid_str,pc_str};
 
 		for (int i=0; i<attributes.size(); i++) //adding the default attributes
 		{
@@ -63,7 +63,7 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 	//-------------- tid ---------------//
 	res_string.push_back(std::to_string(this->tid));
 	//-------------- status ---------------//
-	res_string.push_back(status_strings[inst->status()]);
+	//res_string.push_back(status_strings[inst->status()]);
 	//-------------- pc ------------------//
 	res_string.push_back("0x"+dec_to_hex_str(inst->pcState().instAddr()));
 

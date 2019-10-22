@@ -26,6 +26,8 @@ BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool FilterByThread,ThreadID F
 	BGUInfoPackage dummy_package; //using this to initialize the table
 
 	total_stages = dummy_package.get_total_stages_count();
+
+	reset_string_buffers();
 	//generates headlines
 	csv_table_fstr << "Sim Time,"<< dummy_package.get_1st_headline_stages_comma_seperated() << std::endl;
 	csv_table_fstr << " ,"<< dummy_package.get_2nd_headline_attributes_comma_seperated() << std::endl;
@@ -44,9 +46,9 @@ bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::shared_ptr<BGUInfoPack
 	curr_tick = curTick();
 	if (curr_tick - last_tick > 0)
 	{
-		deploy_string_buffers_to_table();
+		deploy_string_buffers_to_table(last_tick);
 
-		reset_string_buffers_all_threads(curr_tick);
+		reset_string_buffers();
 		last_tick = curr_tick;
 	}
 
@@ -70,13 +72,12 @@ bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::shared_ptr<BGUInfoPack
 bool BGUTracer::add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv_pckg)
 {
 	uint16_t curr_status = rcv_pckg->get_packet_status();
-	ThreadID curr_tid = rcv_pckg->get_ThreadID();
-	add_and_resize_string_buffer(curr_tid,curr_tick);
-	if (curr_status < this->tid_buffer_strings[curr_tid].second.size()) //update relevant stage
+
+	if (curr_status < total_stages) //update relevant stage
 	{
 		std::vector<std::string> data = rcv_pckg->get_data();
-		//std::cout<<"tid: "<<curr_tid<<" cur st"<<curr_status<<" stringD: "<<generate_comma_seperated_from_vec_of_string(data)<<std::endl;
-		this->tid_buffer_strings[curr_tid].second.at(curr_status) = generate_comma_seperated_from_vec_of_string(data);
+		//std::cout<<"tid: "<<rcv_pckg->get_ThreadID()<<" cur st"<<curr_status<<" stringD: "<<generate_comma_seperated_from_vec_of_string(data)<<std::endl;
+		this->tid_buffer_strings[curr_status] = generate_comma_seperated_from_vec_of_string(data);
 		return true;
 	}
 
@@ -104,21 +105,22 @@ std::string BGUTracer::generate_comma_seperated_from_vec_of_string(std::vector<s
 /**
  * This function writes the content of string buffers to csv table
  */
-void BGUTracer::deploy_string_buffers_to_table()
+void BGUTracer::deploy_string_buffers_to_table(Tick tick_to_print)
 {
-	std::vector<std::vector<std::string>> lines_matrix;
-	std::unordered_map<ThreadID,buffer_attr>::iterator it_over_buffers = this->tid_buffer_strings.begin();
-	while (it_over_buffers != this->tid_buffer_strings.end())
+	std::stringstream res_vec;
+
+	res_vec<<tick_to_print/1000<<",";
+	for (int i=0; i<this->tid_buffer_strings.size(); i++)
 	{
-		if(!check_if_empty(it_over_buffers->second.second)) //if not empty
+		res_vec<<this->tid_buffer_strings[i];
+		if (i < this->tid_buffer_strings.size()-1)
 		{
-			lines_matrix.push_back(it_over_buffers->second.second);
+			res_vec<<",";
 		}
-		it_over_buffers++;
 	}
+	res_vec<<"\n"; //start a new line at the end of each line
 
-
-	csv_table_fstr<<this->generate_comma_seperated_lines(lines_matrix);
+	csv_table_fstr<<res_vec.str();
 }
 
 /**
@@ -126,6 +128,7 @@ void BGUTracer::deploy_string_buffers_to_table()
  */
 bool BGUTracer::check_if_empty(std::vector<std::string> &in_vec)
 {
+
 	for (auto &elem : in_vec)
 	{
 		if(elem != X_VAL)
@@ -137,78 +140,11 @@ bool BGUTracer::check_if_empty(std::vector<std::string> &in_vec)
 	return true;
 }
 
-std::string BGUTracer::generate_comma_seperated_lines(std::vector<std::vector<std::string>> lines_matrix)
+
+
+void BGUTracer::reset_string_buffers()
 {
-	std::stringstream res_vec;
-
-	//TODO add here the merge rows function
-
-	for (int l=0; l<lines_matrix.size(); l++) //scanning line
-	{
-		if (!check_if_empty(lines_matrix[l])) //if not an empty line then add it to string
-		{
-			res_vec<<curr_tick<<",";
-			for (int cell=0 ; cell < lines_matrix[l].size(); cell++) //scanning cells
-			{
-				res_vec<<lines_matrix[l][cell];
-				if (cell < lines_matrix[l].size()-1)
-				{
-					res_vec<<",";
-				}
-			}
-		}
-		res_vec<<"\n"; //start a new line at the end of each line
-	}
-
-	return res_vec.str();
-}
-
-//std::vector<std::vector<std::string>> BGUTracer::merge_rows(std::vector<std::vector<std::string>> &lines_matrix)
-//{
-	//TODO
-//	for (int col = 0; col < lines_matrix.front().size(); col++)
-//	{
-//		for (int row = lines_matrix.size()-1; row >= 0 ; row--) //iterate from last to first row
-//		{
-//
-//		}
-//	}
-
-//}
-
-/**
- * return true if there is such trhead
- */
-bool BGUTracer::thread_string_buffer_exit_check(ThreadID tid)
-{
-	std::unordered_map<ThreadID,buffer_attr>::iterator it_over_buffers = this->tid_buffer_strings.find(tid);
-	if (it_over_buffers != this->tid_buffer_strings.end())
-	{
-		return true;
-	}
-	return false;
-}
-
-void BGUTracer::add_and_resize_string_buffer(ThreadID tid,Tick curr_tick)
-{
-	buffer_attr new_attr;
-	new_attr.first = curr_tick;
-	new_attr.second.assign(total_stages,X_VAL);
-	this->tid_buffer_strings[tid] = new_attr;
-}
-
-void BGUTracer::reset_string_buffers_all_threads(Tick new_tick)
-{
-	std::unordered_map<ThreadID,buffer_attr>::iterator it_over_buffers = this->tid_buffer_strings.begin();
-	while (it_over_buffers != this->tid_buffer_strings.end())
-	{
-		it_over_buffers->second.first = new_tick;
-		for (int stage = 0 ; stage < it_over_buffers->second.second.size() ; stage++)
-		{
-			it_over_buffers->second.second[stage] = X_VAL;
-		}
-		it_over_buffers++;
-	}
+	this->tid_buffer_strings.assign(total_stages,X_VAL);
 }
 
 
