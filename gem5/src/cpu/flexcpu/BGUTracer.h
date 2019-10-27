@@ -18,12 +18,30 @@ enum PIPE_STAGES{E_FETCH,E_ISSUE,E_EXECUTE,TOTAL_PIPELINE_STAGES,NULL_STAGE};
 #include <unordered_map>
 #include <vector>
 
+#include <boost/tokenizer.hpp>
 #include <sstream>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
 
 #include <sstream>
+
+inline std::vector<std::string> str_split(const char *str, char c = ' ')
+{
+	std::vector<std::string> result;
+
+    do
+    {
+        const char *begin = str;
+
+        while(*str != c && *str)
+            str++;
+
+        result.push_back(std::string(begin, str));
+    } while (0 != *str++);
+
+    return result;
+}
 
 inline std::string get_cwd()
 {
@@ -184,6 +202,40 @@ private:
 	std::vector<std::string> execute_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst
 	std::vector<std::string> fetch_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst
 
+	class DissassembleFields
+	{
+	public:
+		std::string opcode;
+		std::vector<std::string> rest;
+		DissassembleFields(InflightInst *inst)
+	    {
+			std::vector<std::string> tmp;
+			std::string disassemble_line = std::string(inst->staticInst()->disassemble(inst->pcState().instAddr()));
+			disassemble_line.erase(std::remove(disassemble_line.begin(), disassemble_line.end(), ','), disassemble_line.end());
+			tmp = str_split(disassemble_line.c_str(),' ');
+
+			if (!tmp.empty())
+			{
+				opcode = tmp.front();
+
+				std::vector<std::string>::const_iterator first = tmp.begin() + 1;
+				std::vector<std::string>::const_iterator last = tmp.end();
+				rest = std::vector<std::string>(first,last);
+			}
+			else
+			{
+				opcode = X_VAL;
+			}
+
+	    }
+
+		inline std::string get_opcode()
+		{
+			return this->opcode;
+		}
+
+	};
+
 public:
 	BGUInfoPackage(ThreadID tid,std::weak_ptr<InflightInst> wk_ptr_inst);
 	BGUInfoPackage(); // [used by Tracer]
@@ -204,6 +256,7 @@ public:
 	std::string get_2nd_headline_attributes_comma_seperated(); // [used_by Tracer]
 
 	inline uint16_t get_total_stages_count() { return STG_TOTAL;}
+
 
 
 };

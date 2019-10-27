@@ -128,9 +128,10 @@ std::vector<std::string> BGUInfoPackage::decode_to_string(std::shared_ptr<Inflig
 }
 std::vector<std::string> BGUInfoPackage::issue_to_string(std::shared_ptr<InflightInst> inst)
 {
-	std::vector<std::string> res;
+	std::vector<std::string> res,tmp;
 	//--------------opcode ---------------//
-	res.push_back(inst->staticInst()->disassemble(inst->pcState().instAddr()));
+	DissassembleFields disasm_fields(inst);
+	res.push_back(disasm_fields.get_opcode());
 
 	return res;
 }
@@ -138,8 +139,10 @@ std::vector<std::string> BGUInfoPackage::execute_to_string(std::shared_ptr<Infli
 {
 	std::vector<std::string> res;
 	//--------------opcode ---------------//
-		res.push_back(inst->staticInst()->disassemble(inst->pcState().instAddr()));
-		return res;
+	DissassembleFields disasm_fields(inst);
+	res.push_back(disasm_fields.get_opcode());
+
+	return res;
 }
 std::vector<std::string> BGUInfoPackage::fetch_to_string(std::shared_ptr<InflightInst> inst)
 {
