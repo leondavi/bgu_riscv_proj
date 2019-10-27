@@ -479,9 +479,7 @@ FlexCPUThread::executeInstruction(shared_ptr<InflightInst> inst_ptr)
                 if (fault != NoFault) markFault(inst_ptr, fault);
             };
     } else {
-        auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
-        callback = [this, weak_inst,inf_pckg](Fault fault) {
-        	    inf_pckg->send_packet_to_tracer();
+        callback = [this, weak_inst](Fault fault) {
                 onExecutionCompleted(weak_inst, fault);
             };
     }
@@ -759,7 +757,11 @@ FlexCPUThread::onExecutionCompleted(shared_ptr<InflightInst> inst_ptr,
     // The InflightInst will match any of its dependencies automatically,
     // and perform ready callbacks if any instructions are made ready as a
     // result of this instruction completed
+
     inst_ptr->notifyComplete();
+
+    auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst_ptr); //creating bguinfo packet instance
+    inf_pckg->send_packet_to_tracer();
 
     if (inst_ptr->staticInst()->isControl()) {
         // We must have our next PC now, since this branch has just resolved

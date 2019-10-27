@@ -200,7 +200,7 @@ def buildFlexCPU(options,system):
     # Number of executions each cycle Assumes a fully-pipelined unit and 0 
     # (default 0)
     # implies infinite bandwidth.
-    system.cpu.execution_bandwidth = 3
+    system.cpu.execution_bandwidth = 0
     #Size of fetch buffer in bytes. Also determines size of fetch requests. 
     # Should not be larger than a cache line. (default Parenet.cache_line_size)
     # system.cpu.fetch_buffer_size = 

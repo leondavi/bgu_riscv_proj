@@ -1029,6 +1029,7 @@ FlexCPU::Resource::attemptAllRequests()
         DPRINTF(FlexCPUCoreEvent, "Running request. %d left in queue. "
                 "%d this cycle\n", requests.size(), usedBandwidth);
         auto& req = requests.front();
+
         DPRINTF(FlexCPUCoreEvent, "Executing request directly\n");
         if (req()) usedBandwidth++;
 
@@ -1040,17 +1041,20 @@ FlexCPU::Resource::attemptAllRequests()
         // There's more thing to execute so reschedule the event for next time
         DPRINTF(FlexCPUCoreEvent, "Rescheduling resource\n");
         Tick next_time;
-        if (latency == 0) {
-            next_time = cpu->nextCycle();
-        } else {
-		 next_time = cpu->clockEdge((latency));
+//        if (latency == 0) {
+//            next_time = cpu->nextCycle();
+//        } else {
+//		 next_time = cpu->clockEdge((latency));
+//
+//
+////        	tmpLatency = latency + reqCycle.front() - cpu->curCycle(); // [YE] - moved back
+////        	tmpLatency = tmpLatency < Cycles(1) ? Cycles(1) : tmpLatency;
+////        	//std::cout << "YE latency " << tmpLatency << "\n";
+////        	//std::cout << "YE req" << reqCycle.front() << "\n";
+////            next_time = cpu->clockEdge(Cycles(tmpLatency));
+//        }
+        next_time = cpu->nextCycle(); // YE
 
-//        	tmpLatency = latency + reqCycle.front() - cpu->curCycle(); // [YE] - moved back
-//        	tmpLatency = tmpLatency < Cycles(1) ? Cycles(1) : tmpLatency;
-//        	//std::cout << "YE latency " << tmpLatency << "\n";
-//        	//std::cout << "YE req" << reqCycle.front() << "\n";
-//            next_time = cpu->clockEdge(Cycles(tmpLatency));
-        }
         assert(next_time != curTick());
         // Note: it could be scheduled if one of the requests above schedules
         // This "always" reschedules since it may or may not be on the queue
@@ -1084,6 +1088,15 @@ FlexCPU::Resource::schedule()
     }
 }
 
+void FlexCPU::ResourceThreadsManaged::addRequest(ThreadID tid, std::shared_ptr<InflightInst> inst,const std::function<bool()>& run_function)
+{
+	thread_attr new_attr(inst,run_function);
+    map_requests[tid].push_back(new_attr);
+    DPRINTF(FlexCPUCoreEvent, "Adding request on thread %d queue size: %d\n",
+                                 tid,map_requests[tid].size());
+}
+
+// BGU added - end
 bool
 FlexCPU::InstFetchResource::resourceAvailable()
 {
