@@ -60,7 +60,7 @@ class BGUTracer {
 	//using buffer_attr = std::pair<Tick,std::vector<std::string>>; //tick and what to print
 private:
 	BGUTracer(std::string CsvFileFullPath = simout.directory()+"/output.csv" ,bool FilterByThread = false ,ThreadID FilterWhichThread = 0);
-
+~BGUTracer() { csv_table_fstr.close();}
 	//------------- flags ---------------//
 
 	//------------- private variables -------------//
@@ -88,6 +88,7 @@ private:
 	bool check_if_empty(std::vector<std::string> &in_vec);
 	void reset_string_buffers();
 
+
 public:
 	BGUTracer(const BGUTracer&) = delete;
 	BGUTracer& operator=(const BGUTracer &) = delete;
@@ -105,6 +106,8 @@ public:
 	bgu_ipckg_status receive_bgu_info_package(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid);
 
 	//setters
+
+	inline void close_file_descriptor() { csv_table_fstr.close(); }
 
 };
 

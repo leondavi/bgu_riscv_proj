@@ -993,13 +993,13 @@ FlexCPU::Resource::addRequest(
     DPRINTF(FlexCPUCoreEvent, "Adding request. %d on queue\n",
                               requests.size());
     requests.push_back(run_function);
-    reqCycle.push_back(cpu->curCycle());
+//    reqCycle.push_back(cpu->curCycle()); // [YE] - moved back
 }
 
 void
 FlexCPU::Resource::attemptAllRequests()
 {
-	Cycles tmpLatency;
+//	Cycles tmpLatency; // [YE] - moved back
     DPRINTF(FlexCPUCoreEvent, "Attempting all requests. %d on queue\n",
             requests.size());
 
@@ -1033,7 +1033,7 @@ FlexCPU::Resource::attemptAllRequests()
         if (req()) usedBandwidth++;
 
         requests.pop_front();
-        reqCycle.pop_front();
+//        reqCycle.pop_front(); // [YE] -moved back
     }
 
     if (!requests.empty()) {
@@ -1043,12 +1043,13 @@ FlexCPU::Resource::attemptAllRequests()
         if (latency == 0) {
             next_time = cpu->nextCycle();
         } else {
-        	tmpLatency = latency + reqCycle.front() - cpu->curCycle();
-        	tmpLatency = tmpLatency < Cycles(1) ? Cycles(1) : tmpLatency;
-        	//std::cout << "YE latency " << tmpLatency << "\n";
-        	//std::cout << "YE req" << reqCycle.front() << "\n";
-            next_time = cpu->clockEdge(Cycles(tmpLatency));
-//            next_time = cpu->clockEdge(Cycles(latency));
+		 next_time = cpu->clockEdge((latency));
+
+//        	tmpLatency = latency + reqCycle.front() - cpu->curCycle(); // [YE] - moved back
+//        	tmpLatency = tmpLatency < Cycles(1) ? Cycles(1) : tmpLatency;
+//        	//std::cout << "YE latency " << tmpLatency << "\n";
+//        	//std::cout << "YE req" << reqCycle.front() << "\n";
+//            next_time = cpu->clockEdge(Cycles(tmpLatency));
         }
         assert(next_time != curTick());
         // Note: it could be scheduled if one of the requests above schedules
@@ -1078,6 +1079,7 @@ FlexCPU::Resource::schedule()
     DPRINTF(FlexCPUCoreEvent, "Trying to schedule resource\n");
     if (!requests.empty() && !attemptAllEvent.scheduled()) {
         DPRINTF(FlexCPUCoreEvent, "Scheduling attempt all\n");
+        // [YE] - add latency between stages
         cpu->schedule(&attemptAllEvent, cpu->clockEdge(latency));
     }
 }

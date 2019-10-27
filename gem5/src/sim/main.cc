@@ -32,7 +32,7 @@
 
 #include "sim/init.hh"
 #include "sim/init_signals.hh"
-
+#include "cpu/flexcpu/flexcpu_thread.hh"
 // main() is now pretty stripped down and just sets up python and then
 // calls initM5Python which loads the various embedded python modules
 // into the python environment and then starts things running by
@@ -68,7 +68,7 @@ main(int argc, char **argv)
         // start m5
         ret = m5Main(argc, argv);
     }
-
+    tracer::BGUTracer::get_inst().close_file_descriptor();
     // clean up Python intepreter.
     Py_Finalize();
 

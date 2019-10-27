@@ -928,6 +928,14 @@ FlexCPUThread::onIssueAccessed(weak_ptr<InflightInst> inst)
 
     inst_ptr->notifyIssued();
 
+    // [YE] - this is the stage when the instruction change the status to Issue
+    weak_ptr<InflightInst> weak_inst = inst_ptr;
+    //creating bguinfo packet instance
+    auto inf_pckg = make_shared<tracer::BGUInfoPackage>(
+    		this->threadId(),weak_inst);
+    // sending packet after performing the action function of callback
+    inf_pckg->send_packet_to_tracer();
+
     if (inst_ptr->isReady()) { // If no dependencies, execute now
         executeInstruction(inst_ptr);
     } else { // Else, add an event callback to execute when ready

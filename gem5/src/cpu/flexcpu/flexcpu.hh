@@ -183,7 +183,7 @@ class FlexCPU : public BaseCPU
         Tick lastActiveTick = MaxTick;
 
         // When request is pushed
-        std::list<Cycles> reqCycle;
+//        std::list<Cycles> reqCycle; // [YE] - moved back
 
         // All of the functions that we need to call the next time we can.
         // Right now, this is an infinite queue. We should at least check to
