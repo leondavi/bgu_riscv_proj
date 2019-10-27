@@ -130,7 +130,7 @@ std::vector<std::string> BGUInfoPackage::issue_to_string(std::shared_ptr<Infligh
 {
 	std::vector<std::string> res,tmp;
 	//--------------opcode ---------------//
-	DissassembleFields disasm_fields(inst);
+	DissassembleFields disasm_fields = DissassembleFields(inst);
 	res.push_back(disasm_fields.get_opcode());
 
 	return res;
@@ -139,7 +139,7 @@ std::vector<std::string> BGUInfoPackage::execute_to_string(std::shared_ptr<Infli
 {
 	std::vector<std::string> res;
 	//--------------opcode ---------------//
-	DissassembleFields disasm_fields(inst);
+	DissassembleFields disasm_fields = DissassembleFields(inst);
 	res.push_back(disasm_fields.get_opcode());
 
 	return res;

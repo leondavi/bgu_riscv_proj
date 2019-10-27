@@ -207,7 +207,7 @@ private:
 	public:
 		std::string opcode;
 		std::vector<std::string> rest;
-		DissassembleFields(InflightInst *inst)
+		DissassembleFields(std::shared_ptr<InflightInst> inst)
 	    {
 			std::vector<std::string> tmp;
 			std::string disassemble_line = std::string(inst->staticInst()->disassemble(inst->pcState().instAddr()));
