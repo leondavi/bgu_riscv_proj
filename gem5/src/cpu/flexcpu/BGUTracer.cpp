@@ -44,13 +44,14 @@ BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool FilterByThread,ThreadID F
 bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid)
 {
 	curr_tick = curTick();
+
 	if (curr_tick - last_tick > 0)
 	{
 		deploy_string_buffers_to_table(last_tick);
-
 		reset_string_buffers();
 		last_tick = curr_tick;
 	}
+
 
 	bool continue_cond = (filter_by_thread && filter_which_thread == tid) || !filter_by_thread;
 
@@ -109,7 +110,7 @@ void BGUTracer::deploy_string_buffers_to_table(Tick tick_to_print)
 {
 	std::stringstream res_vec;
 
-	res_vec<<tick_to_print/1000<<",";
+	res_vec<<tick_to_print/1000.<<",";
 	for (int i=0; i<this->tid_buffer_strings.size(); i++)
 	{
 		res_vec<<this->tid_buffer_strings[i];
@@ -119,6 +120,13 @@ void BGUTracer::deploy_string_buffers_to_table(Tick tick_to_print)
 		}
 	}
 	res_vec<<"\n"; //start a new line at the end of each line
+//	if (tick_to_print>=415000 && tick_to_print<=420000)
+//		{
+//			std::cout<<"Deploying curr_tick: "<<curr_tick<<"\n";
+//			std::cout<<res_vec.str()<<"line new line"<<std::endl;
+//			int stop = 0;
+//			stop++;
+//		}
 
 	csv_table_fstr<<res_vec.str();
 }
