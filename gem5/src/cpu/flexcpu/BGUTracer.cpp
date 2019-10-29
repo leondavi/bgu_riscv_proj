@@ -45,11 +45,19 @@ bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::shared_ptr<BGUInfoPack
 {
 	curr_tick = curTick();
 
-	if (curr_tick - last_tick > 0)
+	Tick diff_tick = curr_tick - last_tick;
+	if (diff_tick > 0)
 	{
 		deploy_string_buffers_to_table(last_tick);
 		reset_string_buffers();
-		last_tick = curr_tick;
+		if(diff_tick < CYCLE_ROUND_VAL)
+		{
+			last_tick += CYCLE_ROUND_VAL;
+		}
+		else
+		{
+			last_tick = curr_tick;
+		}
 	}
 
 
@@ -110,7 +118,7 @@ void BGUTracer::deploy_string_buffers_to_table(Tick tick_to_print)
 {
 	std::stringstream res_vec;
 
-	res_vec<<tick_to_print/1000.<<",";
+	res_vec<<tick_to_print/CYCLE_ROUND_VAL<<",";
 	for (int i=0; i<this->tid_buffer_strings.size(); i++)
 	{
 		res_vec<<this->tid_buffer_strings[i];

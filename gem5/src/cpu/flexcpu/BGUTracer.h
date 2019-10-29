@@ -75,6 +75,7 @@ class BGUInfoPackage;
  * BGUTracer - generates the trace by receiving BGUInfoPackages
  */
 class BGUTracer {
+#define CYCLE_ROUND_VAL 1000
 	//using buffer_attr = std::pair<Tick,std::vector<std::string>>; //tick and what to print
 private:
 	BGUTracer(std::string CsvFileFullPath = simout.directory()+"/output.csv" ,bool FilterByThread = false ,ThreadID FilterWhichThread = 0);
