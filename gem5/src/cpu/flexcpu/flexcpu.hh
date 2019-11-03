@@ -270,13 +270,20 @@ protected:
 
 			}
 		} thread_attr;
+
+		EventFunctionWrapper attemptAllEvent;
+
 	public:
 		std::unordered_map<ThreadID, std::list<thread_attr>> map_requests;
 
 	public:
 		ResourceThreadsManaged(FlexCPU *cpu, Cycles latency, int bandwidth,
 				std::string _name, bool run_last = false) :
-				Resource(cpu, latency, bandwidth, _name, run_last) {
+				Resource(cpu, latency, bandwidth, _name, run_last),
+			    attemptAllEvent(EventFunctionWrapper([this]{ attemptAllRequests(); },
+			                    name() + ".attemptAllThreads", false,
+			                    run_last ? Event::CPU_Tick_Pri : Event::Default_Pri))
+	{
 
 			for (ThreadID tid = 0; tid < cpu->threads.size(); tid++) {
 				map_requests[tid] = std::list<thread_attr>();

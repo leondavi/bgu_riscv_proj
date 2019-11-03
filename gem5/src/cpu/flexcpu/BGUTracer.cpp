@@ -44,6 +44,11 @@ BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool FilterByThread,ThreadID F
 bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid)
 {
 	curr_tick = curTick();
+	if(curr_tick == 401000)
+	{
+		int l=0;
+		l++;
+	}
 	if (curr_tick - last_tick > 0)
 	{
 		deploy_string_buffers_to_table(last_tick);

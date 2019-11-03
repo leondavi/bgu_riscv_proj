@@ -372,25 +372,25 @@ FlexCPU::requestIssue(function<void()> callback_func,
 {
     DPRINTF(FlexCPUCoreEvent, "requestIssue()\n");
 
-    issueUnit.addRequest([callback_func, is_squashed] {
-        if (is_squashed()) return false;
-        callback_func();
-        return true;
-    });
-
-    issueUnit.schedule();
-
-//    issueThreadUnit.addRequest(tid,inst,[callback_func, is_squashed] {
-//    	if (is_squashed()) return false;
-//    	callback_func();
-//    	return true;
-//    	});
+//    issueUnit.addRequest([callback_func, is_squashed] {
+//        if (is_squashed()) return false;
+//        callback_func();
+//        return true;
+//    });
 //
-//	for (ThreadID ii = 0; ii < threads.size(); ii++) {
-//		std::cout<<"TID : "<< ii <<" size :"<< issueThreadUnit.map_requests[ii].size()<<"\n";
-//	}
-//
-//	issueThreadUnit.schedule();
+//    issueUnit.schedule();
+
+    issueThreadUnit.addRequest(tid,inst,[callback_func, is_squashed] {
+    	if (is_squashed()) return false;
+    	callback_func();
+    	return true;
+    	});
+
+	for (ThreadID ii = 0; ii < threads.size(); ii++) {
+		std::cout<<"TID : "<< ii <<" size :"<< issueThreadUnit.map_requests[ii].size()<<"\n";
+	}
+
+	issueThreadUnit.schedule();
 }
 
 
@@ -1108,13 +1108,14 @@ void FlexCPU::ResourceThreadsManaged::addRequest(ThreadID tid,
 		const std::function<bool()>& run_function)
 {
 	thread_attr new_attr(inst,run_function);
-    map_requests[0].push_back(new_attr);
+    map_requests[tid].push_back(new_attr);
     DPRINTF(FlexCPUCoreEvent, "Adding request on thread %d queue size: %d\n",
                                  tid,map_requests[tid].size());
 }
 
 void FlexCPU::ResourceThreadsManaged::attemptAllRequests()
 {
+	bool q_empty = true;
 	//	Cycles tmpLatency; // [YE] - moved back
 	    DPRINTF(FlexCPUCoreEvent, "Attempting all requests. %d on queue\n",
 	            map_requests[0].size());
@@ -1136,24 +1137,61 @@ void FlexCPU::ResourceThreadsManaged::attemptAllRequests()
 	        cpu->markActiveCycle();
 	    }
 
-	    if (map_requests[0].empty()) {
+	    for(ThreadID tid = 0 ; (tid < cpu->threads.size()) && q_empty; tid++)
+	    {
+	    	if(!map_requests[tid].empty())
+	    		q_empty = false;
+	    }
+
+	    if (q_empty)
+	    {
 	        return; // This happens with 0 latency events if a request enqueues
 	                // another request.
 	    }
 
-	    while (!map_requests[0].empty() && resourceAvailable()) {
-	        DPRINTF(FlexCPUCoreEvent, "Running request. %d left in queue. "
-	                "%d this cycle\n", map_requests[0].size(), usedBandwidth);
-//	        auto& req = requests.front();
-	        thread_attr &req = map_requests[0].front();
-	        DPRINTF(FlexCPUCoreEvent, "Executing request directly\n");
-	        if (req.func()) usedBandwidth++;
+	    ThreadID chosen_tid;
 
-	        map_requests[0].pop_front();
-	//        reqCycle.pop_front(); // [YE] -moved back
+	    int curr = 0;
+	    int max = 0;
+	    for(ThreadID tid = 0; (tid < cpu->threads.size()); tid++)
+	    {
+	    	 DPRINTF(FlexCPUCoreEvent, "Attempting all requests. %d on queue\n",
+	    		            map_requests[tid].size());
+	    	curr = map_requests[tid].size();
+	    	if(curr > max)
+	    	{
+	    		chosen_tid = tid;
+	    		max = curr;
+	    	}
 	    }
 
-	    if (!map_requests[0].empty()) {
+
+
+	    while (!map_requests[chosen_tid].empty() && resourceAvailable())
+	    {
+	    	DPRINTF(FlexCPUCoreEvent, "Running request. %d left in queue. "
+	    			"%d this cycle\n", map_requests[chosen_tid].size(), usedBandwidth);
+	    	//	        auto& req = requests.front();
+	    	thread_attr &req = map_requests[chosen_tid].front();
+	    	DPRINTF(FlexCPUCoreEvent, "Executing request directly\n");
+	    	if (req.func()) usedBandwidth++;
+
+	    	map_requests[chosen_tid].pop_front();
+	    	//        reqCycle.pop_front(); // [YE] -moved back
+	    }
+
+	    q_empty = true;
+
+	    for(ThreadID tid = 0 ; (tid < cpu->threads.size()) && q_empty; tid++)
+		{
+			if(!map_requests[tid].empty())
+			{
+				q_empty = false;
+			}
+		}
+
+	    if (!q_empty)
+	    {
 	        // There's more thing to execute so reschedule the event for next time
 	        DPRINTF(FlexCPUCoreEvent, "Rescheduling resource\n");
 	        Tick next_time;
@@ -1170,11 +1208,17 @@ void FlexCPU::ResourceThreadsManaged::attemptAllRequests()
 void
 FlexCPU::ResourceThreadsManaged::schedule()
 {
+	bool q_empty = true;
     // Note: on retries from memory we could try to schedule this even though
     //       the list of requests is empty. Revist this after implementing an
     //       LSQ.
     DPRINTF(FlexCPUCoreEvent, "Trying to schedule resource\n");
-    if (!map_requests[0].empty() && !attemptAllEvent.scheduled()) {
+    for(ThreadID tid = 0 ; (tid < cpu->threads.size()) && q_empty; tid++)
+    {
+    	if(!map_requests[tid].empty())
+    		q_empty = false;
+    }
+    if (!q_empty && !attemptAllEvent.scheduled()) {
         DPRINTF(FlexCPUCoreEvent, "Scheduling attempt all\n");
         // [YE] - add latency between stages
         cpu->schedule(&attemptAllEvent, cpu->clockEdge(latency));
