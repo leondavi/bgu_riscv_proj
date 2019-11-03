@@ -599,7 +599,8 @@ FlexCPUThread::issueInstruction(shared_ptr<InflightInst> inst_ptr)
         return !inst_ptr || inst_ptr->isSquashed();
     };
 
-    _cpuPtr->requestIssue(callback, squasher);
+    // YE add thread id and inst_ptr
+    _cpuPtr->requestIssue(callback, squasher,inst_ptr,threadId());
 }
 
 void

@@ -54,6 +54,8 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
               params->issue_bandwidth, name() + ".issueUnit"),
     memoryUnit(this, params->mem_bandwidth, //Cycles(0),
                name() + ".memoryUnit"),
+    issueThreadUnit(this, params->issue_latency,
+              params->issue_bandwidth, name() + ".issueThreadUnit"),
     _dataPort(name() + "._dataPort", this),
     _instPort(name() + "._instPort", this),
     _branchPred(params->branchPred)
@@ -365,7 +367,8 @@ FlexCPU::requestInstructionData(const RequestPtr& req,
 
 void
 FlexCPU::requestIssue(function<void()> callback_func,
-                                std::function<bool()> is_squashed)
+		std::function<bool()> is_squashed,
+		std::shared_ptr<InflightInst> inst, ThreadID tid)
 {
     DPRINTF(FlexCPUCoreEvent, "requestIssue()\n");
 
@@ -376,6 +379,18 @@ FlexCPU::requestIssue(function<void()> callback_func,
     });
 
     issueUnit.schedule();
+
+//    issueThreadUnit.addRequest(tid,inst,[callback_func, is_squashed] {
+//    	if (is_squashed()) return false;
+//    	callback_func();
+//    	return true;
+//    	});
+//
+//	for (ThreadID ii = 0; ii < threads.size(); ii++) {
+//		std::cout<<"TID : "<< ii <<" size :"<< issueThreadUnit.map_requests[ii].size()<<"\n";
+//	}
+//
+//	issueThreadUnit.schedule();
 }
 
 
@@ -1088,12 +1103,82 @@ FlexCPU::Resource::schedule()
     }
 }
 
-void FlexCPU::ResourceThreadsManaged::addRequest(ThreadID tid, std::shared_ptr<InflightInst> inst,const std::function<bool()>& run_function)
+void FlexCPU::ResourceThreadsManaged::addRequest(ThreadID tid,
+		std::shared_ptr<InflightInst> inst,
+		const std::function<bool()>& run_function)
 {
 	thread_attr new_attr(inst,run_function);
-    map_requests[tid].push_back(new_attr);
+    map_requests[0].push_back(new_attr);
     DPRINTF(FlexCPUCoreEvent, "Adding request on thread %d queue size: %d\n",
                                  tid,map_requests[tid].size());
+}
+
+void FlexCPU::ResourceThreadsManaged::attemptAllRequests()
+{
+	//	Cycles tmpLatency; // [YE] - moved back
+	    DPRINTF(FlexCPUCoreEvent, "Attempting all requests. %d on queue\n",
+	            map_requests[0].size());
+
+	    if (curTick() != lastActiveTick) {
+	        assert(!bandwidth || usedBandwidth <= bandwidth);
+
+	        // Stats
+	        activeCycles++;
+	        bandwidthPerCycle.sample(usedBandwidth);
+
+	        // Reset the bandwidth since we're on a new cycle.
+	        DPRINTF(FlexCPUCoreEvent,
+	                "resetting the bandwidth. Used %d last cycle\n",
+	                usedBandwidth);
+	        usedBandwidth = 0;
+	        lastActiveTick = curTick();
+
+	        cpu->markActiveCycle();
+	    }
+
+	    if (map_requests[0].empty()) {
+	        return; // This happens with 0 latency events if a request enqueues
+	                // another request.
+	    }
+
+	    while (!map_requests[0].empty() && resourceAvailable()) {
+	        DPRINTF(FlexCPUCoreEvent, "Running request. %d left in queue. "
+	                "%d this cycle\n", map_requests[0].size(), usedBandwidth);
+//	        auto& req = requests.front();
+	        thread_attr &req = map_requests[0].front();
+	        DPRINTF(FlexCPUCoreEvent, "Executing request directly\n");
+	        if (req.func()) usedBandwidth++;
+
+	        map_requests[0].pop_front();
+	//        reqCycle.pop_front(); // [YE] -moved back
+	    }
+
+	    if (!map_requests[0].empty()) {
+	        // There's more thing to execute so reschedule the event for next time
+	        DPRINTF(FlexCPUCoreEvent, "Rescheduling resource\n");
+	        Tick next_time;
+	        next_time = cpu->nextCycle(); // YE
+
+	        assert(next_time != curTick());
+	        // Note: it could be scheduled if one of the requests above schedules
+	        // This "always" reschedules since it may or may not be on the queue
+	        // right now.
+	        cpu->reschedule(&attemptAllEvent, next_time, true);
+	    }
+}
+
+void
+FlexCPU::ResourceThreadsManaged::schedule()
+{
+    // Note: on retries from memory we could try to schedule this even though
+    //       the list of requests is empty. Revist this after implementing an
+    //       LSQ.
+    DPRINTF(FlexCPUCoreEvent, "Trying to schedule resource\n");
+    if (!map_requests[0].empty() && !attemptAllEvent.scheduled()) {
+        DPRINTF(FlexCPUCoreEvent, "Scheduling attempt all\n");
+        // [YE] - add latency between stages
+        cpu->schedule(&attemptAllEvent, cpu->clockEdge(latency));
+    }
 }
 
 // BGU added - end
@@ -1136,6 +1221,8 @@ FlexCPU::regStats()
     instAddrTranslationUnit.regStats();
     issueUnit.regStats();
     memoryUnit.regStats();
+
+    issueThreadUnit.regStats(); // YE - need to be used
 
     memLatency
         .name(name() + ".memLatency")

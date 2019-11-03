@@ -169,7 +169,7 @@ protected:
 	protected:
 		FlexCPU* cpu;
 
-	private:
+//	private:
 		const Cycles latency;
 		const int bandwidth;
 		const std::string _name;
@@ -270,7 +270,7 @@ protected:
 
 			}
 		} thread_attr;
-
+	public:
 		std::unordered_map<ThreadID, std::list<thread_attr>> map_requests;
 
 	public:
@@ -284,9 +284,12 @@ protected:
 
 		};
 
-		void addRequest(ThreadID tid,
-				        std::shared_ptr<InflightInst> inst,	const std::function<bool()>& run_function);
+		void addRequest(ThreadID tid, std::shared_ptr<InflightInst> inst,
+				const std::function<bool()>& run_function);
 
+		void attemptAllRequests();
+
+		void schedule();
 	};
 
 	// BGU added - end
@@ -340,6 +343,8 @@ protected:
 	Resource instAddrTranslationUnit;
 	Resource issueUnit;
 	MemoryResource memoryUnit;
+
+	ResourceThreadsManaged issueThreadUnit;
 
 	// BEGIN Internal state variables
 
@@ -518,7 +523,9 @@ public:
 	 * @param callback_func to call when issuing the instruction
 	 */
 	void requestIssue(std::function<void()> callback_func,
-			std::function<bool()> is_squashed);
+			std::function<bool()> is_squashed,
+			std::shared_ptr<InflightInst> inst,
+			ThreadID tid);
 
 	/**
 	 * Event-driven means for other classes to request a translation of a
