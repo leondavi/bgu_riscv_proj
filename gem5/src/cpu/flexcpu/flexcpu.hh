@@ -260,7 +260,8 @@ protected:
 	};
 
 	// BGU - added
-	class ResourceThreadsManaged: public Resource {
+	class ResourceThreadsManaged: public Resource
+	{
 		typedef struct thread_attr {
 			std::shared_ptr<InflightInst> inst;
 			std::function<bool()> func;
@@ -297,7 +298,9 @@ protected:
 		void attemptAllRequests();
 
 		void schedule();
-	};
+
+		bool there_is_no_any_request();
+	}; //end ResourceThreadsManaged class
 
 	// BGU added - end
 
