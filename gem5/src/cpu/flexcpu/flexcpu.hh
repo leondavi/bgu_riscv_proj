@@ -40,6 +40,7 @@
 #include "cpu/flexcpu/flexcpu_thread.hh"
 #include "cpu/pred/bpred_unit.hh"
 #include "mem/packet.hh"
+#include "enums/ThreadPolicy.hh"
 #include "params/FlexCPU.hh"
 
 class FlexCPUThread;
@@ -278,6 +279,8 @@ protected:
 		std::unordered_map<ThreadID, std::list<thread_attr>> map_requests;
 
 	public:
+		ThreadID priority =0;
+
 		ResourceThreadsManaged(FlexCPU *cpu, Cycles latency, int bandwidth,
 				std::string _name, bool run_last = false) :
 				Resource(cpu, latency, bandwidth, _name, run_last),
@@ -300,6 +303,13 @@ protected:
 		void schedule();
 
 		bool there_is_no_any_request();
+
+		ThreadID qid_select();
+		ThreadID roundRobinPriority();
+		ThreadID randomPriority();
+		ThreadID maxPriority();
+		ThreadID corsePriority();
+		ThreadID eventPriority();
 	}; //end ResourceThreadsManaged class
 
 	// BGU added - end
@@ -345,6 +355,7 @@ protected:
 	// END Internal parameters
 
 	// BEGIN Internal state variables
+
 
 	/// Resources for each unit.
 	Resource dataAddrTranslationUnit;
@@ -428,6 +439,7 @@ public:
 	 */
 	virtual ~FlexCPU() = default;
 
+    Enums::FlexPolicy threadPolicy;
 	// BEGIN Member functions (sorted alphabetically)
 
 	/**

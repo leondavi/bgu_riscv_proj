@@ -58,7 +58,8 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
               params->issue_bandwidth, name() + ".issueThreadUnit"),
     _dataPort(name() + "._dataPort", this),
     _instPort(name() + "._instPort", this),
-    _branchPred(params->branchPred)
+    _branchPred(params->branchPred),
+	threadPolicy(params->threadPolicy)
 {
     fatal_if(FullSystem, "FullSystem not implemented for FlexCPU");
 

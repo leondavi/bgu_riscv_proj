@@ -32,9 +32,14 @@ from BranchPredictor import *
 from m5.params import *
 from m5.proxy import *
 
+class FlexPolicy(Enum): vals = ['FlxSingleThreaded', 'FlxRoundRobin', 'FlxRandom','FlxMax','FlxCorse','FlxEvent']
+
 class FlexCPU(BaseCPU):
     type = 'FlexCPU'
     cxx_header = 'cpu/flexcpu/flexcpu.hh'
+
+    threadPolicy = Param.FlexPolicy('FlxRoundRobin',
+            "Thread scheduling policy")
 
     # formatted camelCase to use same parameter name as other CPU models.
     branchPred = Param.BranchPredictor(TournamentBP(

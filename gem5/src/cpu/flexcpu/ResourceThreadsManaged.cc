@@ -58,21 +58,7 @@ void FlexCPU::ResourceThreadsManaged::attemptAllRequests()
 
 	    ThreadID chosen_tid;
 
-	    int curr = 0;
-	    int max = 0;
-	    for(ThreadID tid = 0; (tid < cpu->threads.size()); tid++)
-	    {
-	    	 DPRINTF(FlexCPUCoreEvent, "Attempting all requests. %d on queue\n",
-	    		            map_requests[tid].size());
-	    	curr = map_requests[tid].size();
-	    	if(curr > max)
-	    	{
-	    		chosen_tid = tid;
-	    		max = curr;
-	    	}
-	    }
-
-
+	    chosen_tid = qid_select();
 
 	    while (!map_requests[chosen_tid].empty() && resourceAvailable())
 	    {
@@ -128,4 +114,90 @@ bool FlexCPU::ResourceThreadsManaged::there_is_no_any_request()
 		}
 	}
 	return true;
+}
+
+
+ThreadID FlexCPU::ResourceThreadsManaged::qid_select()
+{
+	ThreadID chosen_tid=0;
+
+
+	switch (cpu->threadPolicy) {
+	case Enums::FlxSingleThreaded:
+		chosen_tid = 0;
+		break;
+	case Enums::FlxRoundRobin:
+		chosen_tid = roundRobinPriority();
+		break;
+	case Enums::FlxRandom:
+		chosen_tid =  randomPriority();
+		break;
+	case Enums::FlxMax:
+		chosen_tid = maxPriority();
+		break;
+	case Enums::FlxEvent:
+		chosen_tid = eventPriority();
+		break;
+	case Enums::FlxCorse:
+		chosen_tid = corsePriority();
+		break;
+	default:
+		panic("Unknown fetch policy");
+	}
+	return chosen_tid;
+}
+
+ThreadID FlexCPU::ResourceThreadsManaged::roundRobinPriority()
+{
+    ThreadID chosen_tid=0;
+
+    for (ThreadID i = 1; i <= cpu->threads.size(); i++) {
+    	chosen_tid = (priority + i) % cpu->threads.size();
+    	if(map_requests[chosen_tid].size())
+    		return chosen_tid;
+    }
+    return chosen_tid;
+}
+
+ThreadID FlexCPU::ResourceThreadsManaged::randomPriority()
+{
+    ThreadID chosen_tid=std::rand();
+
+    std::vector<ThreadID> prio_list;
+    for (ThreadID i = 0; i < cpu->threads.size(); i++) {
+    	chosen_tid = (priority + i) % cpu->threads.size();
+    	if(map_requests[chosen_tid].size()) return chosen_tid;
+    }
+    return chosen_tid;
+}
+
+ThreadID FlexCPU::ResourceThreadsManaged::maxPriority()
+{
+    int curr = 0;
+    int max = 0;
+
+	ThreadID chosen_tid=0;
+    for(ThreadID tid = 0; (tid < cpu->threads.size()); tid++)
+    {
+    	curr = map_requests[tid].size();
+    	if(curr > max)
+    	{
+    		chosen_tid = tid;
+    		max = curr;
+    	}
+    }
+
+    return chosen_tid;
+}
+
+// TODO
+ThreadID FlexCPU::ResourceThreadsManaged::corsePriority()
+{
+	return 0;
+}
+
+// TODO
+ThreadID FlexCPU::ResourceThreadsManaged::eventPriority()
+{
+	return 0;
 }
