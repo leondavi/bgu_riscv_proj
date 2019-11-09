@@ -1105,7 +1105,6 @@ FlexCPU::Resource::schedule()
     }
 }
 
-	    	DPRINTF(FlexCPUCoreEvent, "Executing request directly tid %d\n",chosen_tid);
 // BGU added - end
 bool
 FlexCPU::InstFetchResource::resourceAvailable()
