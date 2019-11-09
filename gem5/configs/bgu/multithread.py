@@ -204,6 +204,7 @@ def buildFlexCPU(options,system):
     #Size of fetch buffer in bytes. Also determines size of fetch requests. 
     # Should not be larger than a cache line. (default Parenet.cache_line_size)
     # system.cpu.fetch_buffer_size = 
+    # system.cpu.fetch_bandwidth = 0
     # Serialize dependent instruction execution. Allows parallel execution of 
     # sequential and independent instructions (default False)
     system.cpu.in_order_begin_execute = False 

@@ -80,7 +80,7 @@ void FlexCPU::ResourceThreadsManaged::attemptAllRequests()
 	    			"%d this cycle\n", map_requests[chosen_tid].size(), usedBandwidth);
 	    	//	        auto& req = requests.front();
 	    	thread_attr &req = map_requests[chosen_tid].front();
-	    	DPRINTF(FlexCPUCoreEvent, "Executing request directly\n");
+	    	DPRINTF(FlexCPUCoreEvent, "Executing request directly tid %d\n",chosen_tid);
 	    	if (req.func()) usedBandwidth++;
 
 	    	map_requests[chosen_tid].pop_front();

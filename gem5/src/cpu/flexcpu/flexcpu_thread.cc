@@ -214,8 +214,10 @@ FlexCPUThread::advanceInst(TheISA::PCState next_pc)
     attemptFetch(inst_ptr);
 }
 
-void
-FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
+/**
+ * Inside this funciton calling to the decoder within onInstDataFetched
+ */
+void FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
 {
 
     DPRINTF(FlexCPUThreadEvent, "attemptFetch()\n");
@@ -250,7 +252,7 @@ FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
             *reinterpret_cast<TheISA::MachInst*>(fetchBuf.data()
                                                + (req_vaddr - fetchBufBase));
 
-        onInstDataFetched(inst_ptr, inst_data);
+        onInstDataFetched(inst_ptr, inst_data); //call to decoder
         return;
     } // Else we need to send a request to update the buffer.
 
@@ -872,7 +874,7 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
     Addr fetched_addr = (pc.instAddr() & BaseCPU::PCMask) + fetchOffset;
 
     decoder.moreBytes(pc, fetched_addr, TheISA::gtoh(fetch_data));
-    StaticInstPtr decode_result = decoder.decode(pc);
+    StaticInstPtr decode_result = decoder.decode(pc); //Decoding the instruction
 
     inst_ptr->pcState(pc);
 
