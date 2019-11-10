@@ -342,6 +342,13 @@ InflightInst::notifyIssued()
 }
 
 void
+InflightInst::notifyIssuedTid()
+{
+    _timingRecord.issueTidTick = curTick();
+    status(IssuedTid);
+}
+
+void
 InflightInst::notifyMemorying()
 {
     _timingRecord.beginMemoryTick = curTick();

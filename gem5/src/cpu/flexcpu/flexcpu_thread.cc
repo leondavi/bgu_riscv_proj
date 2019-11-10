@@ -214,8 +214,10 @@ FlexCPUThread::advanceInst(TheISA::PCState next_pc)
     attemptFetch(inst_ptr);
 }
 
-void
-FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
+/**
+ * Inside this funciton calling to the decoder within onInstDataFetched
+ */
+void FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
 {
 
     DPRINTF(FlexCPUThreadEvent, "attemptFetch()\n");
@@ -250,7 +252,7 @@ FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
             *reinterpret_cast<TheISA::MachInst*>(fetchBuf.data()
                                                + (req_vaddr - fetchBufBase));
 
-        onInstDataFetched(inst_ptr, inst_data);
+        onInstDataFetched(inst_ptr, inst_data); //call to decoder
         return;
     } // Else we need to send a request to update the buffer.
 
@@ -479,9 +481,7 @@ FlexCPUThread::executeInstruction(shared_ptr<InflightInst> inst_ptr)
                 if (fault != NoFault) markFault(inst_ptr, fault);
             };
     } else {
-        auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
-        callback = [this, weak_inst,inf_pckg](Fault fault) {
-        	    inf_pckg->send_packet_to_tracer();
+        callback = [this, weak_inst](Fault fault) {
                 onExecutionCompleted(weak_inst, fault);
             };
     }
@@ -587,10 +587,8 @@ FlexCPUThread::issueInstruction(shared_ptr<InflightInst> inst_ptr)
                               inst_ptr->seqNum());
 
     weak_ptr<InflightInst> weak_inst = inst_ptr;
-    auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
 
-    auto callback = [this, weak_inst,inf_pckg] {
-       	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
+    auto callback = [this, weak_inst] {
         onIssueAccessed(weak_inst);
     };
 
@@ -601,6 +599,7 @@ FlexCPUThread::issueInstruction(shared_ptr<InflightInst> inst_ptr)
         return !inst_ptr || inst_ptr->isSquashed();
     };
 
+    // YE add thread id and inst_ptr
     _cpuPtr->requestIssue(callback, squasher);
 }
 
@@ -759,7 +758,11 @@ FlexCPUThread::onExecutionCompleted(shared_ptr<InflightInst> inst_ptr,
     // The InflightInst will match any of its dependencies automatically,
     // and perform ready callbacks if any instructions are made ready as a
     // result of this instruction completed
+
     inst_ptr->notifyComplete();
+
+    auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst_ptr); //creating bguinfo packet instance
+    inf_pckg->send_packet_to_tracer();
 
     if (inst_ptr->staticInst()->isControl()) {
         // We must have our next PC now, since this branch has just resolved
@@ -869,7 +872,7 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
     Addr fetched_addr = (pc.instAddr() & BaseCPU::PCMask) + fetchOffset;
 
     decoder.moreBytes(pc, fetched_addr, TheISA::gtoh(fetch_data));
-    StaticInstPtr decode_result = decoder.decode(pc);
+    StaticInstPtr decode_result = decoder.decode(pc); //Decoding the instruction
 
     inst_ptr->pcState(pc);
 
@@ -895,6 +898,10 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
 
         inst_ptr->staticInst(decode_result);
         inst_ptr->notifyDecoded();
+
+        weak_ptr<InflightInst> weak_inst = inst_ptr;
+        auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
+       	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
 
         issueInstruction(inst_ptr);
 
@@ -936,13 +943,21 @@ FlexCPUThread::onIssueAccessed(weak_ptr<InflightInst> inst)
     // sending packet after performing the action function of callback
     inf_pckg->send_packet_to_tracer();
 
-    if (inst_ptr->isReady()) { // If no dependencies, execute now
-        executeInstruction(inst_ptr);
-    } else { // Else, add an event callback to execute when ready
-        inst_ptr->addReadyCallback([this, inst](){
-            executeInstruction(inst);
-        });
-    }
+
+
+//    weak_ptr<InflightInst> weak_inst = inst_ptr;
+
+    auto callback = [this, weak_inst] {
+    	onIssueTidAccessed(weak_inst);
+    };
+
+    auto squasher = [weak_inst] {
+        shared_ptr<InflightInst> inst_ptr = weak_inst.lock();
+        return !inst_ptr || inst_ptr->isSquashed();
+    };
+
+    // YE add thread id and inst_ptr
+    _cpuPtr->requestIssueTid(callback, squasher,inst_ptr,threadId());
 
     if (inst_ptr->staticInst()->isLastMicroop()) {
         DPRINTF(FlexCPUThreadEvent, "Releasing MacroOp after decoding final "
@@ -973,6 +988,31 @@ FlexCPUThread::onIssueAccessed(weak_ptr<InflightInst> inst)
         DPRINTF(FlexCPUThreadEvent, "Delaying fetch until control "
                                     "instruction's execution.\n");
     }
+}
+
+void
+FlexCPUThread::onIssueTidAccessed(weak_ptr<InflightInst> inst)
+{
+    const shared_ptr<InflightInst> inst_ptr = inst.lock();
+    if (!inst_ptr || inst_ptr->isSquashed()) {
+        // No need to do anything for an instruction that has been squashed.
+        return;
+    }
+
+    inst_ptr->notifyIssuedTid();
+    weak_ptr<InflightInst> weak_inst = inst_ptr;
+    auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
+   	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
+
+    if (inst_ptr->isReady()) { // If no dependencies, execute now
+        executeInstruction(inst_ptr);
+    } else { // Else, add an event callback to execute when ready
+        inst_ptr->addReadyCallback([this, inst](){
+            executeInstruction(inst);
+        });
+    }
+
+
 }
 
 void

@@ -148,6 +148,7 @@ private:
 			        // functionality conventionally called rename is packaged with issue
 			        // right now.
 			        "IS", //3 Dependencies and results have been identified and recorded.
+					"IS_TID",
 			        "EX", //4 Request for execution sent, but waiting for results.
 			        "EfAd", //5 Effective address calculated, but not yet sent to memory.
 			        "Memo", //6 Request for memory sent, but waiting for results.

@@ -54,9 +54,12 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
               params->issue_bandwidth, name() + ".issueUnit"),
     memoryUnit(this, params->mem_bandwidth, //Cycles(0),
                name() + ".memoryUnit"),
+    issueThreadUnit(this, params->thread_manged_latency,
+              params->thread_manged_bandwidth, name() + ".issueThreadUnit"),
     _dataPort(name() + "._dataPort", this),
     _instPort(name() + "._instPort", this),
-    _branchPred(params->branchPred)
+    _branchPred(params->branchPred),
+	threadPolicy(params->threadPolicy)
 {
     fatal_if(FullSystem, "FullSystem not implemented for FlexCPU");
 
@@ -365,7 +368,7 @@ FlexCPU::requestInstructionData(const RequestPtr& req,
 
 void
 FlexCPU::requestIssue(function<void()> callback_func,
-                                std::function<bool()> is_squashed)
+		std::function<bool()> is_squashed)
 {
     DPRINTF(FlexCPUCoreEvent, "requestIssue()\n");
 
@@ -376,8 +379,28 @@ FlexCPU::requestIssue(function<void()> callback_func,
     });
 
     issueUnit.schedule();
+
 }
 
+void
+FlexCPU::requestIssueTid(function<void()> callback_func,
+		std::function<bool()> is_squashed,
+		std::shared_ptr<InflightInst> inst, ThreadID tid)
+{
+	issueThreadUnit.addRequest(tid,inst,[callback_func, is_squashed] {
+		if (is_squashed()) return false;
+		callback_func();
+		return true;
+	});
+
+
+	for (ThreadID ii = 0; ii < threads.size(); ii++)
+	{
+		std::cout<<"TID : "<< ii <<" size :"<< issueThreadUnit.map_requests[ii].size()<<"\n";
+	}
+
+	issueThreadUnit.schedule();
+}
 
 bool
 FlexCPU::requestMemRead(const RequestPtr& req, ThreadContext* tc,
@@ -1029,6 +1052,7 @@ FlexCPU::Resource::attemptAllRequests()
         DPRINTF(FlexCPUCoreEvent, "Running request. %d left in queue. "
                 "%d this cycle\n", requests.size(), usedBandwidth);
         auto& req = requests.front();
+
         DPRINTF(FlexCPUCoreEvent, "Executing request directly\n");
         if (req()) usedBandwidth++;
 
@@ -1040,17 +1064,20 @@ FlexCPU::Resource::attemptAllRequests()
         // There's more thing to execute so reschedule the event for next time
         DPRINTF(FlexCPUCoreEvent, "Rescheduling resource\n");
         Tick next_time;
-        if (latency == 0) {
-            next_time = cpu->nextCycle();
-        } else {
-		 next_time = cpu->clockEdge((latency));
+//        if (latency == 0) {
+//            next_time = cpu->nextCycle();
+//        } else {
+//		 next_time = cpu->clockEdge((latency));
+//
+//
+////        	tmpLatency = latency + reqCycle.front() - cpu->curCycle(); // [YE] - moved back
+////        	tmpLatency = tmpLatency < Cycles(1) ? Cycles(1) : tmpLatency;
+////        	//std::cout << "YE latency " << tmpLatency << "\n";
+////        	//std::cout << "YE req" << reqCycle.front() << "\n";
+////            next_time = cpu->clockEdge(Cycles(tmpLatency));
+//        }
+        next_time = cpu->nextCycle(); // YE
 
-//        	tmpLatency = latency + reqCycle.front() - cpu->curCycle(); // [YE] - moved back
-//        	tmpLatency = tmpLatency < Cycles(1) ? Cycles(1) : tmpLatency;
-//        	//std::cout << "YE latency " << tmpLatency << "\n";
-//        	//std::cout << "YE req" << reqCycle.front() << "\n";
-//            next_time = cpu->clockEdge(Cycles(tmpLatency));
-        }
         assert(next_time != curTick());
         // Note: it could be scheduled if one of the requests above schedules
         // This "always" reschedules since it may or may not be on the queue
@@ -1084,6 +1111,7 @@ FlexCPU::Resource::schedule()
     }
 }
 
+// BGU added - end
 bool
 FlexCPU::InstFetchResource::resourceAvailable()
 {
@@ -1123,6 +1151,8 @@ FlexCPU::regStats()
     instAddrTranslationUnit.regStats();
     issueUnit.regStats();
     memoryUnit.regStats();
+
+    issueThreadUnit.regStats(); // YE - need to be used
 
     memLatency
         .name(name() + ".memLatency")
