@@ -23,6 +23,7 @@ enum PIPE_STAGES{E_FETCH,E_ISSUE,E_EXECUTE,TOTAL_PIPELINE_STAGES,NULL_STAGE};
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include <boost/algorithm/string.hpp>
 
 #include <sstream>
 
@@ -78,8 +79,9 @@ class BGUTracer {
 #define CYCLE_ROUND_VAL 1000
 	//using buffer_attr = std::pair<Tick,std::vector<std::string>>; //tick and what to print
 private:
-	BGUTracer(std::string CsvFileFullPath = simout.directory()+"/output.csv" ,bool FilterByThread = false ,ThreadID FilterWhichThread = 0);
-~BGUTracer() { csv_table_fstr.close();}
+	BGUTracer(std::string CsvFileFullPath = simout.directory()+"/output.csv" ,	bool multi_commands_in_cell = true,
+							bool FilterByThread = false ,ThreadID FilterWhichThread = 0);
+	~BGUTracer() { csv_table_fstr.close();}
 	//------------- flags ---------------//
 
 	//------------- private variables -------------//
@@ -87,8 +89,10 @@ private:
 	std::fstream csv_table_fstr;
 	std::string full_file_path;
 	bool initialized = false;
+	bool multi_commands_in_cell;
 	bool filter_by_thread;
 	ThreadID filter_which_thread;
+
 
 	Tick last_tick;
 	Tick curr_tick;
@@ -100,6 +104,9 @@ private:
 
 
 	std::string generate_comma_seperated_from_vec_of_string(std::vector<std::string> &in_vec);
+	std::string add_to_comma_seperated_from_vec_of_string(std::string old_str,std::vector<std::string> &in_vec);
+	void break_string_to_its_components(std::string status_string, std::vector<std::string> &output);
+
 	bool add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv_pckg);
 	void start_a_new_line(Tick newTick);
 
@@ -127,6 +134,8 @@ public:
 	//setters
 
 	inline void close_file_descriptor() { csv_table_fstr.close(); }
+	//set params
+	inline void setparam_multi_commands_in_cell(bool val) {this->multi_commands_in_cell = val;}
 
 };
 

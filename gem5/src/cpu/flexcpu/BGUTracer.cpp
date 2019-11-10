@@ -86,11 +86,43 @@ bool BGUTracer::add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv
 	{
 		std::vector<std::string> data = rcv_pckg->get_data();
 		//std::cout<<"tid: "<<rcv_pckg->get_ThreadID()<<" cur st"<<curr_status<<" stringD: "<<generate_comma_seperated_from_vec_of_string(data)<<std::endl;
-		this->tid_buffer_strings[curr_status] = generate_comma_seperated_from_vec_of_string(data);
+		if(this->tid_buffer_strings[curr_status] == X_VAL)
+		{
+			this->tid_buffer_strings[curr_status] = generate_comma_seperated_from_vec_of_string(data);
+		}
+		else
+		{
+			this->tid_buffer_strings[curr_status] = add_to_comma_seperated_from_vec_of_string(this->tid_buffer_strings[curr_status],data);
+		}
 		return true;
 	}
 
 	return false;
+}
+
+
+
+std::string BGUTracer::add_to_comma_seperated_from_vec_of_string(std::string old_str,std::vector<std::string> &in_vec)
+{
+	std::vector <std::string> previous_components;
+	break_string_to_its_components(old_str,previous_components);//update previous compnents vector with previous data
+
+	std::stringstream res;
+		res<<"\"";
+		for(int i=0; i<in_vec.size(); i++)
+		{
+			if(i<previous_components.size())
+			{
+				res<<previous_components[i]<<" ";
+			}
+			res<<in_vec[i];
+			if(i<in_vec.size()-1)
+			{
+				res<<",";
+			}
+		}
+		res<<"\"";
+		return res.str();
 }
 
 std::string BGUTracer::generate_comma_seperated_from_vec_of_string(std::vector<std::string> &in_vec)
@@ -109,6 +141,27 @@ std::string BGUTracer::generate_comma_seperated_from_vec_of_string(std::vector<s
 	return res.str();
 
 }
+
+void BGUTracer::break_string_to_its_components(std::string status_string, std::vector<std::string> &output)
+{
+	if(status_string.find(",") == std::string::npos)
+	{
+		return ;
+	}
+	output.clear();
+
+	boost::erase_all(status_string,"\"");
+
+	std::string delimiter = ",";
+	size_t pos = 0;
+	while((pos = status_string.find(delimiter)) != std::string::npos)
+	{
+		std::string token = status_string.substr(0,pos);
+		output.push_back(token);
+		status_string.erase(0,pos+delimiter.length());
+	}
+}
+
 
 
 /**
