@@ -9,8 +9,9 @@
 
 namespace tracer {
 
-BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool FilterByThread,ThreadID FilterWhichThread):
+BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool multi_commands_in_cell,bool FilterByThread,ThreadID FilterWhichThread):
 		full_file_path(CsvFileFullPath),
+		multi_commands_in_cell(multi_commands_in_cell),
 		filter_by_thread(FilterByThread),
         filter_which_thread(FilterWhichThread),
 		last_tick(curTick()),
