@@ -289,6 +289,9 @@ def buildMem(options,system):
     
     # Connect the system up to the membus
     system.system_port = system.membus.slave
+    
+    system.cache_line_size = 16
+
     return system
 
 # Start Sim
@@ -318,7 +321,7 @@ def main():
     
     # Memory hierarchy  connection
     syestm = buildMem(options,system)
-
+    
     # Run simultion
     startSim(options,system)
 #==============================================================================
