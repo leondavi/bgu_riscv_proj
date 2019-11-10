@@ -85,6 +85,12 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 			stage_vec_strings = issue_to_string(inst);
 			break;
 		}
+	case InflightInst::Status::IssuedTid :
+		{
+			this->packet_status = STG_IS_TID;
+			stage_vec_strings = issue_to_string(inst);
+			break;
+		}
 	case InflightInst::Status::Empty : //equivalent to fetch
 		{
 			this->packet_status = STG_FE;

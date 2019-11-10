@@ -147,6 +147,7 @@ private:
 			        // functionality conventionally called rename is packaged with issue
 			        // right now.
 			        "IS", //3 Dependencies and results have been identified and recorded.
+					"IS_TID",
 			        "EX", //4 Request for execution sent, but waiting for results.
 			        "EfAd", //5 Effective address calculated, but not yet sent to memory.
 			        "Memo", //6 Request for memory sent, but waiting for results.
@@ -163,7 +164,7 @@ private:
 	ThreadID tid;
 	std::vector<std::string> data;
 
-	std::vector<std::string> Pstatus_strings = {"FE","DE","IS","EX"};
+	std::vector<std::string> Pstatus_strings = {"FE","DE","IS","IS_TID","EX"};
 
 	enum e_stages
 	{
@@ -171,6 +172,7 @@ private:
 		STG_FE,
 		STG_DE,
 		STG_IS,
+		STG_IS_TID,
 		STG_EX,
 		STG_TOTAL,
 		PST_NOT_INITIALIZED

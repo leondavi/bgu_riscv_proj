@@ -523,6 +523,8 @@ class FlexCPUThread : public ThreadContext
      */
     void onIssueAccessed(std::weak_ptr<InflightInst> inst);
 
+    void onIssueTidAccessed(std::weak_ptr<InflightInst> inst);
+
     /**
      * This function serves as the event handler for when the CPU has completed
      * the translation we requested for fetching purposes.

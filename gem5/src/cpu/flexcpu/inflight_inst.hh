@@ -65,6 +65,7 @@ class InflightInst : public ExecContext,
         // functionality conventionally called rename is packaged with issue
         // right now.
         Issued, // Dependencies and results have been identified and recorded.
+		IssuedTid,
         Executing, // Request for execution sent, but waiting for results.
         EffAddred, // Effective address calculated, but not yet sent to memory.
         Memorying, // Request for memory sent, but waiting for results.
@@ -85,6 +86,8 @@ class InflightInst : public ExecContext,
         // When was this InflightInst object placed into consideration for
         // execution?
         Tick issueTick;
+
+        Tick issueTidTick;
         // When did this InflightInst object get execution requested for it?
         Tick beginExecuteTick;
         // (For memory only) When did this InflightInst object have its
@@ -410,6 +413,8 @@ class InflightInst : public ExecContext,
      * Notify this InflightInst that it has been issued.
      */
     void notifyIssued();
+
+    void notifyIssuedTid();
 
     /**
      * Notify this InflightInst that it has been sent to memory, and is in the

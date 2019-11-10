@@ -35,7 +35,7 @@ def getOptions():
     parser.add_option("--cpu-clock",
                       action="store",
                       type="string",
-                      default='2GHz',
+                      default='1GHz',
                       help="Clock for blocks running at CPU speed")
 
     parser.add_option("--mem-size",
@@ -52,7 +52,7 @@ def getOptions():
 
     # Cachce
     parser.add_option("-c", 
-                      "--cache-enable",
+                      "--cache_enable",
                       type="int",
                       default=1,
                       help = "NOT supprted - by deault connected to cache")
@@ -68,7 +68,7 @@ def getOptions():
     parser.add_option('--l1i_size',
                       action = "store",
                       type="string",
-                      default = '16kB',
+                      default = '32kB',
                       help="L1 instruction cache size. Default" 
                       )
                     
@@ -89,9 +89,16 @@ def getOptions():
     parser.add_option('--tp',
                       action = "store",
                       type="string",
-                      default = 'RoundRobin',
+                      default = 'FlxRoundRobin',
                       help="Issue thread pilicy" 
-                      )                    
+                      )        
+    # Cachce
+    parser.add_option(
+                      "--req_per_thread",
+                      type="int",
+                      default=4,
+                      help = "number of outstaning memory request")                      
+
     (options, args) = parser.parse_args()    
     return options
 
@@ -176,10 +183,11 @@ def buildMinorCPU(options,system):
     system.cpu.executeLSQStoreBufferSize = 5
     system.cpu.executeLSQMaxStoreBufferStoresPerCycle = options.num_threads 
 
+    process = Process()
+    process.cmd = [options.binary]
+    process.pid = 100+X
+
     for i in range(0,options.num_threads):
-        process = Process()
-        process.cmd = [options.binary]
-        process.pid = 100+i
         system.cpu.workload.append(process)
 
     return system
@@ -204,7 +212,6 @@ def buildFlexCPU(options,system):
     #Size of fetch buffer in bytes. Also determines size of fetch requests. 
     # Should not be larger than a cache line. (default Parenet.cache_line_size)
     # system.cpu.fetch_buffer_size = 
-    # system.cpu.fetch_bandwidth = 0
     # Serialize dependent instruction execution. Allows parallel execution of 
     # sequential and independent instructions (default False)
     system.cpu.in_order_begin_execute = False 
@@ -216,10 +223,14 @@ def buildFlexCPU(options,system):
     # order). 0 implies an infinitely large buffer (default 0)
     system.cpu.instruction_buffer_size = 0 
     # Number of cycles each instruction takes to issue (default 0).
-    system.cpu.issue_latency = 1 
+    system.cpu.issue_latency = 0 
     # Number of instructions/micro-ops that can be issued each cycle 
     # (default 0)
-    system.cpu.issue_bandwidth = 1
+    system.cpu.issue_bandwidth = 0
+
+    system.cpu.thread_manged_latency = 1
+    system.cpu.thread_manged_bandwidth = 1
+
     # Controls behavior of serializing flags on instructions. As of the 
     # development of this CPU model, gem5 defines flags for "serialization only
     # in specific directions, but doesn't seem to use them consistently, so we 
@@ -232,9 +243,13 @@ def buildFlexCPU(options,system):
     
     # New parameters
     # Number of request fetch unit can send
-    system.cpu.fetch_bandwidth = 1
+    system.cpu.fetch_bandwidth = options.num_threads*options.req_per_thread
     # Number of memory outstaning request 
-    system.cpu.mem_bandwidth = 4
+    system.cpu.mem_bandwidth = options.num_threads*options.req_per_thread
+
+    # Select thread policy
+    system.cpu.threadPolicy = options.tp
+
 
     for i in range(0,options.num_threads):
         process = Process()

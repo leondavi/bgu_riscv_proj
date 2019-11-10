@@ -54,8 +54,8 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
               params->issue_bandwidth, name() + ".issueUnit"),
     memoryUnit(this, params->mem_bandwidth, //Cycles(0),
                name() + ".memoryUnit"),
-    issueThreadUnit(this, params->issue_latency,
-              params->issue_bandwidth, name() + ".issueThreadUnit"),
+    issueThreadUnit(this, params->thread_manged_latency,
+              params->thread_manged_bandwidth, name() + ".issueThreadUnit"),
     _dataPort(name() + "._dataPort", this),
     _instPort(name() + "._instPort", this),
     _branchPred(params->branchPred),
@@ -368,24 +368,30 @@ FlexCPU::requestInstructionData(const RequestPtr& req,
 
 void
 FlexCPU::requestIssue(function<void()> callback_func,
-		std::function<bool()> is_squashed,
-		std::shared_ptr<InflightInst> inst, ThreadID tid)
+		std::function<bool()> is_squashed)
 {
     DPRINTF(FlexCPUCoreEvent, "requestIssue()\n");
 
-//    issueUnit.addRequest([callback_func, is_squashed] {
-//        if (is_squashed()) return false;
-//        callback_func();
-//        return true;
-//    });
-//
-//    issueUnit.schedule();
+    issueUnit.addRequest([callback_func, is_squashed] {
+        if (is_squashed()) return false;
+        callback_func();
+        return true;
+    });
 
-    issueThreadUnit.addRequest(tid,inst,[callback_func, is_squashed] {
-    	if (is_squashed()) return false;
-    	callback_func();
-    	return true;
-    	});
+    issueUnit.schedule();
+
+}
+
+void
+FlexCPU::requestIssueTid(function<void()> callback_func,
+		std::function<bool()> is_squashed,
+		std::shared_ptr<InflightInst> inst, ThreadID tid)
+{
+	issueThreadUnit.addRequest(tid,inst,[callback_func, is_squashed] {
+		if (is_squashed()) return false;
+		callback_func();
+		return true;
+	});
 
 
 	for (ThreadID ii = 0; ii < threads.size(); ii++)
@@ -395,7 +401,6 @@ FlexCPU::requestIssue(function<void()> callback_func,
 
 	issueThreadUnit.schedule();
 }
-
 
 bool
 FlexCPU::requestMemRead(const RequestPtr& req, ThreadContext* tc,

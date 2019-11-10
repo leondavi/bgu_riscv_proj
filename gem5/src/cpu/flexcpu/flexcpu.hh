@@ -545,6 +545,9 @@ public:
 	 * @param callback_func to call when issuing the instruction
 	 */
 	void requestIssue(std::function<void()> callback_func,
+			std::function<bool()> is_squashed);
+
+	void requestIssueTid(std::function<void()> callback_func,
 			std::function<bool()> is_squashed,
 			std::shared_ptr<InflightInst> inst,
 			ThreadID tid);

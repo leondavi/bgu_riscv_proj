@@ -165,7 +165,7 @@ ThreadID FlexCPU::ResourceThreadsManaged::randomPriority()
 
     std::vector<ThreadID> prio_list;
     for (ThreadID i = 0; i < cpu->threads.size(); i++) {
-    	chosen_tid = (priority + i) % cpu->threads.size();
+    	chosen_tid = (chosen_tid + 1) % cpu->threads.size();
     	if(map_requests[chosen_tid].size()) return chosen_tid;
     }
     return chosen_tid;
@@ -190,14 +190,24 @@ ThreadID FlexCPU::ResourceThreadsManaged::maxPriority()
     return chosen_tid;
 }
 
-// TODO
 ThreadID FlexCPU::ResourceThreadsManaged::corsePriority()
 {
+	ThreadID chosen_tid=0;
+
+	// In this case we start from zero
+	for (ThreadID i = 0; i < cpu->threads.size(); i++) {
+		chosen_tid = (priority+  i) % cpu->threads.size();
+		if(map_requests[chosen_tid].size())		return chosen_tid;
+}
+return chosen_tid;
+
 	return 0;
 }
 
 // TODO
 ThreadID FlexCPU::ResourceThreadsManaged::eventPriority()
 {
+	// TODO need to loop over queues and look what instruction is in top
+	// in case its
 	return 0;
 }
