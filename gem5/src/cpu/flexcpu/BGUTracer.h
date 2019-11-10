@@ -164,7 +164,7 @@ private:
 	ThreadID tid;
 	std::vector<std::string> data;
 
-	std::vector<std::string> Pstatus_strings = {"FE","DE","IS","IS_TID","EX"};
+	std::vector<std::string> Pstatus_strings = {"FE","DE","IS","EX"};
 
 	enum e_stages
 	{
@@ -172,7 +172,6 @@ private:
 		STG_FE,
 		STG_DE,
 		STG_IS,
-		STG_IS_TID,
 		STG_EX,
 		STG_TOTAL,
 		PST_NOT_INITIALIZED

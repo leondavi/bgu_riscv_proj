@@ -71,8 +71,8 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 	{
 	case InflightInst::Status::Decoded :
 		{
-			this->packet_status = STG_DE;
-			stage_vec_strings = decode_to_string(inst);
+			//this->packet_status = STG_DE;
+			//stage_vec_strings = decode_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::Executing :
@@ -81,13 +81,13 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 		}
 	case InflightInst::Status::Issued :
 		{
-			this->packet_status = STG_IS;
+			this->packet_status = STG_DE;
 			stage_vec_strings = issue_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::IssuedTid :
 		{
-			this->packet_status = STG_IS_TID;
+			this->packet_status = STG_IS;
 			stage_vec_strings = issue_to_string(inst);
 			break;
 		}
