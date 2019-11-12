@@ -8,7 +8,11 @@
 
 #include "cpu/flexcpu/flexcpu.hh"
 
-
+#include "debug/FlexCPUBranchPred.hh"
+#include "debug/FlexCPUBufferDump.hh"
+#include "debug/FlexCPUDeps.hh"
+#include "debug/FlexCPUInstEvent.hh"
+#include "debug/FlexCPUThreadEvent.hh"
 #include "debug/FlexCPUCoreEvent.hh"
 
 using namespace std;
@@ -60,7 +64,7 @@ void FlexCPU::ResourceThreadsManaged::attemptAllRequests()
 
 	    chosen_tid = qid_select();
 
-	    while (!map_requests[chosen_tid].empty() && resourceAvailable())
+	    while ((chosen_tid != -1) && !map_requests[chosen_tid].empty() && resourceAvailable())
 	    {
 	    	DPRINTF(FlexCPUCoreEvent, "Running request. %d left in queue. "
 	    			"%d this cycle\n", map_requests[chosen_tid].size(), usedBandwidth);
@@ -119,7 +123,7 @@ bool FlexCPU::ResourceThreadsManaged::there_is_no_any_request()
 
 ThreadID FlexCPU::ResourceThreadsManaged::qid_select()
 {
-	ThreadID chosen_tid=0;
+	ThreadID chosen_tid=-1;
 
 
 	switch (cpu->threadPolicy) {
@@ -149,13 +153,18 @@ ThreadID FlexCPU::ResourceThreadsManaged::qid_select()
 
 ThreadID FlexCPU::ResourceThreadsManaged::roundRobinPriority()
 {
-    ThreadID chosen_tid=0;
+    ThreadID chosen_tid;
 
     for (ThreadID i = 1; i <= cpu->threads.size(); i++) {
     	chosen_tid = (priority + i) % cpu->threads.size();
-    	if(map_requests[chosen_tid].size())
+    	thread_attr &req = map_requests[chosen_tid].front();
+    	if(map_requests[chosen_tid].size() && req.inst->isReady())
+    	{
+    		priority = chosen_tid;
     		return chosen_tid;
+    	}
     }
+    chosen_tid = -1; // didnt found
     return chosen_tid;
 }
 
@@ -163,10 +172,11 @@ ThreadID FlexCPU::ResourceThreadsManaged::randomPriority()
 {
     ThreadID chosen_tid=std::rand();
 
-    std::vector<ThreadID> prio_list;
     for (ThreadID i = 0; i < cpu->threads.size(); i++) {
     	chosen_tid = (chosen_tid + 1) % cpu->threads.size();
-    	if(map_requests[chosen_tid].size()) return chosen_tid;
+    	thread_attr &req = map_requests[chosen_tid].front();
+    	if(map_requests[chosen_tid].size() && req.inst->isReady())
+    		return chosen_tid;
     }
     return chosen_tid;
 }
@@ -176,11 +186,12 @@ ThreadID FlexCPU::ResourceThreadsManaged::maxPriority()
     int curr = 0;
     int max = 0;
 
-	ThreadID chosen_tid=0;
+	ThreadID chosen_tid=-1;
     for(ThreadID tid = 0; (tid < cpu->threads.size()); tid++)
     {
     	curr = map_requests[tid].size();
-    	if(curr > max)
+    	thread_attr &req = map_requests[tid].front();
+    	if(curr > max && req.inst->isReady())
     	{
     		chosen_tid = tid;
     		max = curr;
@@ -197,17 +208,51 @@ ThreadID FlexCPU::ResourceThreadsManaged::corsePriority()
 	// In this case we start from zero
 	for (ThreadID i = 0; i < cpu->threads.size(); i++) {
 		chosen_tid = (priority+  i) % cpu->threads.size();
-		if(map_requests[chosen_tid].size())		return chosen_tid;
-}
-return chosen_tid;
-
-	return 0;
+    	thread_attr &req = map_requests[chosen_tid].front();
+    	if(map_requests[chosen_tid].size() && req.inst->isReady())
+    	{
+    		priority = chosen_tid;
+    		return chosen_tid;
+    	}
+	}
+	chosen_tid = -1;
+	return chosen_tid;
 }
 
 // TODO
 ThreadID FlexCPU::ResourceThreadsManaged::eventPriority()
 {
-	// TODO need to loop over queues and look what instruction is in top
-	// in case its
-	return 0;
+
+    ThreadID chosen_tid;
+//    int is_mem_load;
+//    int is_mem_store;
+
+    for (ThreadID i = 1; i <= cpu->threads.size(); i++) {
+    	chosen_tid = (priority + i) % cpu->threads.size();
+    	thread_attr &req = map_requests[chosen_tid].front();
+    	int is_control = 0;
+    	int is_mem_ref = 0;
+    	if(map_requests[chosen_tid].size())
+    	{
+    	is_control = req.inst->staticInst()->isControl();
+    	is_mem_ref = req.inst->staticInst()->isMemRef();
+//    	is_mem_load = req.inst->staticInst()->isLoad();
+//    	is_mem_store = req.inst->staticInst()->isStore();
+//        DPRINTF(FlexCPUThreadEvent,
+//                "YEEE  %s is cntrl %d ref %d load %d store %d\n",
+//                req.inst->staticInst()->disassemble(
+//                		req.inst->pcState().pc()).c_str() , is_control,
+//						is_mem_ref,is_mem_load,is_mem_store);
+    	}
+    	if(map_requests[chosen_tid].size() && req.inst->isReady() &&
+    			(is_control || is_mem_ref))
+    	{
+    		priority = chosen_tid;
+    		return chosen_tid;
+    	}
+    }
+
+//    chosen_tid = -i;
+    chosen_tid = roundRobinPriority();
+    return chosen_tid;
 }
