@@ -86,6 +86,7 @@ bool BGUTracer::add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv
 	if (curr_status < total_stages) //update relevant stage
 	{
 		std::vector<std::string> data = rcv_pckg->get_data();
+		std::vector<bool> multiple_occ_vec = rcv_pckg->vector_of_multiple_occurances_approval();
 		//std::cout<<"tid: "<<rcv_pckg->get_ThreadID()<<" cur st"<<curr_status<<" stringD: "<<generate_comma_seperated_from_vec_of_string(data)<<std::endl;
 		if(this->tid_buffer_strings[curr_status] == X_VAL)
 		{
@@ -93,7 +94,7 @@ bool BGUTracer::add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv
 		}
 		else
 		{
-			this->tid_buffer_strings[curr_status] = add_to_comma_seperated_from_vec_of_string(this->tid_buffer_strings[curr_status],data);
+			this->tid_buffer_strings[curr_status] = add_to_comma_seperated_from_vec_of_string(this->tid_buffer_strings[curr_status],data,multiple_occ_vec);
 		}
 		return true;
 	}
@@ -103,7 +104,7 @@ bool BGUTracer::add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv
 
 
 
-std::string BGUTracer::add_to_comma_seperated_from_vec_of_string(std::string old_str,std::vector<std::string> &in_vec)
+std::string BGUTracer::add_to_comma_seperated_from_vec_of_string(std::string old_str,std::vector<std::string> &in_vec,std::vector<bool> &multiple_occ_vec)
 {
 	std::vector <std::string> previous_components;
 	break_string_to_its_components(old_str,previous_components);//update previous compnents vector with previous data
@@ -114,9 +115,13 @@ std::string BGUTracer::add_to_comma_seperated_from_vec_of_string(std::string old
 		{
 			if(i<previous_components.size())
 			{
-				res<<previous_components[i]<<" ";
+				res<<previous_components[i];
 			}
-			res<<in_vec[i];
+			if(multiple_occ_vec[i])
+			{
+				res<<" ";
+				res<<in_vec[i];
+			}
 			if(i<in_vec.size()-1)
 			{
 				res<<",";
@@ -161,6 +166,8 @@ void BGUTracer::break_string_to_its_components(std::string status_string, std::v
 		output.push_back(token);
 		status_string.erase(0,pos+delimiter.length());
 	}
+	std::string token = status_string.substr(0,pos);
+	output.push_back(token);
 }
 
 
