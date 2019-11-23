@@ -287,7 +287,7 @@ protected:
 			    attemptAllEvent(EventFunctionWrapper([this]{ attemptAllRequests(); },
 			                    name() + ".attemptAllThreads", false,
 			                    run_last ? Event::CPU_Tick_Pri : Event::Default_Pri))
-	{
+		{
 
 			for (ThreadID tid = 0; tid < cpu->threads.size(); tid++) {
 				map_requests[tid] = std::list<thread_attr>();
@@ -310,6 +310,9 @@ protected:
 		ThreadID maxPriority();
 		ThreadID corsePriority();
 		ThreadID eventPriority();
+
+		void clean_squashed();
+		int totalInstInQueues();
 	}; //end ResourceThreadsManaged class
 
 	// BGU added - end

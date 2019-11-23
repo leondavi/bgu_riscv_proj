@@ -97,8 +97,26 @@ def getOptions():
                       "--req_per_thread",
                       type="int",
                       default=4,
-                      help = "number of outstaning memory request")                      
+                      help = "number of outstaning memory request")     
 
+    parser.add_option(
+                      "--fetch_size",
+                      type="int",
+                      default = 16,
+                      help = "fetch size from memory")        
+
+    parser.add_option(
+                      "--minor",
+                      action='store_true',
+                      help = "Run minor model")   
+
+  
+    parser.add_option(
+                      "--trace_off",
+                      default = 0,
+                      type = "int",
+                      action='store',
+                      help = "Run minor model")                       
     (options, args) = parser.parse_args()    
     return options
 
@@ -183,13 +201,11 @@ def buildMinorCPU(options,system):
     system.cpu.executeLSQStoreBufferSize = 5
     system.cpu.executeLSQMaxStoreBufferStoresPerCycle = options.num_threads 
 
-    process = Process()
-    process.cmd = [options.binary]
-    process.pid = 100+X
-
     for i in range(0,options.num_threads):
+        process = Process()
+        process.cmd = [options.binary]
+        process.pid = 100+i
         system.cpu.workload.append(process)
-
     return system
 
 # ==============================================================================
@@ -250,6 +266,8 @@ def buildFlexCPU(options,system):
     # Select thread policy
     system.cpu.threadPolicy = options.tp
 
+    if options.trace_off:
+        system.cpu.BGUTrace = False
 
     for i in range(0,options.num_threads):
         process = Process()
@@ -290,7 +308,7 @@ def buildMem(options,system):
     # Connect the system up to the membus
     system.system_port = system.membus.slave
     
-    system.cache_line_size = 16
+    system.cache_line_size = options.fetch_size
 
     return system
 
@@ -316,8 +334,10 @@ def main():
     system = buildSystem(options)
 
     # CPU
-    #system = buildMinorCPU(options,system)
-    system = buildFlexCPU(options,system)
+    if options.minor:
+        system = buildMinorCPU(options,system)
+    else:
+        system = buildFlexCPU(options,system)
     
     # Memory hierarchy  connection
     syestm = buildMem(options,system)

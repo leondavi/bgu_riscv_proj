@@ -15,7 +15,8 @@ BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool multi_commands_in_cell,bo
 		filter_by_thread(FilterByThread),
         filter_which_thread(FilterWhichThread),
 		last_tick(curTick()),
-		curr_tick(curTick())
+		curr_tick(curTick()),
+		tracer_off(false)
 {
 	if(file_exists(full_file_path))
 	{
@@ -44,6 +45,10 @@ BGUTracer::BGUTracer(std::string CsvFileFullPath ,bool multi_commands_in_cell,bo
  */
 bgu_ipckg_status BGUTracer::receive_bgu_info_package(std::shared_ptr<BGUInfoPackage> rcv_pckg,ThreadID tid)
 {
+	if(get_tracer_shut_down())
+	{
+		return bgu_ipckg_status::BGUI_PCKG_FILTERED;
+	}
 	curr_tick = curTick();
 
 	Tick diff_tick = curr_tick - last_tick;

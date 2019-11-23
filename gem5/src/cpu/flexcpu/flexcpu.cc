@@ -34,6 +34,7 @@
 #include "arch/mmapped_ipr.hh"
 #include "base/compiler.hh"
 #include "debug/FlexCPUCoreEvent.hh"
+#include "cpu/flexcpu/BGUTracer.h"
 
 using namespace std;
 using namespace TheISA;
@@ -61,6 +62,12 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
     _branchPred(params->branchPred),
 	threadPolicy(params->threadPolicy)
 {
+
+	if(!params->BGUTrace)
+	{
+		tracer::BGUTracer::get_inst().set_tracer_shut_down();
+	}
+
     fatal_if(FullSystem, "FullSystem not implemented for FlexCPU");
 
     warn_if(!params->branch_pred_max_depth,
@@ -1016,7 +1023,6 @@ FlexCPU::Resource::addRequest(
     DPRINTF(FlexCPUCoreEvent, "Adding request. %d on queue\n",
                               requests.size());
     requests.push_back(run_function);
-//    reqCycle.push_back(cpu->curCycle()); // [YE] - moved back
 }
 
 void
@@ -1057,7 +1063,6 @@ FlexCPU::Resource::attemptAllRequests()
         if (req()) usedBandwidth++;
 
         requests.pop_front();
-//        reqCycle.pop_front(); // [YE] -moved back
     }
 
     if (!requests.empty()) {
@@ -1115,7 +1120,7 @@ FlexCPU::Resource::schedule()
 bool
 FlexCPU::InstFetchResource::resourceAvailable()
 {
-    if (cpu->_instPort.blocked()) {
+    if (cpu->_instPort.blocked() || (cpu->issueThreadUnit.totalInstInQueues()>20)) {
         return false;
     } else {
         return Resource::resourceAvailable();

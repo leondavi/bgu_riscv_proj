@@ -107,6 +107,9 @@ class FlexCPU(BaseCPU):
     zero_time_microop_execution = Param.Bool(False, "Makes all microops "
                                              "except the last for a macroop "
                                              "take zero time.")
+    BGUTrace = Param.Bool(True, "Makes all microops ")
+                                 
+                                 
 
     @classmethod
     def memory_mode(cls):

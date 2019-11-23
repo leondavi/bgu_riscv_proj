@@ -102,6 +102,8 @@ private:
 
 	uint16_t total_stages;
 
+	bool tracer_off;
+
 
 	std::string generate_comma_seperated_from_vec_of_string(std::vector<std::string> &in_vec);
 	std::string add_to_comma_seperated_from_vec_of_string(std::string old_str,std::vector<std::string> &in_vec);
@@ -113,6 +115,9 @@ private:
 	void deploy_string_buffers_to_table(Tick tick_to_print);
 	bool check_if_empty(std::vector<std::string> &in_vec);
 	void reset_string_buffers();
+
+
+
 
 
 public:
@@ -137,6 +142,8 @@ public:
 	//set params
 	inline void setparam_multi_commands_in_cell(bool val) {this->multi_commands_in_cell = val;}
 
+	inline bool get_tracer_shut_down() { return this->tracer_off; }
+	inline void set_tracer_shut_down() { tracer_off = true; }
 };
 
 /*********************************************************************************************************************/

@@ -52,6 +52,8 @@ void FlexCPU::ResourceThreadsManaged::attemptAllRequests()
 	        cpu->markActiveCycle();
 	    }
 
+	    clean_squashed();
+
 	    bool q_empty = there_is_no_any_request();
 
 	    if (q_empty)
@@ -256,3 +258,30 @@ ThreadID FlexCPU::ResourceThreadsManaged::eventPriority()
     chosen_tid = roundRobinPriority();
     return chosen_tid;
 }
+
+int
+FlexCPU::ResourceThreadsManaged::totalInstInQueues()
+{
+	int count =0;
+	for (ThreadID i = 0; i < cpu->threads.size(); i++) {
+		count += map_requests[i].size();
+	}
+
+	return count;
+}
+
+void
+FlexCPU::ResourceThreadsManaged::clean_squashed()
+{
+	for (ThreadID i = 0; i < cpu->threads.size(); i++) {
+		//loop over all queue
+		while(map_requests[i].size())
+		{
+			thread_attr &req = map_requests[i].front();
+			if(!(req.inst->isSquashed())) break;
+			map_requests[i].pop_front();
+		}
+
+	}
+}
+
