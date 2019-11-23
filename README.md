@@ -13,6 +13,8 @@ riscv architecture for gem5
    or ```/opt/riscv/bin/riscv64-unknown-elf-g++```
 7. Install six module of python using pip: ```sudo pip install six```
    or upgrade to the latest version: ```sudo pip install six --upgrade```
+8. Optionally - update g5gui submodule: ```git submodule foreach git pull origin master```
+   Read more about g5gui in its [repository](https://github.com/leondavi/g5gui). 
    
 ## IDE Eclipse 
 1. Install eclipse throguh Ubuntu Software or apt-get. 

@@ -106,7 +106,7 @@ private:
 
 
 	std::string generate_comma_seperated_from_vec_of_string(std::vector<std::string> &in_vec);
-	std::string add_to_comma_seperated_from_vec_of_string(std::string old_str,std::vector<std::string> &in_vec);
+	std::string add_to_comma_seperated_from_vec_of_string(std::string old_str,std::vector<std::string> &in_vec,std::vector<bool> &multiple_occ_vec);
 	void break_string_to_its_components(std::string status_string, std::vector<std::string> &output);
 
 	bool add_package_to_string_buffer(std::shared_ptr<BGUInfoPackage> rcv_pckg);
@@ -200,7 +200,7 @@ private:
 
 
 	const std::string tid_str = "tid", pc_str = "pc", status_str = "status";
-	const std::string opcode = "op";
+	const std::string opcode_str = "op";
 
 	std::weak_ptr<InflightInst> wk_ptr_inst;
 
@@ -215,6 +215,7 @@ private:
 	void generate_attributes();
 
 	std::vector<std::vector<std::string>> attributes;
+	std::vector<std::string> attributes_allowed_multiple_occurances;//contains ids in attributes that allows multiple occurances
 
 
 	std::vector<std::string> inflightinst_to_string(); // works on pckg_attributes - needs wk_ptr_inst
@@ -277,6 +278,34 @@ public:
 	std::string get_2nd_headline_attributes_comma_seperated(); // [used_by Tracer]
 
 	inline uint16_t get_total_stages_count() { return STG_TOTAL;}
+
+	inline std::vector <std::string> get_attributes_of_current_stage()
+	{
+		return attributes[this->packet_status];
+	}
+
+	/**
+	 * returns a vector of which attributes is allowed to have multiple occurances
+	 */
+	inline std::vector <bool> vector_of_multiple_occurances_approval()
+	{
+		std::vector <bool> res;
+		std::vector<std::string> curr_attr_vec = get_attributes_of_current_stage();
+		std::vector<std::string>::iterator it;
+		for(auto &elem : curr_attr_vec)
+		{
+			it = std::find(attributes_allowed_multiple_occurances.begin(),attributes_allowed_multiple_occurances.end(),elem);
+			if(it != attributes_allowed_multiple_occurances.end())
+			{
+				res.push_back(true);
+			}
+			else
+			{
+				res.push_back(false);
+			}
+		}
+		return res;
+	}
 
 
 

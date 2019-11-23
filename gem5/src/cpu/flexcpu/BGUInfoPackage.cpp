@@ -13,9 +13,10 @@ void BGUInfoPackage::generate_attributes()
 {
 		attributes.resize(STG_TOTAL);
 		attributes[STG_FE] = {};//TODO
-		attributes[STG_DE] = {};//TODO
-		attributes[STG_EX] = {opcode};//TODO
-		attributes[STG_IS] = {opcode};//TODO
+		attributes[STG_DE] = {opcode_str};//TODO
+		attributes[STG_EX] = {opcode_str};//TODO
+		attributes[STG_IS] = {opcode_str};//TODO
+
 
 		std::vector<std::string> default_vec = {tid_str,pc_str};
 
@@ -23,6 +24,10 @@ void BGUInfoPackage::generate_attributes()
 		{
 			attributes[i].insert(attributes[i].begin(),default_vec.begin(),default_vec.end());
 		}
+
+		attributes_allowed_multiple_occurances = {pc_str,opcode_str};
+
+
 }
 
 
@@ -82,7 +87,7 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 	case InflightInst::Status::Issued :
 		{
 			this->packet_status = STG_DE;
-			stage_vec_strings = issue_to_string(inst);
+			stage_vec_strings = decode_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::IssuedTid :
@@ -129,7 +134,11 @@ void BGUInfoPackage::send_packet_to_tracer()
 
 std::vector<std::string> BGUInfoPackage::decode_to_string(std::shared_ptr<InflightInst> inst)
 {
-	std::vector<std::string> res;
+	std::vector<std::string> res,tmp;
+		//--------------opcode ---------------//
+		DissassembleFields disasm_fields(inst);
+		res.push_back(disasm_fields.get_opcode());
+
 	return res;
 }
 std::vector<std::string> BGUInfoPackage::issue_to_string(std::shared_ptr<InflightInst> inst)
