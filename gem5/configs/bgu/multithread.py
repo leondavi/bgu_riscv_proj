@@ -45,7 +45,7 @@ def getOptions():
                       help="Specify the physical memory size (single memory)")
     #CPU
     parser.add_option("-t",
-                      "--num-threads",
+                      "--num_threads",
                       type="int",
                       default=1,
                       help = "Number of threads that running on the CPU")
