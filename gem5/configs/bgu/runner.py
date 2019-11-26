@@ -9,10 +9,11 @@ import subprocess as sub
 
 #Const
 GUI_VERSION = "1.0"
-BUILD_CMD = "build/RISCV/gem5.opt"
-PARAM_STORE = "params.txt"
+BUILD_CMD = "scons"
+GEM5_OPT = "build/RISCV/gem5.opt"
+DEBUG_FLAG = "--debug-flags="
+PARAM_STORE = os.path.dirname(__file__)+"/params.txt"
 #Parameters
-
 param_dict = dict()
 
 # TODO
@@ -33,7 +34,9 @@ param_dict = dict()
 # exeBuild
 #==============================================================================
 def exeBuild(top_dict):
-    getParamDict(top_dict) # update all parameters
+    # update all parameters
+    getParamDict(top_dict) 
+
     # check if gem5_dir exists and valid path
     if param_dict["gem5_dir"] == '':
         print "ERROR: enter gem5_dir path"
@@ -41,26 +44,54 @@ def exeBuild(top_dict):
     if not os.path.isdir(param_dict["gem5_dir"]):
         print "ERROR: invalid gem5_dir path"
         return
-    build_cmd = ["scons",BUILD_CMD,param_dict["gem5_build_flag"]]
-#    build_cmd = "scons"
-    # Store current directroy
-    cwd = os.getcwd()
-    # Change to gem5 dir
-    os.chdir(param_dict["gem5_dir"])
+    build_cmd = [BUILD_CMD,GEM5_OPT]     
+    if not param_dict["gem5_build_flag"] == '':
+        build_cmd.append(param_dict["gem5_build_flag"])
     # Run command
-    p = sub.Popen(build_cmd,stdout=sub.PIPE,stderr=sub.PIPE)
+    p = sub.Popen(build_cmd,cwd=param_dict["gem5_dir"],
+        stdout=sub.PIPE,stderr=sub.PIPE)
     output, errors = p.communicate()
     top_dict["text"].delete('1.0', END)
     top_dict["text"].insert('end',output)
-    # return to base directroy
-    os.chdir(cwd)
-
+    top_dict["text"].insert('end'," ".join(["done execute:"]+build_cmd))
+    top_dict["text"].see(END)
+    print errors
 
 # exeRun
 #==============================================================================
 def exeRun(top_dict):
-    getParamDict(top_dict) # update all parameters
-    print "exeRun pressed"
+    # update all parameters
+    getParamDict(top_dict) 
+
+    # check if gem5_dir exists and valid path
+    if param_dict["gem5_dir"] == '':
+        print "ERROR: enter gem5_dir path"
+        return
+    if not os.path.isdir(param_dict["gem5_dir"]):
+        print "ERROR: invalid gem5_dir path"
+        return
+    build_cmd = [GEM5_OPT]
+    if not param_dict["gem5_opt_flag"] == '':
+        build_cmd.append(DEBUG_FLAG+param_dict["gem5_opt_flag"])
+    if param_dict["config_file"] == '':
+        print "ERROR: enter config_file"
+        return
+    if not os.path.isfile(param_dict["config_file"]):
+        print "ERROR: invalid config_file path"
+        return
+    build_cmd.append(param_dict["config_file"]) 
+    if not param_dict["config_flags"] == '':
+        build_cmd +=param_dict["config_flags"].split(',')
+   
+    # Run command
+    p = sub.Popen(build_cmd,cwd=param_dict["gem5_dir"],
+        stdout=sub.PIPE,stderr=sub.PIPE)
+    output, errors = p.communicate()
+    top_dict["text"].delete('1.0', END)
+    top_dict["text"].insert('end',output)
+    top_dict["text"].insert('end'," ".join(["done execute:"]+build_cmd))
+    top_dict["text"].see(END)
+    print errors
 
 # exeRegression
 #==============================================================================
@@ -170,8 +201,7 @@ def main():
     # Build Frames
     main_frame = [["gem5_dir"       ,["label","entry","button"] ],
                   ["gem5_build_flag",["label","entry"]          ],
-                  ["gem5_opt"       ,["label","entry","button"] ],
-                  ["gem5_flag"      ,["label","entry"]          ],
+                  ["gem5_opt_flag"  ,["label","entry"]          ],
                   ["config_file"    ,["label","entry","button"] ],
                   ["config_flags"   ,["label","entry"]          ],
                   ["regression_file",["label","entry","button"] ],
@@ -188,9 +218,13 @@ def main():
     setParamDict(top_dict)
 
     p_text = Text(top)
-    p_text.see(END)
-    p_text.pack()
+    p_text.pack(side=LEFT,expand = True)
+    p_scrollbar = Scrollbar(top)
+    p_scrollbar.pack(side=RIGHT, fill=Y)
+    p_text.config(yscrollcommand=p_scrollbar.set)
+    p_scrollbar.config(command=p_text.yview)
     top_dict["text"] = p_text
+
     top.mainloop()
    
    
