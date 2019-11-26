@@ -256,6 +256,7 @@ void FlexCPUThread::attemptFetch(shared_ptr<InflightInst> inst_ptr)
         return;
     } // Else we need to send a request to update the buffer.
 
+
     DPRINTF(FlexCPUThreadEvent, "Preparing inst translation request at %#x\n",
                                 req_vaddr);
 
@@ -1056,7 +1057,7 @@ FlexCPUThread::onPCTranslated(weak_ptr<InflightInst> inst, Fault fault,
         [inst]{
             shared_ptr<InflightInst> inst_ptr = inst.lock();
             return !inst_ptr || inst_ptr->isSquashed();
-        });
+        },this->threadId(),inst);
 }
 
 void

@@ -48,7 +48,8 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
 	dataAddrTranslationUnit(this, Cycles(0), 0, name() + ".dtbUnit"),
     executionUnit(this, params->execution_latency,
                   params->execution_bandwidth, name() + ".executionUnit"),
-    instFetchUnit(this, params->fetch_bandwidth, name() + ".iFetchUnit"),
+    instFetchUnit(this, params->fetch_bandwidth, name() + ".iFetchUnit",
+    			params->fetchPolicy),
     instAddrTranslationUnit(this, Cycles(0),
                             0, name() + ".itbUnit"),
     issueUnit(this, params->issue_latency,
@@ -56,11 +57,11 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
     memoryUnit(this, params->mem_bandwidth, //Cycles(0),
                name() + ".memoryUnit"),
     issueThreadUnit(this, params->thread_manged_latency,
-              params->thread_manged_bandwidth, name() + ".issueThreadUnit"),
+              params->thread_manged_bandwidth, name() + ".issueThreadUnit",
+			  params->issuePolicy),
     _dataPort(name() + "._dataPort", this),
     _instPort(name() + "._instPort", this),
-    _branchPred(params->branchPred),
-	threadPolicy(params->threadPolicy)
+    _branchPred(params->branchPred)
 {
 
 	if(!params->BGUTrace)
@@ -334,7 +335,7 @@ FlexCPU::requestInstAddrTranslation(const RequestPtr& req,
 
 void
 FlexCPU::requestInstructionData(const RequestPtr& req,
-    FetchCallback callback_func, std::function<bool()> is_squashed)
+    FetchCallback callback_func, std::function<bool()> is_squashed,ThreadID tid,std::weak_ptr<InflightInst> inst)
 {
     DPRINTF(FlexCPUCoreEvent, "requestInstructionData()\n");
 
@@ -347,7 +348,9 @@ FlexCPU::requestInstructionData(const RequestPtr& req,
 
     Tick queue_time = curTick();
 
-    instFetchUnit.addRequest([this, req, callback_func, pkt, queue_time,
+    shared_ptr<InflightInst> inst_locked = inst.lock();//TODO inst of request should be weak
+
+    instFetchUnit.addRequest(tid,inst_locked,[this, req, callback_func, pkt, queue_time,
                               is_squashed]
     {
         if (is_squashed()) {
@@ -1133,8 +1136,8 @@ FlexCPU::MemoryResource::MemoryResource(FlexCPU *cpu,
 { }
 
 FlexCPU::InstFetchResource::InstFetchResource(FlexCPU *cpu,
-    int bandwidth, std::string _name) :
-    Resource(cpu, Cycles(0), bandwidth, _name, true)
+    int bandwidth, std::string _name,Enums::FlexPolicy threadPolicy) :
+    ResourceThreadsManaged(cpu, Cycles(0), bandwidth, _name, threadPolicy, true)
 { }
 
 bool

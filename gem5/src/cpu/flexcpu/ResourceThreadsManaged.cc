@@ -128,7 +128,7 @@ ThreadID FlexCPU::ResourceThreadsManaged::qid_select()
 	ThreadID chosen_tid=-1;
 
 
-	switch (cpu->threadPolicy) {
+	switch (this->threadPolicy) {
 	case Enums::FlxSingleThreaded:
 		chosen_tid = 0;
 		break;

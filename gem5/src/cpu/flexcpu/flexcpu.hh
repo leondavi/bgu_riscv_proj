@@ -279,14 +279,18 @@ protected:
 		std::unordered_map<ThreadID, std::list<thread_attr>> map_requests;
 
 	public:
-		ThreadID priority =0;
+		ThreadID priority;
+		Enums::FlexPolicy threadPolicy;
 
 		ResourceThreadsManaged(FlexCPU *cpu, Cycles latency, int bandwidth,
-				std::string _name, bool run_last = false) :
+				std::string _name, Enums::FlexPolicy threadPolicy,bool run_last = false) :
 				Resource(cpu, latency, bandwidth, _name, run_last),
-			    attemptAllEvent(EventFunctionWrapper([this]{ attemptAllRequests(); },
-			                    name() + ".attemptAllThreads", false,
-			                    run_last ? Event::CPU_Tick_Pri : Event::Default_Pri))
+				attemptAllEvent(EventFunctionWrapper([this]{ attemptAllRequests(); },
+							                    name() + ".attemptAllThreads", false,
+							                    run_last ? Event::CPU_Tick_Pri : Event::Default_Pri)),
+				priority(0),
+				threadPolicy(threadPolicy)
+
 		{
 
 			for (ThreadID tid = 0; tid < cpu->threads.size(); tid++) {
@@ -317,9 +321,9 @@ protected:
 
 	// BGU added - end
 
-	class InstFetchResource: public Resource {
+	class InstFetchResource: public ResourceThreadsManaged {
 	public:
-		InstFetchResource(FlexCPU *cpu, int bandwidth, std::string _name);
+		InstFetchResource(FlexCPU *cpu, int bandwidth, std::string _name, Enums::FlexPolicy threadPolicy );
 	private:
 		bool resourceAvailable() override;
 	};
@@ -442,7 +446,6 @@ public:
 	 */
 	virtual ~FlexCPU() = default;
 
-    Enums::FlexPolicy threadPolicy;
 	// BEGIN Member functions (sorted alphabetically)
 
 	/**
@@ -587,7 +590,7 @@ public:
 	 *  been squashed by the thread
 	 */
 	void requestInstructionData(const RequestPtr& req,
-			FetchCallback callback_func, std::function<bool()> is_squashed);
+			FetchCallback callback_func, std::function<bool()> is_squashed,ThreadID tid,std::weak_ptr<InflightInst> inst);
 
 	/**
 	 * Event-driven means for classes to request a read access to memory. Upon

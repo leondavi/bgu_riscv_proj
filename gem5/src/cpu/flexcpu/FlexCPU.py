@@ -38,7 +38,9 @@ class FlexCPU(BaseCPU):
     type = 'FlexCPU'
     cxx_header = 'cpu/flexcpu/flexcpu.hh'
 
-    threadPolicy = Param.FlexPolicy('FlxRoundRobin',
+    issuePolicy = Param.FlexPolicy('FlxRoundRobin',
+            "Thread scheduling policy")
+    fetchPolicy = Param.FlexPolicy('FlxRoundRobin',
             "Thread scheduling policy")
 
     # formatted camelCase to use same parameter name as other CPU models.
