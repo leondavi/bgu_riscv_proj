@@ -85,13 +85,18 @@ def getOptions():
                       default = '256kB',
                       help="L2 instruction cache size. Default" 
                       )                      
-   
-    parser.add_option('--tp',
+    parser.add_option('--fetch_policy',
                       action = "store",
                       type="string",
                       default = 'FlxRoundRobin',
                       help="Issue thread pilicy" 
-                      )        
+                      )         
+    parser.add_option('--issue_policy',
+                      action = "store",
+                      type="string",
+                      default = 'FlxRoundRobin',
+                      help="Issue thread pilicy" 
+                      )         
     # Cachce
     parser.add_option(
                       "--req_per_thread",
@@ -264,7 +269,9 @@ def buildFlexCPU(options,system):
     system.cpu.mem_bandwidth = options.num_threads*options.req_per_thread
 
     # Select thread policy
-    system.cpu.threadPolicy = options.tp
+    system.cpu.issuePolicy = options.issue_policy
+
+    system.cpu.fetchPolicy = options.fetch_policy
 
     if options.trace_off:
         system.cpu.BGUTrace = False

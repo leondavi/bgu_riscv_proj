@@ -147,6 +147,11 @@ ThreadID FlexCPU::ResourceThreadsManaged::qid_select()
 	case Enums::FlxCorse:
 		chosen_tid = corsePriority();
 		break;
+	case Enums::FlxFetchAutoEncoder:
+	{
+		chosen_tid = 0; //TODO add Autoencoder function
+		break;
+	}
 	default:
 		panic("Unknown fetch policy");
 	}
