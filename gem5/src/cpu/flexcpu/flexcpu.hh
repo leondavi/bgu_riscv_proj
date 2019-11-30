@@ -298,6 +298,23 @@ protected:
 
 		};
 
+		/**
+		 * This overrides the event function wrapper
+		 */
+		ResourceThreadsManaged(FlexCPU *cpu, Cycles latency, int bandwidth,
+						EventFunctionWrapper attempt_all_events,
+						std::string _name, bool run_last = false) :
+						Resource(cpu, latency, bandwidth, _name, run_last),
+						attemptAllEvent(attempt_all_events)
+
+		{
+
+			for (ThreadID tid = 0; tid < cpu->threads.size(); tid++) {
+				map_requests[tid] = std::list<thread_attr>();
+			}
+
+		};
+
 		void addRequest(ThreadID tid, std::shared_ptr<InflightInst> inst,
 				const std::function<bool()>& run_function);
 
@@ -345,8 +362,13 @@ protected:
 
 		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
 						std::string _name, bool run_last = false) :
-						ResourceThreadsManaged(cpu, latency, bandwidth, _name, run_last)
+							ResourceThreadsManaged(cpu, latency, bandwidth,
+													EventFunctionWrapper([this]{ attemptAllRequests(); },
+													name() + ".FetchDecision_attemptAllThreads", false,
+													run_last ? Event::CPU_Tick_Pri : Event::Default_Pri), _name, run_last)
+
 				{
+
 
 				};
 

@@ -307,7 +307,7 @@ InflightInst::notifyComplete()
 
 void InflightInst::notifyFetchDecision()
 {
-
+	status(FetchDecision);
 }
 
 void

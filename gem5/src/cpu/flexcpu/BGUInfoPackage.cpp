@@ -13,7 +13,7 @@ void BGUInfoPackage::generate_attributes()
 {
 		attributes.resize(STG_TOTAL);
 		attributes[STG_FE] = {};//TODO
-		attributes[STG_FD] = {opcode_str};
+		attributes[STG_FD] = {};
 		attributes[STG_DE] = {opcode_str};//TODO
 		attributes[STG_EX] = {opcode_str};//TODO
 		attributes[STG_IS] = {opcode_str};//TODO
@@ -170,9 +170,6 @@ std::vector<std::string> BGUInfoPackage::execute_to_string(std::shared_ptr<Infli
 std::vector<std::string> BGUInfoPackage::fetchdecision_to_string(std::shared_ptr<InflightInst> inst)
 {
 	std::vector<std::string> res;
-	//--------------opcode ---------------//
-	DissassembleFields disasm_fields(inst);
-	res.push_back(disasm_fields.get_opcode());
 
 	return res;
 }
