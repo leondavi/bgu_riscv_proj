@@ -877,6 +877,10 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
     inst_ptr->pcState(pc);
     if (decode_result) // If a complete instruction was decoded
     {
+    	inst_ptr->notifyFetchDecision();
+		auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst); //creating bguinfo packet instance
+		inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
+
     	auto callback = [this,decode_result,pc,inst]()
     	{
 
@@ -902,6 +906,16 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
 
 			issueInstruction(inst_ptr);
 		};
+
+    	 weak_ptr<InflightInst> weak_inst = inst;
+    	 auto squasher = [weak_inst] {
+    	        shared_ptr<InflightInst> inst_ptr = weak_inst.lock();
+    	        return !inst_ptr || inst_ptr->isSquashed();
+    	    };
+
+    	_cpuPtr->requestFetchDecision(callback,squasher,inst_ptr,this->threadId(),decode_result);
+
+
 
     }
     else // If we still need to fetch more MachInsts.

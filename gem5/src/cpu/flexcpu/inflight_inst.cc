@@ -305,6 +305,11 @@ InflightInst::notifyComplete()
     }
 }
 
+void InflightInst::notifyFetchDecision()
+{
+
+}
+
 void
 InflightInst::notifyDecoded()
 {

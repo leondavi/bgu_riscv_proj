@@ -64,6 +64,7 @@ class InflightInst : public ExecContext,
         // Perhaps an independent rename stage may be useful. Most
         // functionality conventionally called rename is packaged with issue
         // right now.
+		FetchDecision,
         Issued, // Dependencies and results have been identified and recorded.
 		IssuedTid,
         Executing, // Request for execution sent, but waiting for results.
@@ -399,6 +400,8 @@ class InflightInst : public ExecContext,
      */
     void notifyEffAddrCalculated();
 
+
+    void notifyFetchDecision();
     /**
      * Notify this InflightInst that it has been decoded.
      */

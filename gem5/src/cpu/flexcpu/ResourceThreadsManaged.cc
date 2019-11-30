@@ -262,7 +262,7 @@ ThreadID FlexCPU::ResourceThreadsManaged::eventPriority()
 int
 FlexCPU::ResourceThreadsManaged::totalInstInQueues()
 {
-	int count =0;
+	int count = 0;
 	for (ThreadID i = 0; i < cpu->threads.size(); i++) {
 		count += map_requests[i].size();
 	}

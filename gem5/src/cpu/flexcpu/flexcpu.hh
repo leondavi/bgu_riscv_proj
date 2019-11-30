@@ -260,22 +260,25 @@ protected:
 		void regStats();
 	};
 
+	class thread_attr
+	{
+	public:
+		std::shared_ptr<InflightInst> inst;
+		std::function<bool()> func;
+		thread_attr(std::shared_ptr<InflightInst> inst,std::function<bool()> func) :
+			inst(inst),func(func)
+		{
+
+		}
+	};
+
 	// BGU - added
 	class ResourceThreadsManaged: public Resource
 	{
-	public:
-		typedef struct thread_attr {
-			std::shared_ptr<InflightInst> inst;
-			std::function<bool()> func;
-			thread_attr(std::shared_ptr<InflightInst> inst,std::function<bool()> func) :
-				inst(inst),func(func)
-			{
 
-			}
-		} thread_attr;
+	public:
 
 		EventFunctionWrapper attemptAllEvent;
-
 
 		std::unordered_map<ThreadID, std::list<thread_attr>> map_requests;
 
@@ -323,17 +326,22 @@ protected:
 
 	public:
 
-		typedef struct thread_attr_extended {
-					thread_attr t_attr;
+		class thread_attr_extended : public thread_attr
+		{
 					StaticInstPtr decode_result;
+
+		public:
 					thread_attr_extended(std::shared_ptr<InflightInst> inst,
 							std::function<bool()> func,
 							StaticInstPtr decode_result_) :
-							t_attr(inst,func),decode_result(decode_result_)
+								thread_attr(inst,func), decode_result(decode_result_)
 					{
 
 					}
-				} thread_attr_extended;
+
+					inline StaticInstPtr get_decode_res() { return this->decode_result; }
+
+		} ;
 
 		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
 						std::string _name, bool run_last = false) :
