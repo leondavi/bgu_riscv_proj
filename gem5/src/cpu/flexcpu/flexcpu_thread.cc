@@ -877,9 +877,19 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
 
     inst_ptr->pcState(pc);
 
-    //TODO send this callback to new resource of fetch
-    auto callback = [this, inst_ptr,pc,decode_result]() {
-    	if (decode_result) { // If a complete instruction was decoded
+    if (decode_result) // If a complete instruction was decoded
+    {
+    	inst_ptr->notifyFetchDecision();
+		auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst); //creating bguinfo packet instance
+		inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
+
+    	auto callback = [this,decode_result,pc,inst]()
+    	{
+    		 const shared_ptr<InflightInst> inst_ptr = inst.lock();
+    		    if (!inst_ptr || inst_ptr->isSquashed()) {
+    		        // No need to do anything for an instruction that has been squashed.
+    		        return;
+    		    }
 
     	        DPRINTF(FlexCPUInstEvent,
     	                "Decoded instruction (seq %d) - %#x : %s\n",
@@ -887,75 +897,30 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
     	                pc.instAddr(),
     	                decode_result->disassemble(pc.instAddr()).c_str());
 
-    	        /* Macroop isn't relevant to RISCV
-    	         * if (decode_result->isMacroop()) {
-    	            DPRINTF(FlexCPUThreadEvent, "Detected MacroOp, capturing...\n");
-    	            curMacroOp = decode_result;
-
-    	            decode_result = curMacroOp->fetchMicroop(pc.microPC());
-
-    	            DPRINTF(FlexCPUInstEvent,
-    	                    "Replaced with microop (seq %d) - %#x : %s\n",
-    	                    inst_ptr->seqNum(),
-    	                    pc.microPC(),
-    	                    decode_result->disassemble(pc.microPC()).c_str());
-    	        }*/
-
 
     	        inst_ptr->staticInst(decode_result);
     	        inst_ptr->notifyDecoded();
 
-    	        weak_ptr<InflightInst> weak_inst = inst_ptr;
-    	        auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
+    	        auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst); //creating bguinfo packet instance
     	       	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
 
     	        issueInstruction(inst_ptr);
 
-    	    } else { // If we still need to fetch more MachInsts.
-    	        fetchOffset += sizeof(TheISA::MachInst);
-    	        attemptFetch(inst_ptr);
-    	    }
-        };
+    	 };
+    	 weak_ptr<InflightInst> weak_inst = inst;
+    	    	 auto squasher = [weak_inst] {
+    	    	        shared_ptr<InflightInst> inst_ptr = weak_inst.lock();
+    	    	        return !inst_ptr || inst_ptr->isSquashed();
+    	    	    };
 
-    //-------- TODO this section will be a seperated callback to resourceThreadManaged ----------//
-    //********************************************************************//
-
-    if (decode_result) { // If a complete instruction was decoded
-
-        DPRINTF(FlexCPUInstEvent,
-                "Decoded instruction (seq %d) - %#x : %s\n",
-                inst_ptr->seqNum(),
-                pc.instAddr(),
-                decode_result->disassemble(pc.instAddr()).c_str());
-
-        if (decode_result->isMacroop()) {
-            DPRINTF(FlexCPUThreadEvent, "Detected MacroOp, capturing...\n");
-            curMacroOp = decode_result;
-
-            decode_result = curMacroOp->fetchMicroop(pc.microPC());
-
-            DPRINTF(FlexCPUInstEvent,
-                    "Replaced with microop (seq %d) - %#x : %s\n",
-                    inst_ptr->seqNum(),
-                    pc.microPC(),
-                    decode_result->disassemble(pc.microPC()).c_str());
-        }
-
-
-        inst_ptr->staticInst(decode_result);
-        inst_ptr->notifyDecoded();
-
-        weak_ptr<InflightInst> weak_inst = inst_ptr;
-        auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),weak_inst); //creating bguinfo packet instance
-       	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
-
-        issueInstruction(inst_ptr);
-
-    } else { // If we still need to fetch more MachInsts.
-        fetchOffset += sizeof(TheISA::MachInst);
-        attemptFetch(inst_ptr);
+		_cpuPtr->requestFetchDecision(callback,squasher,inst_ptr,this->threadId(),decode_result);
     }
-    //********************************************************************//
+    else // If we still need to fetch more MachInsts.
+	{
+	   fetchOffset += sizeof(TheISA::MachInst);
+	   attemptFetch(inst_ptr);
+	}
+
 }
 
 void

@@ -147,11 +147,6 @@ ThreadID FlexCPU::ResourceThreadsManaged::qid_select()
 	case Enums::FlxCorse:
 		chosen_tid = corsePriority();
 		break;
-	case Enums::FlxFetchAutoEncoder:
-	{
-		chosen_tid = 0; //TODO add Autoencoder function
-		break;
-	}
 	default:
 		panic("Unknown fetch policy");
 	}
@@ -267,7 +262,7 @@ ThreadID FlexCPU::ResourceThreadsManaged::eventPriority()
 int
 FlexCPU::ResourceThreadsManaged::totalInstInQueues()
 {
-	int count =0;
+	int count = 0;
 	for (ThreadID i = 0; i < cpu->threads.size(); i++) {
 		count += map_requests[i].size();
 	}
