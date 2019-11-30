@@ -55,6 +55,8 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
               params->issue_bandwidth, name() + ".issueUnit"),
     memoryUnit(this, params->mem_bandwidth, //Cycles(0),
                name() + ".memoryUnit"),
+    fetchDecisionUnit(this, params->fetch_decision_latency,
+				 params->fetch_decision_bandwidth, name() + ".fetchDecisionUnit"),
     issueThreadUnit(this, params->thread_manged_latency,
               params->thread_manged_bandwidth, name() + ".issueThreadUnit"),
     _dataPort(name() + "._dataPort", this),
@@ -387,6 +389,20 @@ FlexCPU::requestIssue(function<void()> callback_func,
 
     issueUnit.schedule();
 
+}
+
+void FlexCPU::requestFetchDecision(std::function<void()> callback_func,
+		std::function<bool()> is_squashed,
+		std::shared_ptr<InflightInst> inst, ThreadID tid, StaticInstPtr decoded_result)
+{
+	fetchDecisionUnit.addRequest(decoded_result,tid,inst,[callback_func,is_squashed]
+	  {
+		if (is_squashed()) return false;
+		callback_func();
+				return true;
+	  });
+
+	fetchDecisionUnit.schedule();
 }
 
 void
@@ -1158,6 +1174,7 @@ FlexCPU::regStats()
     memoryUnit.regStats();
 
     issueThreadUnit.regStats(); // YE - need to be used
+    fetchDecisionUnit.regStats(); // Added by David Leon
 
     memLatency
         .name(name() + ".memLatency")

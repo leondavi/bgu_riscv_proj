@@ -263,6 +263,7 @@ protected:
 	// BGU - added
 	class ResourceThreadsManaged: public Resource
 	{
+	public:
 		typedef struct thread_attr {
 			std::shared_ptr<InflightInst> inst;
 			std::function<bool()> func;
@@ -275,10 +276,9 @@ protected:
 
 		EventFunctionWrapper attemptAllEvent;
 
-	public:
+
 		std::unordered_map<ThreadID, std::list<thread_attr>> map_requests;
 
-	public:
 		ThreadID priority =0;
 
 		ResourceThreadsManaged(FlexCPU *cpu, Cycles latency, int bandwidth,
@@ -304,6 +304,10 @@ protected:
 
 		bool there_is_no_any_request();
 
+		void clean_squashed();
+		int totalInstInQueues();
+
+	private:
 		ThreadID qid_select();
 		ThreadID roundRobinPriority();
 		ThreadID randomPriority();
@@ -311,9 +315,43 @@ protected:
 		ThreadID corsePriority();
 		ThreadID eventPriority();
 
-		void clean_squashed();
-		int totalInstInQueues();
+
 	}; //end ResourceThreadsManaged class
+
+	class ResourceFetchDecision : public ResourceThreadsManaged
+	{
+
+	public:
+
+		typedef struct thread_attr_extended {
+					thread_attr t_attr;
+					StaticInstPtr decode_result;
+					thread_attr_extended(std::shared_ptr<InflightInst> inst,
+							std::function<bool()> func,
+							StaticInstPtr decode_result_) :
+							t_attr(inst,func),decode_result(decode_result_)
+					{
+
+					}
+				} thread_attr_extended;
+
+		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
+						std::string _name, bool run_last = false) :
+						ResourceThreadsManaged(cpu, latency, bandwidth, _name, run_last)
+				{
+
+				};
+
+		void addRequest(StaticInstPtr decode_result, ThreadID tid,
+				std::shared_ptr<InflightInst> inst,
+				const std::function<bool()>& run_function);
+
+		void attemptAllRequests();
+
+	private:
+
+	};
+
 
 	// BGU added - end
 
@@ -368,6 +406,7 @@ protected:
 	Resource issueUnit;
 	MemoryResource memoryUnit;
 
+	ResourceFetchDecision fetchDecisionUnit;
 	ResourceThreadsManaged issueThreadUnit;
 
 	// BEGIN Internal state variables
@@ -554,6 +593,10 @@ public:
 			std::function<bool()> is_squashed,
 			std::shared_ptr<InflightInst> inst,
 			ThreadID tid);
+
+	void requestFetchDecision(std::function<void()> callback_func,
+			std::function<bool()> is_squashed,
+			std::shared_ptr<InflightInst> inst, ThreadID tid, StaticInstPtr decoded_result);
 
 	/**
 	 * Event-driven means for other classes to request a translation of a
