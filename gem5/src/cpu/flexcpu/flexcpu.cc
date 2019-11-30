@@ -1173,8 +1173,8 @@ FlexCPU::regStats()
     issueUnit.regStats();
     memoryUnit.regStats();
 
-    issueThreadUnit.regStats(); // YE - need to be used
     fetchDecisionUnit.regStats(); // Added by David Leon
+    issueThreadUnit.regStats(); // YE - need to be used
 
     memLatency
         .name(name() + ".memLatency")
