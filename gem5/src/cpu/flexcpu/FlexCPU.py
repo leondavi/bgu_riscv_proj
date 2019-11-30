@@ -85,11 +85,11 @@ class FlexCPU(BaseCPU):
     issue_bandwidth = Param.Int(0, "Number of instructions/micro-ops that can "
                                    "be issued each cycle.")
 
-    fetch_decision_latency = Param.Cycles(0, "Number of cycles each instruction takes "
-                                    "to get fetch decision.")
+    #fetch_decision_latency = Param.Cycles(0, "Number of cycles each instruction takes "
+    #                                "to get fetch decision.")
 
-    fetch_decision_bandwidth =  Param.Int(0, "Number of instructions/micro-ops that can "
-                                   "be issued each cycle.")
+   # fetch_decision_bandwidth =  Param.Int(0, "Number of instructions/micro-ops that can "
+    #                               "be issued each cycle.")
 
     thread_manged_latency = Param.Cycles(0, "Number of cycles each instruction takes "
                                     "to issue.")

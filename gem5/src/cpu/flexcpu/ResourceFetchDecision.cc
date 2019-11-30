@@ -58,7 +58,14 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 
 	    ThreadID chosen_tid;
 
-	    chosen_tid = 0; //Here add the autoencoder
+	    chosen_tid = rand() % cpu->numThreads; //Here add the autoencoder
+
+	    std::cout<<"Queues Status \n ~~~~~~~~~~~~~~~~~~\n";
+	    for (int i=0; i<cpu->numThreads; i++)
+	    {
+	    	std::cout<<"tid: "<<i<<" Q size: "<< map_requests[i].size()<<"  ||  ";
+	    }
+	    std::cout<<std::endl;
 
 	    while ((chosen_tid != -1) && !map_requests[chosen_tid].empty() && resourceAvailable())
 	    {

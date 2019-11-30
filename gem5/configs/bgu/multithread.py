@@ -96,13 +96,13 @@ def getOptions():
     parser.add_option(
                       "--req_per_thread",
                       type="int",
-                      default=4,
+                      default=8,
                       help = "number of outstaning memory request")     
 
     parser.add_option(
                       "--fetch_size",
                       type="int",
-                      default = 16,
+                      default = 32,
                       help = "fetch size from memory")        
 
     parser.add_option(
