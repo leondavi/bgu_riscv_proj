@@ -883,37 +883,20 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
 		auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst); //creating bguinfo packet instance
 		inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
 
-    	auto callback = [this,decode_result,pc,inst]()
-    	{
-    		 const shared_ptr<InflightInst> inst_ptr = inst.lock();
-    		    if (!inst_ptr || inst_ptr->isSquashed()) {
-    		        // No need to do anything for an instruction that has been squashed.
-    		        return;
-    		    }
-
-    	        DPRINTF(FlexCPUInstEvent,
-    	                "Decoded instruction (seq %d) - %#x : %s\n",
-    	                inst_ptr->seqNum(),
-    	                pc.instAddr(),
-    	                decode_result->disassemble(pc.instAddr()).c_str());
+        DPRINTF(FlexCPUInstEvent,
+                "Decoded instruction (seq %d) - %#x : %s\n",
+                inst_ptr->seqNum(),
+                pc.instAddr(),
+                decode_result->disassemble(pc.instAddr()).c_str());
 
 
-    	        inst_ptr->staticInst(decode_result);
-    	        inst_ptr->notifyDecoded();
+        inst_ptr->staticInst(decode_result);
+        inst_ptr->notifyDecoded();
 
-    	        auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst); //creating bguinfo packet instance
-    	       	inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
+        auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst); //creating bguinfo packet instance
+        inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
 
-    	        issueInstruction(inst_ptr);
-
-    	 };
-    	 weak_ptr<InflightInst> weak_inst = inst;
-    	    	 auto squasher = [weak_inst] {
-    	    	        shared_ptr<InflightInst> inst_ptr = weak_inst.lock();
-    	    	        return !inst_ptr || inst_ptr->isSquashed();
-    	    	    };
-
-		_cpuPtr->requestFetchDecision(callback,squasher,inst_ptr,this->threadId(),decode_result);
+        issueInstruction(inst_ptr);
     }
     else // If we still need to fetch more MachInsts.
 	{

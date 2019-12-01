@@ -347,6 +347,9 @@ protected:
 
 	class ResourceFetchDecision : public ResourceThreadsManaged
 	{
+    private:
+        ResourceThreadsManaged* IssueUnit;
+        Resource* ExecuteUnit;
 
 	public:
 
@@ -435,12 +438,11 @@ protected:
 	/// Resources for each unit.
 	Resource dataAddrTranslationUnit;
 	Resource executionUnit;
-	InstFetchResource instFetchUnit;
+    ResourceFetchDecision instFetchUnit;
 	Resource instAddrTranslationUnit;
 	Resource issueUnit;
 	MemoryResource memoryUnit;
 
-	ResourceFetchDecision fetchDecisionUnit;
 	ResourceThreadsManaged issueThreadUnit;
 
 	// BEGIN Internal state variables
