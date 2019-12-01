@@ -288,8 +288,8 @@ protected:
 		ResourceThreadsManaged(FlexCPU *cpu, Cycles latency, int bandwidth,
 				std::string _name, Enums::FlexPolicy threadPolicy,bool run_last = false) :
 				Resource(cpu, latency, bandwidth, _name, run_last),
-				attemptAllEvent(EventFunctionWrapper([this]{ attemptAllRequests(); },
-							                    name() + ".attemptAllThreads", false,
+			    attemptAllEvent(EventFunctionWrapper([this]{ attemptAllRequests(); },
+			                    name() + ".attemptAllThreads", false,
 							                    run_last ? Event::CPU_Tick_Pri : Event::Default_Pri)),
 				priority(0),
 				threadPolicy(threadPolicy)
@@ -302,24 +302,24 @@ protected:
 
 		};
 
-		/**
-		 * This overrides the event function wrapper
-		 */
 		ResourceThreadsManaged(FlexCPU *cpu, Cycles latency, int bandwidth,
-						EventFunctionWrapper attempt_all_events,
-						std::string _name, Enums::FlexPolicy threadPolicy = Enums::FlexPolicy::FlxRandom, bool run_last = false) :
+						std::string _name, Enums::FlexPolicy threadPolicy,
+						const std::function<void(void)> &child_func,
+						bool run_last = false) :
 						Resource(cpu, latency, bandwidth, _name, run_last),
-						attemptAllEvent(attempt_all_events),
+					    attemptAllEvent(EventFunctionWrapper(child_func,
+					    		_name + ".attemptAllThreads", false,
+									                    run_last ? Event::CPU_Tick_Pri : Event::Default_Pri)),
 						priority(0),
 						threadPolicy(threadPolicy)
 
-		{
+				{
 
-			for (ThreadID tid = 0; tid < cpu->threads.size(); tid++) {
-				map_requests[tid] = std::list<thread_attr>();
-			}
+					for (ThreadID tid = 0; tid < cpu->threads.size(); tid++) {
+						map_requests[tid] = std::list<thread_attr>();
+					}
 
-		};
+				};
 
 		void addRequest(ThreadID tid, std::shared_ptr<InflightInst> inst,
 				const std::function<bool()>& run_function);
@@ -344,6 +344,7 @@ protected:
 
 	}; //end ResourceThreadsManaged class
 
+
 	class ResourceFetchDecision : public ResourceThreadsManaged
 	{
 
@@ -366,15 +367,12 @@ protected:
 
 		} ;
 
-		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
+				ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
 						std::string _name, bool run_last = false) :
-							ResourceThreadsManaged(cpu, latency, bandwidth,
-													EventFunctionWrapper([this]{ attemptAllRequests(); },
-													name() + ".FetchDecision_attemptAllThreads", false,
-													run_last ? Event::CPU_Tick_Pri : Event::Default_Pri), _name,Enums::FlexPolicy::FlxRandom,run_last)
-
+							ResourceThreadsManaged(cpu, latency, bandwidth,_name,Enums::FlexPolicy::FlxRandom,
+									[this]{ attemptAllRequests(); },
+									run_last)
 				{
-
 
 				};
 
