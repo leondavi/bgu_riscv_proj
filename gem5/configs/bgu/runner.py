@@ -209,8 +209,20 @@ def runPostProcessing(rgr_file,rgr_wd,parse_list):
         result = parseResult(outdir,parse_list)
         result_list.append(l+result)
 
-    print result_list
+    key_list = key_list + ["status"]+parse_list
+    print_result(rgr_wd,header=key_list,data=result_list)
+
     return 
+
+# runPostProcessing()
+#==============================================================================
+def print_result(rgr_wd,header,data):
+    result_file = rgr_wd+"/result.csv"
+    p_result_file = open(result_file,"w")
+    p_result_file.write("{0}\n".format(",".join(header)).replace("-",""))
+    for line in data:
+        p_result_file.write("{0}\n".format(",".join(line)))
+    p_result_file.close()
 
 # parseResult
 #==============================================================================
