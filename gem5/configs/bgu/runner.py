@@ -101,7 +101,7 @@ def genRgrDirName(param_list):
             lcl.append("{0}={1}".format(flag,name))
         else:
             lcl.append(param_list[i])
-    return ("".join(lcl)).replace("--",":")[1:]
+    return ("".join(lcl)).replace("--",":").replace("=","-")[1:]
 
 # runSingleCmd
 #==============================================================================
@@ -109,6 +109,7 @@ def runSingleCmd(param):
     cmd = param["cmd"]
     wd = param["wd"]
     # TODO - depemdes on the version
+    print " ".join(["start execute:"]+cmd)+"\n\n"
     p = sub.Popen(" ".join(cmd),cwd=wd,stdout=sub.PIPE,stderr=sub.PIPE,shell=True)
     output, errors = p.communicate()
     return output,errors
@@ -119,7 +120,7 @@ def runCmd(cmd,wd,frame,clear=True):
     if clear:
         frame.delete('1.0', END)
     if DEBUG_MODE == 0:
-        output,errors = ({"cmd":cmd,"wd":wd})
+        output,errors = runSingleCmd({"cmd":cmd,"wd":wd})
         frame.insert('end',output)
         print errors # TODO - maybe 2 windows?
     else:
@@ -152,8 +153,8 @@ def runRgrCmd(cmd,wd,config_file,rgr_file,rgr_wd,cpus,frame):
         cmd_list.append({"cmd":new_cmd,"wd":wd})
  #       runCmd(new_cmd,wd,frame,clear=False)
     print cmd_list
-    #pool = Pool(processes=cpus, maxtasksperchild=1)
-    #results = pool.map(runSingleCmd, cmd_list)
+    pool = Pool(processes=int(cpus), maxtasksperchild=1)
+    results = pool.map(runSingleCmd, cmd_list)
 
 ###############################################################################
 ###############################################################################
