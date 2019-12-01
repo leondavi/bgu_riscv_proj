@@ -1,7 +1,9 @@
 
 [
 #["BINARY_DIR","/home/yossi/workspace/bgu_riscv_proj/mibench/rv64gcc_obj"],
-["num_threads",["1"]],
-["tp",["FlxRoundRobin"]],
+["num_threads",["1","2","4"]],
+["tp",["FlxRoundRobin","FlxRandom","FlxMax","FlxEvent","FlxCorse"]],
 ["trace_off","1"]
 ]
+
+

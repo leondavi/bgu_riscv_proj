@@ -6,7 +6,7 @@ from Tkinter import *
 import tkFileDialog # open dir/file with gui
 import ast # load file as variable
 import subprocess as sub
-from multiprocessing import Pool, Manager
+from multiprocessing import Pool, Manager,Value
 import threading
 import itertools
 #Const
@@ -19,6 +19,8 @@ DEBUG_FLAG = "--debug-flags="
 RGR_WILDCARD = "BINARY_DIR"
 RGR_DIR_FLAG = " --outdir="   
 RGR_TRACKER = "job_tracker.txt"
+
+STATS_FILE = "stats.txt"
 #Parameters
 param_dict = dict()
 # TODO
@@ -31,7 +33,7 @@ param_dict = dict()
 # 1. fixed PARAM_STORE  path, add abspath
 # 2. add debug flag - to avoid execution
 # 3. generic functions: checkPointer,runCmd 
-
+runStatus=dict()
 ###############################################################################
 ###############################################################################
 ###############################################################################
@@ -40,15 +42,17 @@ param_dict = dict()
 
 # checkPointer
 #==============================================================================
-def checkPointer(pointer,name,isdir = False):
+def checkPointer(pointer,name,isdir = False,verbose=True):
     if pointer =='':
-        print "Error: enter {0} pointer".format(name)
+        if verbose:
+            print "Error: enter {0} pointer".format(name)
         return 0
 
     if (    isdir and (not os.path.isdir(pointer))) or\
        (not isdir and (not os.path.isfile(pointer))):
-        print "Error: invalid {0} pointer({1})".format(name,pointer)
-        return 0
+       if verbose:
+            print "Error: invalid {0} pointer({1})".format(name,pointer)
+       return 0
     else:
         return 1
 
@@ -58,6 +62,7 @@ def checkPointer(pointer,name,isdir = False):
 # the value can be a single or a list.
 def genPermutation(list_of_lists):
     perm_list_of_lists = list()
+    key_list = list()
     # check the rgr is in correct format
     if type(list_of_lists) !=list:
         print "Error: RGR format not supported"
@@ -77,6 +82,8 @@ def genPermutation(list_of_lists):
             key = "binary"
             p = values[0]
             values =[p+"/"+s for s in os.listdir(values[0])]
+
+        key_list.append(key)
         # base is empty        
         if(not len(perm_list_of_lists)):
             for val in values:
@@ -88,7 +95,7 @@ def genPermutation(list_of_lists):
                     val = "--{0}={1}".format(key,val)
                     tmp_list.append(perm+[val])
             perm_list_of_lists = tmp_list
-    return perm_list_of_lists
+    return key_list,perm_list_of_lists
 
 # genDirName
 #==============================================================================
@@ -103,15 +110,55 @@ def genRgrDirName(param_list):
             lcl.append(param_list[i])
     return ("".join(lcl)).replace("--",":").replace("=","-")[1:]
 
+# genRgrCmd
+#==============================================================================
+def genRgrCmd(cmd,wd,config_file,rgr_file,rgr_wd):
+    # read file and create all rgr permutation
+    p = open(rgr_file)
+    _,permutation = genPermutation(ast.literal_eval(p.read()))
+    p.close()
+    if(permutation == None):
+        return None
+
+    cmd_list=list()
+    # 2. gen local cmd, modify output dir and append all parameters
+    for l in permutation:  
+        outdir_flag = RGR_DIR_FLAG+rgr_wd+"/"+genRgrDirName(l)
+        new_cmd = cmd + [outdir_flag,config_file]+l
+        outdir= outdir_flag.split("=")[1]
+        cmd_list.append({"cmd":new_cmd,"wd":wd,"rgr":"1","outdir":outdir})
+    return cmd_list
+
 # runSingleCmd
 #==============================================================================
 def runSingleCmd(param):
     cmd = param["cmd"]
     wd = param["wd"]
-    # TODO - depemdes on the version
-    print " ".join(["start execute:"]+cmd)+"\n\n"
-    p = sub.Popen(" ".join(cmd),cwd=wd,stdout=sub.PIPE,stderr=sub.PIPE,shell=True)
-    output, errors = p.communicate()
+    skip = 0
+    output=""
+    errors=""
+
+    if "rgr" in param:
+        if checkPointer(param["outdir"],"",isdir=True,verbose=False): 
+            skip = 1
+            runStatus["skip"].acquire(block=True)
+            runStatus["skip"].value +=1
+            runStatus["skip"].release()
+            print "Skip execute: {0} \n".format(" ".join(cmd))
+
+    if skip == 0:    
+        print "Start execute: {0} \n".format(" ".join(cmd))
+        # TODO - depemdes on the version
+        p = sub.Popen(" ".join(cmd),cwd=wd,stdout=sub.PIPE,stderr=sub.PIPE,shell=True)
+        output, errors = p.communicate()
+
+    if "rgr" in param:
+        runStatus["run"].acquire(block=True)
+        runStatus["run"].value +=1
+        runStatus["run"].release()
+        print "Total: {0}, Run: {1}, Skip: {2}".format(
+            runStatus["total"],runStatus["run"].value,runStatus["skip"].value)
+    
     return output,errors
     
 # runCmd
@@ -133,28 +180,56 @@ def runCmd(cmd,wd,frame,clear=True):
 def runRgrCmd(cmd,wd,config_file,rgr_file,rgr_wd,cpus,frame):
     frame.delete('1.0', END) # clean window
 
-    # read file and create all rgr permutation
-    p = open(rgr_file)
-    permutation = genPermutation(ast.literal_eval(p.read()))
-    p.close()
-    if(permutation == None):
+    cmd_list = genRgrCmd(cmd = cmd,wd = wd,config_file = config_file,
+        rgr_file=rgr_file,rgr_wd=rgr_wd)
+    if cmd_list == None:
         return
 
-    new_cmd = list()
-    cmd_list=list()
+    runStatus["total"] = len(cmd_list)
+    runStatus["run"] = Value('i', 0)
+    runStatus["skip"] = Value('i',0)
+
+    pool = Pool(processes=int(cpus), maxtasksperchild=1)
+    results = pool.map(runSingleCmd,cmd_list)
+
+# runPostProcessing()
+#==============================================================================
+def runPostProcessing(rgr_file,rgr_wd,parse_list):
+    p = open(rgr_file)
+    key_list,permutation = genPermutation(ast.literal_eval(p.read()))
+    p.close()
+    if(permutation == None):
+        return None
+
+    print "!"
+    result_list=list()
     # 2. gen local cmd, modify output dir and append all parameters
     for l in permutation:  
-        d = RGR_DIR_FLAG+rgr_wd+"/"+genRgrDirName(l)
-        new_cmd = cmd + [d,config_file]+l
-        # TODO maybe store it in differnt way {"cmd":new_cmd,"dir":d}
-        # in that way, I can check before execute if dir exists and skip
-        # fails/rerun will be handle in anther way maybe. it can indicate how
-        # many fails we got
-        cmd_list.append({"cmd":new_cmd,"wd":wd})
- #       runCmd(new_cmd,wd,frame,clear=False)
-    print cmd_list
-    pool = Pool(processes=int(cpus), maxtasksperchild=1)
-    results = pool.map(runSingleCmd, cmd_list)
+        outdir = rgr_wd+"/"+genRgrDirName(l)
+        result = parseResult(outdir,parse_list)
+        result_list.append(l+result)
+
+    print result_list
+    return 
+
+# parseResult
+#==============================================================================
+def parseResult(outdir,parse_list):
+    # chec that directory exists
+    print outdir
+    if not checkPointer(outdir,"",isdir=True,verbose=False):
+        return ["NOT_RUN"]
+        
+    p_file = outdir+"/"+STATS_FILE
+    if os.stat(p_file).st_size ==0:
+        return ["Failed"]
+
+    result = ["PASSED"]
+    
+    # TODO - loop over result
+    return result
+    
+
 
 ###############################################################################
 ###############################################################################
@@ -243,6 +318,12 @@ def exeRerun(top_dict):
 #==============================================================================
 def exeParse(top_dict):
     getParamDict(top_dict) # update all parameters
+    if(not checkPointer(param_dict["rgr_wd"],"rgr_wd",True)):
+        return
+    if(not checkPointer(param_dict["rgr_file"],"rgr_file",False)):
+        return
+    runPostProcessing(rgr_file=param_dict["rgr_file"],
+        rgr_wd=param_dict["rgr_wd"],parse_list=[])# TODO
     print "exeParse pressed"
 
 # exeClean
