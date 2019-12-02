@@ -879,10 +879,6 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
 
     if (decode_result) // If a complete instruction was decoded
     {
-    	inst_ptr->notifyFetchDecision();
-		auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst); //creating bguinfo packet instance
-		inf_pckg->send_packet_to_tracer(); // sending packet after performing the action function of callback
-
         DPRINTF(FlexCPUInstEvent,
                 "Decoded instruction (seq %d) - %#x : %s\n",
                 inst_ptr->seqNum(),

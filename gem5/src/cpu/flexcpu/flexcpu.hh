@@ -258,6 +258,8 @@ protected:
 		 * SimObject.
 		 */
 		void regStats();
+
+		virtual ~Resource() {};
 	};
 
 	class thread_attr
@@ -333,6 +335,8 @@ protected:
 		void clean_squashed();
 		int totalInstInQueues();
 
+		~ResourceThreadsManaged() {};
+
 	private:
 		ThreadID qid_select();
 		ThreadID roundRobinPriority();
@@ -348,42 +352,31 @@ protected:
 	class ResourceFetchDecision : public ResourceThreadsManaged
 	{
     private:
-        ResourceThreadsManaged* IssueUnit;
-        Resource* ExecuteUnit;
+        ResourceThreadsManaged* IssueUnit_ptr;
+        Resource* ExecuteUnit_ptr;
 
 	public:
 
-		class thread_attr_extended : public thread_attr
+		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
+				std::string _name, bool run_last = false) :
+					ResourceThreadsManaged(cpu, latency, bandwidth,_name,Enums::FlexPolicy::FlxRandom,
+							[this]{ attemptAllRequests(); },
+							run_last),
+							IssueUnit_ptr(cpu->get_issueResource()),
+							ExecuteUnit_ptr(cpu->get_executeResource())
 		{
-					StaticInstPtr decode_result;
 
-		public:
-					thread_attr_extended(std::shared_ptr<InflightInst> inst,
-							std::function<bool()> func,
-							StaticInstPtr decode_result_) :
-								thread_attr(inst,func), decode_result(decode_result_)
-					{
+		};
 
-					}
-
-					inline StaticInstPtr get_decode_res() { return this->decode_result; }
-
-		} ;
-
-				ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
-						std::string _name, bool run_last = false) :
-							ResourceThreadsManaged(cpu, latency, bandwidth,_name,Enums::FlexPolicy::FlxRandom,
-									[this]{ attemptAllRequests(); },
-									run_last)
-				{
-
-				};
-
-		void addRequest(StaticInstPtr decode_result, ThreadID tid,
+		void addRequest(ThreadID tid,
 				std::shared_ptr<InflightInst> inst,
 				const std::function<bool()>& run_function);
 
 		void attemptAllRequests();
+
+		~ResourceFetchDecision(){ };
+
+		bool resourceAvailable();
 
 	private:
 
@@ -506,6 +499,9 @@ protected:
 	// END Internal functions
 
 public:
+	inline ResourceThreadsManaged* get_issueResource() { return &(this->issueThreadUnit); };
+	inline Resource* get_executeResource() { return &(this->executionUnit); };
+
 	/**
 	 * Constructor.
 	 */

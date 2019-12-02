@@ -64,7 +64,6 @@ class InflightInst : public ExecContext,
         // Perhaps an independent rename stage may be useful. Most
         // functionality conventionally called rename is packaged with issue
         // right now.
-		FetchDecision,
         Issued, // Dependencies and results have been identified and recorded.
 		IssuedTid,
         Executing, // Request for execution sent, but waiting for results.
@@ -335,6 +334,10 @@ class InflightInst : public ExecContext,
     inline const TimingRecord& getTimingRecord() const
     { return _timingRecord; }
 
+    inline StaticInstPtr getStaticInstPtr()
+    {
+    	return this->instRef;
+    }
     // Note: due to the sequential nature of the status items, a later status
     //       naturally implies earlier statuses have been met. (e.g. A complete
     //       memory instruction must have already had its effective address
@@ -400,8 +403,6 @@ class InflightInst : public ExecContext,
      */
     void notifyEffAddrCalculated();
 
-
-    void notifyFetchDecision();
     /**
      * Notify this InflightInst that it has been decoded.
      */

@@ -13,7 +13,6 @@ void BGUInfoPackage::generate_attributes()
 {
 		attributes.resize(STG_TOTAL);
 		attributes[STG_FE] = {};//TODO
-		attributes[STG_FD] = {};
 		attributes[STG_DE] = {opcode_str};//TODO
 		attributes[STG_EX] = {opcode_str};//TODO
 		attributes[STG_IS] = {opcode_str};//TODO
@@ -66,6 +65,10 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 	//			Default attributes 				//
 	//*****************************************//
 	std::shared_ptr<InflightInst> inst = wk_ptr_inst.lock();
+	if (!inst)
+	{
+		return res_string;
+	}
 	//-------------- tid ---------------//
 	res_string.push_back(std::to_string(this->tid));
 	//-------------- status ---------------//
@@ -89,12 +92,6 @@ std::vector<std::string> BGUInfoPackage::inflightinst_to_string()
 		{
 			this->packet_status = STG_DE;
 			stage_vec_strings = decode_to_string(inst);
-			break;
-		}
-	case InflightInst::Status::FetchDecision :
-		{
-			this->packet_status = STG_FD;
-			stage_vec_strings = fetchdecision_to_string(inst);
 			break;
 		}
 	case InflightInst::Status::IssuedTid :
@@ -163,13 +160,6 @@ std::vector<std::string> BGUInfoPackage::execute_to_string(std::shared_ptr<Infli
 	//--------------opcode ---------------//
 	DissassembleFields disasm_fields(inst);
 	res.push_back(disasm_fields.get_opcode());
-
-	return res;
-}
-
-std::vector<std::string> BGUInfoPackage::fetchdecision_to_string(std::shared_ptr<InflightInst> inst)
-{
-	std::vector<std::string> res;
 
 	return res;
 }

@@ -48,16 +48,13 @@ FlexCPU::FlexCPU(FlexCPUParams* params):
 	dataAddrTranslationUnit(this, Cycles(0), 0, name() + ".dtbUnit"),
     executionUnit(this, params->execution_latency,
                   params->execution_bandwidth, name() + ".executionUnit"),
-    instFetchUnit(this, params->fetch_bandwidth, name() + ".iFetchUnit",
-    			params->fetchPolicy),
+    instFetchUnit(this, params->fetch_decision_latency ,params->fetch_bandwidth, name() + ".iFetchUnit"),
     instAddrTranslationUnit(this, Cycles(0),
                             0, name() + ".itbUnit"),
     issueUnit(this, params->issue_latency,
               params->issue_bandwidth, name() + ".issueUnit"),
     memoryUnit(this, params->mem_bandwidth, //Cycles(0),
                name() + ".memoryUnit"),
-    fetchDecisionUnit(this, params->fetch_decision_latency,
-				 params->fetch_decision_bandwidth, name() + ".fetchDecisionUnit"),
     issueThreadUnit(this, params->thread_manged_latency,
               params->thread_manged_bandwidth, name() + ".issueThreadUnit",
 			  params->issuePolicy),
@@ -392,20 +389,6 @@ FlexCPU::requestIssue(function<void()> callback_func,
 
     issueUnit.schedule();
 
-}
-
-void FlexCPU::requestFetchDecision(std::function<void()> callback_func,
-		std::function<bool()> is_squashed,
-		std::shared_ptr<InflightInst> inst, ThreadID tid, StaticInstPtr decoded_result)
-{
-	fetchDecisionUnit.addRequest(decoded_result,tid,inst,[callback_func,is_squashed]
-	  {
-		if (is_squashed()) return false;
-		callback_func();
-				return true;
-	  });
-
-	fetchDecisionUnit.schedule();
 }
 
 void
@@ -1176,7 +1159,6 @@ FlexCPU::regStats()
     issueUnit.regStats();
     memoryUnit.regStats();
 
-    fetchDecisionUnit.regStats(); // Added by David Leon
     issueThreadUnit.regStats(); // YE - need to be used
 
     memLatency

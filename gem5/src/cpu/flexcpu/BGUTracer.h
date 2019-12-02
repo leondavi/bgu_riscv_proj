@@ -160,7 +160,6 @@ private:
 			        "Inv", //0,
 			        "FE", //1 Dynamic instruction slot has been created but not yet filled. This is fetch
 			        "DE", //2 A StaticInst has been provided.
-					"FD", //Fetch Decision
 			        // Perhaps an independent rename stage may be useful. Most
 			        // functionality conventionally called rename is packaged with issue
 			        // right now.
@@ -189,7 +188,6 @@ private:
 		//Note: the order of attributes is important!
 		STG_FE,
 		STG_DE,
-		STG_FD,
 		STG_IS,
 		STG_EX,
 		STG_TOTAL,
@@ -222,7 +220,6 @@ private:
 
 	std::vector<std::string> inflightinst_to_string(); // works on pckg_attributes - needs wk_ptr_inst
 	std::vector<std::string> decode_to_string(std::shared_ptr<InflightInst> inst);//TODO  // works on pckg_attributes - needs wk_ptr_inst
-	std::vector<std::string> fetchdecision_to_string(std::shared_ptr<InflightInst> inst);//TODO  // works on pckg_attributes - needs wk_ptr_inst
 	std::vector<std::string> issue_to_string(std::shared_ptr<InflightInst> inst);//TODO  // works on pckg_attributes - needs wk_ptr_inst
 	std::vector<std::string> execute_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst
 	std::vector<std::string> fetch_to_string(std::shared_ptr<InflightInst> inst);//TODO // works on pckg_attributes - needs wk_ptr_inst

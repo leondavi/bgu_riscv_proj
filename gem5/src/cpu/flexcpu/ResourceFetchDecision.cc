@@ -13,10 +13,19 @@ using namespace std;
 using namespace TheISA;
 
 
-void FlexCPU::ResourceFetchDecision::addRequest(StaticInstPtr decode_result_, ThreadID tid,
+bool FlexCPU::ResourceFetchDecision::resourceAvailable()
+{
+    if (cpu->_instPort.blocked() || (cpu->issueThreadUnit.totalInstInQueues()>20)) {
+        return false;
+    } else {
+        return Resource::resourceAvailable();
+    }
+}
+
+void FlexCPU::ResourceFetchDecision::addRequest(ThreadID tid,
 		std::shared_ptr<InflightInst> inst,	const std::function<bool()>& run_function)
 {
-	thread_attr_extended new_attr(inst,run_function,decode_result_);
+	thread_attr new_attr(inst,run_function);
     map_requests[tid].push_back(new_attr);
     DPRINTF(FlexCPUCoreEvent, "Adding request on thread %d queue size: %d\n",
                                  tid,map_requests[tid].size());
