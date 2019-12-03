@@ -1118,15 +1118,15 @@ FlexCPU::Resource::schedule()
     }
 }
 
-// BGU added - end
-
 
 FlexCPU::MemoryResource::MemoryResource(FlexCPU *cpu,
     int bandwidth, std::string _name) :
     Resource(cpu, Cycles(0), bandwidth, _name)
 { }
 
-bool FlexCPU::MemoryResource::resourceAvailable()
+
+bool
+FlexCPU::MemoryResource::resourceAvailable()
 {
     if (cpu->_dataPort.blocked()) {
         return false;
@@ -1135,7 +1135,8 @@ bool FlexCPU::MemoryResource::resourceAvailable()
     }
 }
 
-void FlexCPU::regStats()
+void
+FlexCPU::regStats()
 {
     dataAddrTranslationUnit.regStats();
     executionUnit.regStats();

@@ -13,9 +13,9 @@ using namespace std;
 using namespace TheISA;
 
 
-bool FlexCPU::ResourceFetchDecision::resourceAvailable()
+bool FlexCPU::ResourceFetchDecision::resourceAvailable(ThreadID tid)
 {
-    if (cpu->_instPort.blocked() || (cpu->issueThreadUnit.totalInstInQueues()>20)) {
+    if (cpu->_instPort.blocked() || (cpu->issueThreadUnit.get_queue_size_by_threadid(tid)>20)) {
         return false;
     } else {
         return Resource::resourceAvailable();
@@ -31,9 +31,9 @@ void FlexCPU::ResourceFetchDecision::addRequest(ThreadID tid,
                                  tid,map_requests[tid].size());
 }
 
-
 void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 {
+
 	//	Cycles tmpLatency; // [YE] - moved back
 	    DPRINTF(FlexCPUCoreEvent, "Attempting all requests. %d on queue\n",
 	            map_requests[0].size());
@@ -65,18 +65,20 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 	                // another request.
 	    }
 
-	    ThreadID chosen_tid;
-
-	    chosen_tid = rand() % cpu->numThreads; //Here add the autoencoder
-
 	    std::cout<<"Queues Status \n ~~~~~~~~~~~~~~~~~~\n";
-	    for (int i=0; i<cpu->numThreads; i++)
-	    {
-	    	std::cout<<"tid: "<<i<<" Q size: "<< map_requests[i].size()<<"  ||  ";
-	    }
-	    std::cout<<std::endl;
+		for (int i=0; i < cpu->numThreads; i++)
+		{
+			std::cout<<"tid: "<<i<<" Q size: "<< map_requests[i].size()<<"  ||  ";
+		}
+		std::cout<<std::endl;
 
-	    while ((chosen_tid != -1) && !map_requests[chosen_tid].empty() && resourceAvailable())
+	    std::cout<<"before!!!"<<std::endl;
+	    ThreadID chosen_tid = get_min_qid();//rand() % cpu->numThreads; //Here add the autoencoder
+	    std::cout<<"min qid: "<<chosen_tid<<std::endl;
+
+
+
+	    while ((chosen_tid != InvalidThreadID) && !map_requests[chosen_tid].empty() && resourceAvailable(chosen_tid))
 	    {
 	    	DPRINTF(FlexCPUCoreEvent, "Running request. %d left in queue. "
 	    			"%d this cycle\n", map_requests[chosen_tid].size(), usedBandwidth);
@@ -104,4 +106,30 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 	        // right now.
 	        cpu->reschedule(&attemptAllEvent, next_time, true);
 	    }
+}
+
+
+//------------------------ Fetch Policies ------------------/
+
+
+ThreadID FlexCPU::ResourceFetchDecision::get_min_qid()
+{
+	ThreadID res = InvalidThreadID;
+
+	std::unordered_map<ThreadID, std::list<thread_attr>>* map_requests_ptr = this->IssueUnit_ptr->get_map_requests();
+
+	int min_size = std::numeric_limits<int>::max();
+
+	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
+	{
+        std::cout<<"tid: "<<tid<<" Issue queue: "<<(*map_requests_ptr)[tid].size()<<std::endl;
+
+        if(min_size > (*map_requests_ptr)[tid].size() && !this->map_requests[tid].empty())
+		{
+			res = tid;
+            min_size = (*map_requests_ptr)[tid].size();
+		}
+	}
+
+	return res;
 }

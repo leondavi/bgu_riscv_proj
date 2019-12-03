@@ -66,7 +66,7 @@ void FlexCPU::ResourceThreadsManaged::attemptAllRequests()
 
 	    chosen_tid = qid_select();
 
-	    while ((chosen_tid != -1) && !map_requests[chosen_tid].empty() && resourceAvailable())
+	    while ((chosen_tid != InvalidThreadID) && !map_requests[chosen_tid].empty() && resourceAvailable())
 	    {
 	    	DPRINTF(FlexCPUCoreEvent, "Running request. %d left in queue. "
 	    			"%d this cycle\n", map_requests[chosen_tid].size(), usedBandwidth);
@@ -125,7 +125,7 @@ bool FlexCPU::ResourceThreadsManaged::there_is_no_any_request()
 
 ThreadID FlexCPU::ResourceThreadsManaged::qid_select()
 {
-	ThreadID chosen_tid=-1;
+	ThreadID chosen_tid = InvalidThreadID;
 
 
 	switch (this->threadPolicy) {
@@ -166,7 +166,7 @@ ThreadID FlexCPU::ResourceThreadsManaged::roundRobinPriority()
     		return chosen_tid;
     	}
     }
-    chosen_tid = -1; // didnt found
+    chosen_tid = InvalidThreadID; // didnt found
     return chosen_tid;
 }
 
@@ -188,7 +188,7 @@ ThreadID FlexCPU::ResourceThreadsManaged::maxPriority()
     int curr = 0;
     int max = 0;
 
-	ThreadID chosen_tid=-1;
+	ThreadID chosen_tid = InvalidThreadID;
     for(ThreadID tid = 0; (tid < cpu->threads.size()); tid++)
     {
     	curr = map_requests[tid].size();
@@ -217,7 +217,7 @@ ThreadID FlexCPU::ResourceThreadsManaged::corsePriority()
     		return chosen_tid;
     	}
 	}
-	chosen_tid = -1;
+	chosen_tid = InvalidThreadID;
 	return chosen_tid;
 }
 
@@ -225,7 +225,7 @@ ThreadID FlexCPU::ResourceThreadsManaged::corsePriority()
 ThreadID FlexCPU::ResourceThreadsManaged::eventPriority()
 {
 
-    ThreadID chosen_tid;
+    ThreadID chosen_tid = InvalidThreadID;
 //    int is_mem_load;
 //    int is_mem_store;
 

@@ -298,7 +298,7 @@ protected:
 
 		{
 
-			for (ThreadID tid = 0; tid < cpu->threads.size(); tid++) {
+            for (ThreadID tid = 0; tid < cpu->numThreads; tid++) {
 				map_requests[tid] = std::list<thread_attr>();
 			}
 
@@ -317,7 +317,7 @@ protected:
 
 				{
 
-					for (ThreadID tid = 0; tid < cpu->threads.size(); tid++) {
+                    for (ThreadID tid = 0; tid < cpu->numThreads; tid++) {
 						map_requests[tid] = std::list<thread_attr>();
 					}
 
@@ -337,6 +337,15 @@ protected:
 
 		~ResourceThreadsManaged() {};
 
+		//getters
+
+		inline size_t get_queue_size_by_threadid(ThreadID tid) { tid = tid < cpu->numThreads ? tid : 0; return this->map_requests[tid].size();}//unsafe
+
+		std::unordered_map<ThreadID, std::list<thread_attr>>* get_map_requests()
+		{
+			return &(this->map_requests);
+		}
+
 	private:
 		ThreadID qid_select();
 		ThreadID roundRobinPriority();
@@ -354,16 +363,17 @@ protected:
     private:
         ResourceThreadsManaged* IssueUnit_ptr;
         Resource* ExecuteUnit_ptr;
-
+        size_t max_instissues_per_thread;
 	public:
 
 		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
-				std::string _name, bool run_last = false) :
+				std::string _name,size_t max_instissues_per_thread = 10, bool run_last = false) :
 					ResourceThreadsManaged(cpu, latency, bandwidth,_name,Enums::FlexPolicy::FlxRandom,
 							[this]{ attemptAllRequests(); },
 							run_last),
 							IssueUnit_ptr(cpu->get_issueResource()),
-							ExecuteUnit_ptr(cpu->get_executeResource())
+							ExecuteUnit_ptr(cpu->get_executeResource()),
+							max_instissues_per_thread(max_instissues_per_thread)
 		{
 
 		};
@@ -376,9 +386,11 @@ protected:
 
 		~ResourceFetchDecision(){ };
 
-		bool resourceAvailable();
+		bool resourceAvailable(ThreadID tid);
 
 	private:
+
+		ThreadID get_min_qid();
 
 	};
 

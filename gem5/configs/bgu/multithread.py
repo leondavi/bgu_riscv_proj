@@ -97,7 +97,7 @@ def getOptions():
     parser.add_option(
                       "--req_per_thread",
                       type="int",
-                      default=8,
+                      default=1,
                       help = "number of outstaning memory request")     
 
     parser.add_option(
