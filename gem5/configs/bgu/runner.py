@@ -1,103 +1,237 @@
 #!/usr/bin/python
 
-import os
+import os,time,re
 import Tkinter
 from Tkinter import *
 import tkFileDialog # open dir/file with gui
 import ast # load file as variable
 import subprocess as sub
-
+from multiprocessing import Pool, Manager
+import threading
+import itertools
 #Const
+DEBUG_MODE = 0
 GUI_VERSION = "1.0"
+PARAM_STORE = os.path.dirname(os.path.abspath(__file__))+"/params.txt"
 BUILD_CMD = "scons"
 GEM5_OPT = "build/RISCV/gem5.opt"
 DEBUG_FLAG = "--debug-flags="
-PARAM_STORE = os.path.dirname(__file__)+"/params.txt"
+RGR_WILDCARD = "BINARY_DIR"
+RGR_DIR_FLAG = " --outdir="   
+RGR_TRACKER = "job_tracker.txt"
 #Parameters
 param_dict = dict()
-
 # TODO
-# files to create
-# 1. gem5exe:
-#    - buildGem5(g5dir,build_flag)
-#    - runGem5(g5opt,g5opt_flags,script,scipt_flags,mode,frame)    
-#    - runParallelGem5(g5opt,g5opt_flags,rgr,coreNum,workdir,frame)    
-# 2. common
-#    - globalVars/Const
-#    - genPermutation(rgr)
 #    - parseResult(rgr)
 #    - genCSV()
 #    - runFromCSV()
 #    - cleanWorkdir(workdir)
 
+# progress
+# 1. fixed PARAM_STORE  path, add abspath
+# 2. add debug flag - to avoid execution
+# 3. generic functions: checkPointer,runCmd 
+
+###############################################################################
+###############################################################################
+###############################################################################
+# Common function
+#==============================================================================
+
+# checkPointer
+#==============================================================================
+def checkPointer(pointer,name,isdir = False):
+    if pointer =='':
+        print "Error: enter {0} pointer".format(name)
+        return 0
+
+    if (    isdir and (not os.path.isdir(pointer))) or\
+       (not isdir and (not os.path.isfile(pointer))):
+        print "Error: invalid {0} pointer({1})".format(name,pointer)
+        return 0
+    else:
+        return 1
+
+# genPermutation
+#==============================================================================
+# each list inside list is in length of 2, first is "key", second "Value",
+# the value can be a single or a list.
+def genPermutation(list_of_lists):
+    perm_list_of_lists = list()
+    # check the rgr is in correct format
+    if type(list_of_lists) !=list:
+        print "Error: RGR format not supported"
+        return None
+    
+    for lists in list_of_lists:
+        # check that each list is in correct format
+        if(type(lists)!=list ) or (len(lists) != 2):
+            print "Error: not supported format {0}".format(lists)
+            return None
+        key,values = lists
+        # convers to list the values
+        if type(values) != list:
+            values = [values]
+        
+        if key == RGR_WILDCARD:
+            key = "binary"
+            p = values[0]
+            values =[p+"/"+s for s in os.listdir(values[0])]
+        # base is empty        
+        if(not len(perm_list_of_lists)):
+            for val in values:
+                perm_list_of_lists.append(["--{0}={1}".format(key,val)])
+        else:
+            tmp_list = list()
+            for perm in perm_list_of_lists:
+                for val in values:
+                    val = "--{0}={1}".format(key,val)
+                    tmp_list.append(perm+[val])
+            perm_list_of_lists = tmp_list
+    return perm_list_of_lists
+
+# genDirName
+#==============================================================================
+def genRgrDirName(param_list):
+    lcl = list()
+    for i in range(len(param_list)):
+        if "binary" in param_list[i]:
+            flag,name = param_list[i].split("=")
+            name = name.split("/")[-1].split(".")[0]
+            lcl.append("{0}={1}".format(flag,name))
+        else:
+            lcl.append(param_list[i])
+    return ("".join(lcl)).replace("--",":").replace("=","-")[1:]
+
+# runSingleCmd
+#==============================================================================
+def runSingleCmd(param):
+    cmd = param["cmd"]
+    wd = param["wd"]
+    # TODO - depemdes on the version
+    print " ".join(["start execute:"]+cmd)+"\n\n"
+    p = sub.Popen(" ".join(cmd),cwd=wd,stdout=sub.PIPE,stderr=sub.PIPE,shell=True)
+    output, errors = p.communicate()
+    return output,errors
+    
+# runCmd
+#==============================================================================
+def runCmd(cmd,wd,frame,clear=True):
+    if clear:
+        frame.delete('1.0', END)
+    if DEBUG_MODE == 0:
+        output,errors = runSingleCmd({"cmd":cmd,"wd":wd})
+        frame.insert('end',output)
+        print errors # TODO - maybe 2 windows?
+    else:
+        time.sleep(2)
+    frame.insert('end'," ".join(["done execute:"]+cmd)+"\n\n")
+    frame.see(END)
+
+# runRgrCmd
+#==============================================================================
+def runRgrCmd(cmd,wd,config_file,rgr_file,rgr_wd,cpus,frame):
+    frame.delete('1.0', END) # clean window
+
+    # read file and create all rgr permutation
+    p = open(rgr_file)
+    permutation = genPermutation(ast.literal_eval(p.read()))
+    p.close()
+    if(permutation == None):
+        return
+
+    new_cmd = list()
+    cmd_list=list()
+    # 2. gen local cmd, modify output dir and append all parameters
+    for l in permutation:  
+        d = RGR_DIR_FLAG+rgr_wd+"/"+genRgrDirName(l)
+        new_cmd = cmd + [d,config_file]+l
+        # TODO maybe store it in differnt way {"cmd":new_cmd,"dir":d}
+        # in that way, I can check before execute if dir exists and skip
+        # fails/rerun will be handle in anther way maybe. it can indicate how
+        # many fails we got
+        cmd_list.append({"cmd":new_cmd,"wd":wd})
+ #       runCmd(new_cmd,wd,frame,clear=False)
+    print cmd_list
+    pool = Pool(processes=int(cpus), maxtasksperchild=1)
+    results = pool.map(runSingleCmd, cmd_list)
+
+###############################################################################
+###############################################################################
+###############################################################################
+# buttun activation
+#==============================================================================
 
 # exeBuild
 #==============================================================================
 def exeBuild(top_dict):
+    build_cmd = [BUILD_CMD,GEM5_OPT]     
+
     # update all parameters
     getParamDict(top_dict) 
-
-    # check if gem5_dir exists and valid path
-    if param_dict["gem5_dir"] == '':
-        print "ERROR: enter gem5_dir path"
+    
+    # check if params exists and are ok
+    if(not checkPointer(param_dict["gem5_dir"],"gem5_dir",True)):
         return
-    if not os.path.isdir(param_dict["gem5_dir"]):
-        print "ERROR: invalid gem5_dir path"
-        return
-    build_cmd = [BUILD_CMD,GEM5_OPT]     
     if not param_dict["gem5_build_flag"] == '':
         build_cmd.append(param_dict["gem5_build_flag"])
+
     # Run command
-    p = sub.Popen(build_cmd,cwd=param_dict["gem5_dir"],
-        stdout=sub.PIPE,stderr=sub.PIPE)
-    output, errors = p.communicate()
-    top_dict["text"].delete('1.0', END)
-    top_dict["text"].insert('end',output)
-    top_dict["text"].insert('end'," ".join(["done execute:"]+build_cmd))
-    top_dict["text"].see(END)
-    print errors
+    runCmd(build_cmd,param_dict["gem5_dir"],top_dict["text"])
+
 
 # exeRun
 #==============================================================================
 def exeRun(top_dict):
-    # update all parameters
-    getParamDict(top_dict) 
-
-    # check if gem5_dir exists and valid path
-    if param_dict["gem5_dir"] == '':
-        print "ERROR: enter gem5_dir path"
-        return
-    if not os.path.isdir(param_dict["gem5_dir"]):
-        print "ERROR: invalid gem5_dir path"
-        return
     build_cmd = [GEM5_OPT]
+
+    # update all parameters
+    getParamDict(top_dict)
+
+    # check if params exists and are ok  
+    if(not checkPointer(param_dict["gem5_dir"],"gem5_dir",True)):
+        return    
     if not param_dict["gem5_opt_flag"] == '':
         build_cmd.append(DEBUG_FLAG+param_dict["gem5_opt_flag"])
-    if param_dict["config_file"] == '':
-        print "ERROR: enter config_file"
-        return
-    if not os.path.isfile(param_dict["config_file"]):
-        print "ERROR: invalid config_file path"
-        return
+    if(not checkPointer(param_dict["config_file"],"config_file",False)):
+        return    
     build_cmd.append(param_dict["config_file"]) 
     if not param_dict["config_flags"] == '':
         build_cmd +=param_dict["config_flags"].split(',')
    
     # Run command
-    p = sub.Popen(build_cmd,cwd=param_dict["gem5_dir"],
-        stdout=sub.PIPE,stderr=sub.PIPE)
-    output, errors = p.communicate()
-    top_dict["text"].delete('1.0', END)
-    top_dict["text"].insert('end',output)
-    top_dict["text"].insert('end'," ".join(["done execute:"]+build_cmd))
-    top_dict["text"].see(END)
-    print errors
+    runCmd(build_cmd,param_dict["gem5_dir"],top_dict["text"])
 
 # exeRegression
 #==============================================================================
 def exeRegression(top_dict):
-    getParamDict(top_dict) # update all parameters
-    print "exeRegression pressed"
+    build_cmd = [GEM5_OPT]
+
+    # update all parameters
+    getParamDict(top_dict)
+
+    # check if params exists and are ok  
+    if(not checkPointer(param_dict["gem5_dir"],"gem5_dir",True)):
+        return    
+    if not param_dict["gem5_opt_flag"] == '':
+        build_cmd.append(DEBUG_FLAG+param_dict["gem5_opt_flag"])
+    if(not checkPointer(param_dict["rgr_wd"],"rgr_wd",True)):
+        return
+    if(not checkPointer(param_dict["config_file"],"config_file",False)):
+        return    
+    if(not checkPointer(param_dict["rgr_file"],"rgr_file",False)):
+        return
+    if (param_dict["rgr_cpus"] == '') or\
+        (not param_dict["rgr_cpus"].isdigit()) :
+        print "Error: invalid cpus entry(must be int) ({0})".\
+            format(param_dict["rgr_cpus"] )
+        return
+
+    # Run command
+    runRgrCmd(cmd = build_cmd,wd = param_dict["gem5_dir"],
+        config_file=param_dict["config_file"], rgr_file=param_dict["rgr_file"],
+        rgr_wd=param_dict["rgr_wd"],cpus=param_dict["rgr_cpus"],
+        frame=top_dict["text"])
 
 # exeRerun
 #==============================================================================
@@ -117,15 +251,56 @@ def exeClean(top_dict):
     getParamDict(top_dict) # update all parameters
     print "exeClean pressed"
 
+# exeHelp
+#==============================================================================
+def exeHelp(top_dict):
+    frame = top_dict["text"]
+    s = "Help Menu:                                                         \n"\
+        "1.build                                                            \n"\
+        "  Requires: gem5_dir\n  Optional: gem5_build_flag                  \n"\
+        "  Exe: \"scons build/RISCV/gem5.opt <flags>\"                      \n"\
+        "2.run(single)                                                      \n"\
+        "  Requires: gem5_dir,config_file                                   \n"\
+        "  Optional: gem5_opt_flag,config_flags                             \n"\
+        "  Exe: \"build/RISCV/gem5.opt <opt_flags> config_file <config_flags>\"\n"\
+        "3.regression                                                       \n"\
+        "  Requires: gem5_dir,config_file,rgr_file,rgr_wd                   \n"\
+        "  Optional: gem5_opt_flag                                          \n"\
+        "  Exe: Create all rgr permutation and run them on config file.     \n"\
+        "       Each test result generated into rgr_wd directory, in case   \n"\
+        "       rgr permutation exists, the test will be skipped.           \n"\
+        "       The execution generate two file:                            \n"\
+        "         1. job tracker - all command that running                 \n"\
+        "         2. job status - generate report of test status            \n"\
+        "                         (optional: auto parse run[TBD])           \n"\
+        "4.rerun\n"\
+        "5.parse\n"\
+        "6.clean\n"
+    frame.delete('1.0', END)
+    frame.insert('end', s)
+    frame.see(END)
+
+# exeStop
+#==============================================================================
+def exeStop(top_dict):
+    pass
+
 # browseFunc
 #==============================================================================
 def browseFunc(entry_set,name):
-    if name == "gem5_dir":
+    if name == "gem5_dir" or name =="rgr_wd":
         name = tkFileDialog.askdirectory() # TODO-change to support dir
     else:
         name = tkFileDialog.askopenfilename() # TODO-change to support dir
     entry_set.delete(0, 'end')
     entry_set.insert(0,name)
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+# GUI functions
+#==============================================================================
 
 # getParamDict
 #==============================================================================
@@ -136,6 +311,9 @@ def getParamDict(top_dict):
         if "_button" in key:
             continue
         param_dict[key] = top_dict["main"][1][key][1]["entry"].get()
+    
+#    print param_dict["sendMail"]
+    
     p = open(PARAM_STORE,"w")
     p.write(str(param_dict))
     p.close()
@@ -204,33 +382,41 @@ def main():
                   ["gem5_opt_flag"  ,["label","entry"]          ],
                   ["config_file"    ,["label","entry","button"] ],
                   ["config_flags"   ,["label","entry"]          ],
-                  ["regression_file",["label","entry","button"] ],
-                  ["workdir"        ,["label","entry","button"] ],
+                  ["rgr_file"       ,["label","entry","button"] ],
+                  ["rgr_wd"         ,["label","entry","button"] ],
+                  ["rgr_cpus"       ,["label","entry"]          ],
                   ["post_parsing"   ,["label","entry"]          ]]
     top_dict = create_frame(top,top_dict,"main",main_frame)
    
-    button_list = ["build","run", "regression","rerun","parse","clean"]
+    button_list = ["help","build","run", "regression","rerun","parse","clean","stop"]
     for b in button_list:
         p_button = Button(top_dict["main"][0],text = b,
             command=lambda x = eval("exe"+b.capitalize()):x(top_dict))
         p_button.pack(side=LEFT)
         top_dict["main"][1][b+"_button"] = p_button
+    
+    sendMail = IntVar()
+    p_check = Checkbutton(top_dict["main"][0], text="sendMail",
+        var = sendMail,  onvalue = 1, offvalue = 0,  )
+    p_check.pack(side=RIGHT)
+    top_dict["main"][1]["check_button"] = p_check
+#    param_dict["sendMail"]  = sendMail.get() TODO
+
     setParamDict(top_dict)
 
     p_text = Text(top)
-    p_text.pack(side=LEFT,expand = True)
+    p_text.pack(side=LEFT,fill = BOTH,expand = True)
     p_scrollbar = Scrollbar(top)
     p_scrollbar.pack(side=RIGHT, fill=Y)
     p_text.config(yscrollcommand=p_scrollbar.set)
     p_scrollbar.config(command=p_text.yview)
     top_dict["text"] = p_text
 
+    #print top.winfo_children() 
     top.mainloop()
-   
-   
 
 #==============================================================
 # Must be used to set main
 if __name__ == '__main__':
-    main()
+    main()#!/usr/bin/python
 
