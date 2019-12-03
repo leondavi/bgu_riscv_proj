@@ -1119,28 +1119,14 @@ FlexCPU::Resource::schedule()
 }
 
 // BGU added - end
-bool
-FlexCPU::InstFetchResource::resourceAvailable()
-{
-    if (cpu->_instPort.blocked() || (cpu->issueThreadUnit.totalInstInQueues()>20)) {
-        return false;
-    } else {
-        return Resource::resourceAvailable();
-    }
-}
+
 
 FlexCPU::MemoryResource::MemoryResource(FlexCPU *cpu,
     int bandwidth, std::string _name) :
     Resource(cpu, Cycles(0), bandwidth, _name)
 { }
 
-FlexCPU::InstFetchResource::InstFetchResource(FlexCPU *cpu,
-    int bandwidth, std::string _name,Enums::FlexPolicy threadPolicy) :
-    ResourceThreadsManaged(cpu, Cycles(0), bandwidth, _name, threadPolicy, true)
-{ }
-
-bool
-FlexCPU::MemoryResource::resourceAvailable()
+bool FlexCPU::MemoryResource::resourceAvailable()
 {
     if (cpu->_dataPort.blocked()) {
         return false;
@@ -1149,8 +1135,7 @@ FlexCPU::MemoryResource::resourceAvailable()
     }
 }
 
-void
-FlexCPU::regStats()
+void FlexCPU::regStats()
 {
     dataAddrTranslationUnit.regStats();
     executionUnit.regStats();

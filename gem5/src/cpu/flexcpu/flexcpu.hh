@@ -382,15 +382,8 @@ protected:
 
 	};
 
-
 	// BGU added - end
 
-	class InstFetchResource: public ResourceThreadsManaged {
-	public:
-		InstFetchResource(FlexCPU *cpu, int bandwidth, std::string _name, Enums::FlexPolicy threadPolicy );
-	private:
-		bool resourceAvailable() override;
-	};
 
 	class MemoryResource: public Resource {
 	public:
