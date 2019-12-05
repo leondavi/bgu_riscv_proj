@@ -1,0 +1,12 @@
+[
+["BINARY_DIR"	,"/home/shlomo5/workspace/bgu_riscv_proj/mibench/rv64gcc_obj"],
+["num_threads"	,["1"]],
+["num_proc"		,["2"]],
+["size"			,["1","4","16","32","64"]],
+["assoc"		,["4"]],
+["l1Config"		,["0","1"]],
+["L0lineWidth"	,["4","8","16"]],
+["banks"		,["1","2","4","8"]],
+["bankBits"		,["14"]],
+["clusters"		,["1"]]
+]

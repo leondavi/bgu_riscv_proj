@@ -36,20 +36,20 @@ def initBankedCacheModule(args, cache_init, sys1Bus, sys2Bus, bankBits, intlvbit
 #=================================================================================================
 def getparseOptions():
     parser = argparse.ArgumentParser(description='RISCV multicore config options')
-#    group = parser.add_mutually_exclusive_group()
-    parser.add_argument('--num_threads',type=int   ,default=1          ,help='number of riscv threads (DUMMY for g5gui)')
-    parser.add_argument('--num_proc'   ,type=int   ,default=1          ,help='number of riscv cores')
-    parser.add_argument('--size'       ,type=int   ,default=64    ,help='l1 i cache size')
-    parser.add_argument('--latency'    ,type=int   ,default=2          ,help='l1 i cache latency')
-    parser.add_argument('--assoc'      ,type=int   ,default=4          ,help='l1 i cache association')
-    parser.add_argument('--l1Config'   ,type=int   ,default=0          ,help='L1 configuration (0 = private, 1 = shared, else = no L1)')
-    parser.add_argument('--L0lineWidth',type=int   ,default=4          ,help='Change line width of L0 (4, 8, 16)')
-    parser.add_argument('--banks'      ,type=int   ,default=1          ,help='Number of Banks in L1 cache')
-    parser.add_argument('--bankBits'   ,type=int   ,default=14         ,help='Bit Number choice in Banked L1 cache')
-    parser.add_argument('--clusters'   ,type=int   ,default=1          ,help='Number of Clusters in system')
-    parser.add_argument('--binary'     ,type=str   ,default="~/workspace/bgu_riscv_proj/gem5/AAI/benchmark-bin/fft_4096",help='Work load - Execute code')
+    group = parser.add_mutually_exclusive_group()
+    parser.add_argument('-t'    ,'--num-threads',type=int   ,default=1          ,help='number of riscv threads (DUMMY for g5gui)')
+    parser.add_argument('-n'    ,'--num_proc'   ,type=int   ,default=1          ,help='number of riscv cores')
+    parser.add_argument('-s'    ,'--size'       ,type=str   ,default='64 kB'    ,help='l1 i cache size')
+    parser.add_argument('-l'    ,'--latency'    ,type=int   ,default=2          ,help='l1 i cache latency')
+    parser.add_argument('-a'    ,'--assoc'      ,type=int   ,default=4          ,help='l1 i cache association')
+    parser.add_argument('-f'    ,'--file'       ,type=str   ,default="fft_4096" ,help='file to run')
+    group.add_argument('-ps'    ,'--l1Config'   ,type=int   ,default=0          ,help='L1 configuration (0 = private, 1 = shared, else = no L1)')
+    group.add_argument('-l0'    ,'--L0lineWidth',type=int   ,default=4          ,help='Change line width of L0 (4, 8, 16)')
+    group.add_argument('-ba'    ,'--banks'      ,type=int   ,default=1          ,help='Number of Banks in L1 cache')
+    group.add_argument('-bb'    ,'--bankBits'   ,type=int   ,default=14         ,help='Bit Number choice in Banked L1 cache')
+    group.add_argument('-c'     ,'--clusters'   ,type=int   ,default=1          ,help='Number of Clusters in system')
+    group.add_argument('-b'     ,'--binary'     ,type=str   ,default="~/workspace/bgu_riscv_proj/gem5/AAI/benchmark-bin",help='Execute code')
     args = parser.parse_args()
-    args.size = str(args.size)+ " kB"
     return args
 #=================================================================================================
 
@@ -67,7 +67,7 @@ def systemInit(args):
     
     system.cpu_voltage_domain = VoltageDomain()
     system.cpu_clk_domain = SrcClockDomain(clock = '1GHz',voltage_domain= system.cpu_voltage_domain)
-    multiprocess = [Process(cmd=args.binary,pid=100+i) for i in xrange(args.num_proc)]
+    multiprocess = [Process(cmd='AAI/benchmark-bin/' + args.file,pid=100+i) for i in xrange(args.num_proc)]
 #    multiprocess = [Process(cmd='AAI/benchmark-bin/' + args.file,pid=100+i) for i in xrange(args.num_proc)]
     system.l2bus = L2XBar(clk_domain = system.cpu_clk_domain)
     system.membus = SystemXBar()
@@ -280,16 +280,16 @@ def configCache(args, system):
 ######################################### simulate ###############################################
 #=================================================================================================
 def StartSim(args, system):
-    l1config = ["Private", "Shared", "no cache"]
+
     print ("#######################Begining Simulation!#########################################")
-    print ("with Argument:")
-    print ("Work Load: {},".format(args.binary))
-    print ("Processors: {},".format(args.num_proc))
-    print ("Cache Size: {},".format(args.size))
-    print ("L1 config: {},".format(l1config[args.l1Config]))
-    print ("L0 Width: {},".format(args.L0lineWidth))
+    print ("with Argumnet:")
+    print ("Work Load: {}:".format(args.file))
+    print ("Processors: {}:".format(args.num_proc))
+    print ("Cache Size: {}:".format(args.size))
+    print ("L1 config Private/Shared/No: {}:".format(args.l1Config))
+    print ("L0 Width: {}:".format(args.L0lineWidth))
     print ("Banks: {}, Bank Bit: {}".format(args.banks, args.bankBits))
-    print ("Clusters: {}".format(args.clusters))
+    print ("Clusters: {}:".format(args.clusters))
 
     root = Root(full_system = False , system = system)
 
@@ -298,7 +298,7 @@ def StartSim(args, system):
     exit_event = m5.simulate()
 
     print ('Exiting @ tick {} because {}'.format(m5.curTick() , exit_event.getCause()))
-    
+
     print ("#######################Simulation Done!#########################################")
 
 ############################################# main ###############################################

@@ -5,6 +5,26 @@ import m5
 from m5.objects import *
 from Caches import *
 
+"""
+This script enables a merged configuration to run multicore with "MinorCPU" RISCV.
+The script allows parameter changes as follow:
+_____________________________________________________________________________________________________________________________
+| Parameter		|	Description														|	Possible inputs		|	Units		|
+|---------------|-------------------------------------------------------------------|-----------------------|---------------|
+|* num_proc		| the number of processors (CPUs)									|	1, 2, 4, 8			|	Cores		|
+|* size			| the size of L1 instruction cache.									|	1, 4, 16, 32, 64	|	kB			|
+|* assoc		| the L1I$ associativity level.										|	1, 2, 4				|	Ways		|
+|* l1config		| L1 configuration: 0 for private, 1 for shared, else for no L1.	|	0, 1, 2				|	N/A			|
+|* L0lineWidth	| L0 buffer width in Bytes.											|	4, 8, 16			|	Bytes		|
+|* banks		| number of banks in L1I$											|	1, 2, 4, 8			|	Banks		|
+|* bankBits		| chosen bit for bank seperation.									|	8, 11, 14 (tested)	|	N/A			|
+|* clusters		| number of clusters in system.										|	1, 2, 4				|	clusters	|
+|* binary		| workload application												|	any compiled app.	|	full path	|
+|---------------------------------------------------------------------------------------------------------------------------|
+|	### NOTE: the system is configured only with the aformentioned params and will not work with other permutations! ###	|
+----------------------------------------------------------------------------------------------------------------------------|
+"""
+
 ##############################simple cache module initilization###################################
 #=================================================================================================
 def initCacheModule(args, cache_init, sys1Bus, sys2Bus):
@@ -37,7 +57,7 @@ def initBankedCacheModule(args, cache_init, sys1Bus, sys2Bus, bankBits, intlvbit
 def getparseOptions():
     parser = argparse.ArgumentParser(description='RISCV multicore config options')
 #    group = parser.add_mutually_exclusive_group()
-    parser.add_argument('--num_threads',type=int   ,default=1          ,help='number of riscv threads (DUMMY for g5gui)')
+    parser.add_argument('--num-threads',type=int   ,default=1          ,help='number of riscv threads (DUMMY for g5gui)')
     parser.add_argument('--num_proc'   ,type=int   ,default=1          ,help='number of riscv cores')
     parser.add_argument('--size'       ,type=int   ,default=64    ,help='l1 i cache size')
     parser.add_argument('--latency'    ,type=int   ,default=2          ,help='l1 i cache latency')
@@ -75,7 +95,7 @@ def systemInit(args):
     
     #cpu and dcache config
     for i in xrange(args.num_proc):
-    #core Configuration
+		#core Configuration
         system.cpu[i].fetch1LineSnapWidth = args.L0lineWidth
         system.cpu[i].fetch1LineWidth = args.L0lineWidth
         system.cpu[i].fetch2InputBufferSize = 1
@@ -85,7 +105,7 @@ def systemInit(args):
         system.cpu[i].executeIssueLimit = 1
         system.cpu[i].executeCommitLimit = 1
         system.cpu[i].executeInputBufferSize = 2
-    #dcache config
+		#dcache config
         system.cpu[i].dcache = L1DCache()
         system.cpu[i].dcache.connectCPU(system.cpu[i])
         system.cpu[i].dcache.connectBus(system.l2bus)
@@ -304,14 +324,15 @@ def StartSim(args, system):
 ############################################# main ###############################################
 #=================================================================================================
 def main():
-
+	# parse run input arguments:
     args = getparseOptions()
     # initialize system arguments:
     system = systemInit(args)
     # configure cache params:
     system = configCache(args, system)
-    # start Simulation: 
+    # start Simulation:
     StartSim(args, system)
 #=================================================================================================
+
+############## Calling main function ###################
 main()
-  
