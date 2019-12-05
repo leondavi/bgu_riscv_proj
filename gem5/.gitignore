@@ -1,4 +1,5 @@
 /build
 gem5_bgu.*
-
+.cproject
+/.settings
 /bin/
