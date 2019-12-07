@@ -388,6 +388,8 @@ protected:
 
 		bool resourceAvailable(ThreadID tid);
 
+		bool update_from_execution_unit(TheISA::PCState pc, bool branch_state);
+
 	private:
 
 		ThreadID get_min_qid();
@@ -506,6 +508,7 @@ protected:
 public:
 	inline ResourceThreadsManaged* get_issueResource() { return &(this->issueThreadUnit); };
 	inline Resource* get_executeResource() { return &(this->executionUnit); };
+	inline ResourceFetchDecision* get_FetchDecisionResource() { return &(this->instFetchUnit); }
 
 	/**
 	 * Constructor.

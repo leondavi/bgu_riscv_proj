@@ -108,6 +108,13 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 	    }
 }
 
+bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(TheISA::PCState pc, bool branch_state)
+{
+
+	std::cout<<"[ResourceFetchDecision] update received from exec unit: pc: "<<pc.instAddr()<<" taken: "<<branch_state<<std::endl;
+	return true;
+}
+
 
 //------------------------ Fetch Policies ------------------/
 

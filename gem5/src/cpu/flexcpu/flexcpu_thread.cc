@@ -768,6 +768,8 @@ FlexCPUThread::onExecutionCompleted(shared_ptr<InflightInst> inst_ptr,
     if (inst_ptr->staticInst()->isControl()) {
         // We must have our next PC now, since this branch has just resolved
 
+    	_cpuPtr->get_FetchDecisionResource()->update_from_execution_unit(inst_ptr->pcState(),inst_ptr->pcState().branching());
+
         if (_cpuPtr->hasBranchPredictor()) {
             // If a branch predictor has been set, then we need to check if
             // a prediction was made, squash instructions if incorrectly
