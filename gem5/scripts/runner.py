@@ -179,6 +179,8 @@ def runRgrCmd(cmd,wd,config_file,rgr_file,rgr_wd,cpus,frame):
     runStatus["run"] = Value('i', 0)
     runStatus["skip"] = Value('i',0)
 
+    print "Total: {0}, Run: {1}, Skip: {2}".format(
+         runStatus["total"],runStatus["run"].value,runStatus["skip"].value)
     pool = Pool(processes=int(cpus), maxtasksperchild=1)
     results = pool.map(runSingleCmd,cmd_list)
     runPostProcessing(rgr_file,rgr_wd,[])

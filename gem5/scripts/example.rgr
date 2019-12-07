@@ -1,9 +1,13 @@
 
 [
-#["BINARY_DIR","/home/yossi/workspace/bgu_riscv_proj/mibench/rv64gcc_obj"],
-["num_threads",["1","2","4"]],
-["tp",["FlxRoundRobin","FlxRandom","FlxMax","FlxEvent","FlxCorse"]],
-["trace_off","1"]
+["BINARY_DIR"   ,"/home/yossi/workspace/bgu_riscv_proj/mibench/rv64gcc_obj"     ],
+["num_threads"  ,["1","2"]                                                      ],
+["issue_policy" ,["FlxRoundRobin","FlxRandom","FlxMax","FlxEvent","FlxCorse"]   ],
+["fetch_policy" ,["FlxRoundRobin"]                                              ],
+["fetch_size"   ,["32"]                                                         ],
+["l1i_size"     ,["32kB"]                                                       ],
+["l1d_size"     ,["32kB"]                                                       ],
+["trace_off"    ,"1"]
 ]
 
 
