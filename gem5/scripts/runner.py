@@ -9,6 +9,9 @@ import subprocess as sub
 from multiprocessing import Pool, Manager,Value
 import threading
 import itertools
+import smtplib
+import datetime
+
 #Const
 DEBUG_MODE = 0
 GUI_VERSION = "1.0"
@@ -246,7 +249,33 @@ def printCSV(rgr_wd,header,data):
     p_result_file.close()
 
     
+# runClean
+#==============================================================================
+def runClean(rgr_file,rgr_wd):
+    p = open(rgr_file)
+    key_list,permutation = genPermutation(ast.literal_eval(p.read()))
+    p.close()
+    if(permutation == None):
+        return None
+   
+    for perm in permutation:  
+        outdir = rgr_wd+"/"+genRgrDirName(perm) # check dir exists
+        if not checkPointer(outdir,"",isdir=True,verbose=False): 
+            continue 
+        p_file = outdir+"/"+STATS_FILE
+        if os.stat(p_file).st_size ==0:
+            cmd = "rm -Rf {0}".format(outdir)
+            os.system(cmd)
 
+# sendMail2Me
+#==============================================================================
+def sendMail2Me(msg):
+    mail_to = param_dict["mail2me"]
+    print "Mail will be sent to: {0}".format(mail_to)
+    server = smtplib.SMTP_SSL('smtp.gmail.com',465)
+    server.login("auto.eni.yossi@gmail.com","autO1104")
+    server.sendmail("",mail_to,"Subject:runner\n\n{0}".format(msg))
+    server.close()
 
 ###############################################################################
 ###############################################################################
@@ -270,7 +299,11 @@ def exeBuild(top_dict):
 
     # Run command
     runCmd(build_cmd,param_dict["gem5_dir"],top_dict["text"])
-    print "exeBuild pressed"
+    
+    msg = "exeBuild pressed"
+    if not param_dict["mail2me"] == '':
+        sendMail2Me(msg)
+    print msg
 
 
 # exeRun
@@ -294,8 +327,12 @@ def exeRun(top_dict):
    
     # Run command
     runCmd(build_cmd,param_dict["gem5_dir"],top_dict["text"])
-    print "exeRun pressed"
 
+    msg = "exeRun pressed"
+    if not param_dict["mail2me"] == '':
+        sendMail2Me(msg)
+    print msg
+    
 # exeRegression
 #==============================================================================
 def exeRegression(top_dict):
@@ -326,7 +363,11 @@ def exeRegression(top_dict):
         config_file=param_dict["config_file"], rgr_file=param_dict["rgr_file"],
         rgr_wd=param_dict["rgr_wd"],cpus=param_dict["rgr_cpus"],
         frame=top_dict["text"])
-    print "exeRegression pressed"
+
+    msg = "exeRegression pressed"
+    if not param_dict["mail2me"] == '':
+        sendMail2Me(msg)
+    print msg
 
 # exeRerun
 #==============================================================================
@@ -339,7 +380,12 @@ def exeRerun(top_dict):
         return 
     # TODO - read CSV, key and valus, in key search t he location of status
     # for any status that not PASS generate the full command for regresion
-    print "exeRerun pressed"
+   
+    msg = "exeRerun pressed"
+    if not param_dict["mail2me"] == '':
+        sendMail2Me(msg)
+    print msg
+
 # exeParse
 #==============================================================================
 def exeParse(top_dict):
@@ -351,13 +397,21 @@ def exeParse(top_dict):
     parse_list = param_dict["post_parsing"].split(",")        
     runPostProcessing(rgr_file=param_dict["rgr_file"],
         rgr_wd=param_dict["rgr_wd"],parse_list=parse_list)
-    print "exeParse pressed"
+
 
 # exeClean
 #==============================================================================
 def exeClean(top_dict):
     getParamDict(top_dict) # update all parameters
-    print "exeClean pressed"
+    if(not checkPointer(param_dict["rgr_wd"],"rgr_wd",True)):
+        return
+    if(not checkPointer(param_dict["rgr_file"],"rgr_file",False)):
+        return
+    runClean(rgr_file=param_dict["rgr_file"],rgr_wd=param_dict["rgr_wd"])
+    msg = "exeClean pressed"
+    if not param_dict["mail2me"] == '':
+        sendMail2Me(msg)
+    print msg
 
 # exeHelp
 #==============================================================================
@@ -390,7 +444,8 @@ def exeHelp(top_dict):
         "       In additionin, extract post_parsing statisitcs from result. \n"\
         "6.clean-TBD                                                        \n"\
         "7.stop -TBD                                                      \n\n"\
-        "*sendMail-once execution done, send a mail-TBD                     \n"\
+        "*mail2me - In case exists, sends mail when command is done         \n"\
+        "           In regression mode, send evey X finshed                 \n"\
         "*config_flags,post_parsing are lists, can insert multiplale        \n"\
         " arguments using comma(,) as seperatore                            \n"
     frame.delete('1.0', END)
@@ -428,8 +483,6 @@ def getParamDict(top_dict):
         if "_button" in key:
             continue
         param_dict[key] = top_dict["main"][1][key][1]["entry"].get()
-    
-#    print param_dict["sendMail"]
     
     p = open(PARAM_STORE,"w")
     p.write(str(param_dict))
@@ -502,7 +555,10 @@ def main():
                   ["rgr_file"       ,["label","entry","button"] ],
                   ["rgr_wd"         ,["label","entry","button"] ],
                   ["rgr_cpus"       ,["label","entry"]          ],
-                  ["post_parsing"   ,["label","entry"]          ]]
+                  ["post_parsing"   ,["label","entry"]          ],
+                  ["mail2me"        ,["label","entry"]          ]
+                  ]
+
     top_dict = create_frame(top,top_dict,"main",main_frame)
    
     button_list = ["help","build","run", "regression","rerun","parse","clean","stop"]
@@ -511,14 +567,6 @@ def main():
             command=lambda x = eval("exe"+b.capitalize()):x(top_dict))
         p_button.pack(side=LEFT)
         top_dict["main"][1][b+"_button"] = p_button
-    
-    sendMail = IntVar()
-    p_check = Checkbutton(top_dict["main"][0], text="sendMail",
-        var = sendMail,  onvalue = 1, offvalue = 0,  )
-    p_check.pack(side=RIGHT)
-    top_dict["main"][1]["check_button"] = p_check
-#    param_dict["sendMail"]  = sendMail.get() TODO
-
     setParamDict(top_dict)
 
     p_text = Text(top)
