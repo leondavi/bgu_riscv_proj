@@ -26,6 +26,7 @@ STATS_FILE = "stats.txt"
 #Parameters
 param_dict = dict()
 runStatus=dict()
+time_stamp = datetime.datetime.now()
 
 ###############################################################################
 ###############################################################################
@@ -33,6 +34,17 @@ runStatus=dict()
 # Common function
 #==============================================================================
 
+# getTime
+#==============================================================================
+def getTime():
+    global time_stamp
+    now = datetime.datetime.now()
+    if (now.hour > (time_stamp.hour+6)%24):
+        time_stamp = datetime.datetime.now()        
+        return True
+    return False
+
+    
 # checkPointer
 #==============================================================================
 def checkPointer(pointer,name,isdir = False,verbose=True):
@@ -394,7 +406,10 @@ def exeParse(top_dict):
         return
     if(not checkPointer(param_dict["rgr_file"],"rgr_file",False)):
         return
-    parse_list = param_dict["post_parsing"].split(",")        
+    if not param_dict["post_parsing"] == '':    
+        parse_list = param_dict["post_parsing"].split(",")        
+    else:
+        parse_list = []
     runPostProcessing(rgr_file=param_dict["rgr_file"],
         rgr_wd=param_dict["rgr_wd"],parse_list=parse_list)
 
@@ -442,8 +457,11 @@ def exeHelp(top_dict):
         "  Exe: Based om rgr file check in rgr_wd which test run and what is\n"\
         "       there status:[UNKNOW,FAIL,PASS]                             \n"\
         "       In additionin, extract post_parsing statisitcs from result. \n"\
-        "6.clean-TBD                                                        \n"\
+        "6.clean                                                            \n"\
+        "  Requires: gem5_dir,config_file,rgr_file,rgr_wd                   \n"\
+        "  Exe: remove from regrisondir all those who failed                \n"\
         "7.stop -TBD                                                      \n\n"\
+        "8.load - Load runner session                                       \n"\
         "*mail2me - In case exists, sends mail when command is done         \n"\
         "           In regression mode, send evey X finshed                 \n"\
         "*config_flags,post_parsing are lists, can insert multiplale        \n"\
@@ -456,6 +474,17 @@ def exeHelp(top_dict):
 #==============================================================================
 def exeStop(top_dict):
     pass
+
+# exeLoad
+#==============================================================================
+def exeLoad(top_dict):
+   getParamDict(top_dict) # update all parameters
+
+   p_file = tkFileDialog.askopenfilename() 
+   setParamDict(top_dict,p_file)
+
+   msg = "exeLoad"
+   print msg
 
 # browseFunc
 #==============================================================================
@@ -491,10 +520,10 @@ def getParamDict(top_dict):
 # setParamDict()
 #==============================================================================
 # ReadParamDict
-def setParamDict(top_dict):
-    if not os.path.isfile(PARAM_STORE):
+def setParamDict(top_dict,p_file = PARAM_STORE):
+    if not os.path.isfile(p_file):
         return
-    p = open(PARAM_STORE)
+    p = open(p_file)
     data = ast.literal_eval(p.read())
     p.close()
     key_list = top_dict["main"][1].keys()
@@ -502,6 +531,7 @@ def setParamDict(top_dict):
         if "_button" in key:
             continue
         if key in data:
+            param_dict[key] = top_dict["main"][1][key][1]["entry"].delete(0,'end')
             param_dict[key] = top_dict["main"][1][key][1]["entry"].insert(0,data[key])
 
 # create frame
@@ -561,7 +591,7 @@ def main():
 
     top_dict = create_frame(top,top_dict,"main",main_frame)
    
-    button_list = ["help","build","run", "regression","rerun","parse","clean","stop"]
+    button_list = ["help","build","run", "regression","rerun","parse","clean","stop","load"]
     for b in button_list:
         p_button = Button(top_dict["main"][0],text = b,
             command=lambda x = eval("exe"+b.capitalize()):x(top_dict))
