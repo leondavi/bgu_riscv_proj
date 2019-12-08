@@ -108,7 +108,7 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 	    }
 }
 
-bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(shared_ptr<InflightInst> inst_ptr, TheISA::PCState pc, bool control,bool branch_state)
+bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(std::shared_ptr<InflightInst> inst_ptr, bool control,bool branch_state)
 {
 	//------- Stats update -------//
 	if(control && branch_state)
@@ -119,7 +119,7 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(shared_ptr<Infli
 	//----------------------------//
 
 	TheISA::PCState pc = inst_ptr->pcState();
-	StaticInstPtr inst_ptr = inst_ptr->staticInst();
+	StaticInstPtr cur_inst_ptr = inst_ptr->staticInst();
 	//std::cout<<"[ResourceFetchDecision] update received from exec unit: pc: "<<pc.instAddr()<<" taken: "<<branch_state<<std::endl;
 	return true;
 }
