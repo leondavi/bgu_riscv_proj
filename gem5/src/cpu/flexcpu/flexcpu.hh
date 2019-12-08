@@ -393,7 +393,7 @@ protected:
 
 		bool resourceAvailable(ThreadID tid);
 
-		bool update_from_execution_unit(TheISA::PCState pc, bool branch_state);
+		bool update_from_execution_unit(shared_ptr<InflightInst> inst_ptr,bool control = 0, bool branch_state = 0);
 
 		void regStats();
 

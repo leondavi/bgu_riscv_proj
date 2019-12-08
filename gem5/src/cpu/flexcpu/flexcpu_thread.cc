@@ -765,10 +765,11 @@ FlexCPUThread::onExecutionCompleted(shared_ptr<InflightInst> inst_ptr,
     auto inf_pckg = make_shared<tracer::BGUInfoPackage>(this->threadId(),inst_ptr); //creating bguinfo packet instance
     inf_pckg->send_packet_to_tracer();
 
+    bool control_inst = inst_ptr->staticInst()->isControl();
+	_cpuPtr->get_FetchDecisionResource()->update_from_execution_unit(inst_ptr,control_inst,inst_ptr->pcState().branching());
+
     if (inst_ptr->staticInst()->isControl()) {
         // We must have our next PC now, since this branch has just resolved
-
-    	_cpuPtr->get_FetchDecisionResource()->update_from_execution_unit(inst_ptr->pcState(),inst_ptr->pcState().branching());
 
         if (_cpuPtr->hasBranchPredictor()) {
             // If a branch predictor has been set, then we need to check if
