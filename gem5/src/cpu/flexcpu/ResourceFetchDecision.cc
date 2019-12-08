@@ -110,10 +110,33 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 
 bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(TheISA::PCState pc, bool branch_state)
 {
+	//------- Stats update -------//
+	if(branch_state)
+	{
+		numBranchesTaken++;
+	}
+	numOfCompleted++;
+	//----------------------------//
 
 	std::cout<<"[ResourceFetchDecision] update received from exec unit: pc: "<<pc.instAddr()<<" taken: "<<branch_state<<std::endl;
 	return true;
 }
+
+
+void FlexCPU::ResourceFetchDecision::regStats()
+{
+	Resource::regStats();
+	this->numBranchesTaken
+	        .name(name() + ".numBranchesTaken")
+	        .desc("Number of control instructions that were taken as counted in FetchDecisionUnit")
+	        ;
+
+	this->numOfCompleted.name(name() + ".numOfCompleted")
+	    	        .desc("Number of completed instructions")
+	    	        ;
+
+}
+
 
 
 //------------------------ Fetch Policies ------------------/

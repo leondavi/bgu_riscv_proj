@@ -366,6 +366,9 @@ protected:
         size_t max_instissues_per_thread;
 	public:
 
+        Stats::Scalar numBranchesTaken;
+        Stats::Scalar numOfCompleted;
+
 		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
 				std::string _name,size_t max_instissues_per_thread = 10, bool run_last = false) :
 					ResourceThreadsManaged(cpu, latency, bandwidth,_name,Enums::FlexPolicy::FlxRandom,
@@ -378,6 +381,8 @@ protected:
 
 		};
 
+
+
 		void addRequest(ThreadID tid,
 				std::shared_ptr<InflightInst> inst,
 				const std::function<bool()>& run_function);
@@ -389,6 +394,9 @@ protected:
 		bool resourceAvailable(ThreadID tid);
 
 		bool update_from_execution_unit(TheISA::PCState pc, bool branch_state);
+
+		void regStats();
+
 
 	private:
 
