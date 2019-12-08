@@ -65,16 +65,16 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 	                // another request.
 	    }
 
-	    std::cout<<"Queues Status \n ~~~~~~~~~~~~~~~~~~\n";
-		for (int i=0; i < cpu->numThreads; i++)
-		{
-			std::cout<<"tid: "<<i<<" Q size: "<< map_requests[i].size()<<"  ||  ";
-		}
-		std::cout<<std::endl;
-
-	    std::cout<<"before!!!"<<std::endl;
+//	    std::cout<<"Queues Status \n ~~~~~~~~~~~~~~~~~~\n";
+//		for (int i=0; i < cpu->numThreads; i++)
+//		{
+//			std::cout<<"tid: "<<i<<" Q size: "<< map_requests[i].size()<<"  ||  ";
+//		}
+//		std::cout<<std::endl;
+//
+//	    std::cout<<"before!!!"<<std::endl;
 	    ThreadID chosen_tid = get_min_qid();//rand() % cpu->numThreads; //Here add the autoencoder
-	    std::cout<<"min qid: "<<chosen_tid<<std::endl;
+//	    std::cout<<"min qid: "<<chosen_tid<<std::endl;
 
 
 
@@ -118,7 +118,7 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(TheISA::PCState 
 	numOfCompleted++;
 	//----------------------------//
 
-	std::cout<<"[ResourceFetchDecision] update received from exec unit: pc: "<<pc.instAddr()<<" taken: "<<branch_state<<std::endl;
+	//std::cout<<"[ResourceFetchDecision] update received from exec unit: pc: "<<pc.instAddr()<<" taken: "<<branch_state<<std::endl;
 	return true;
 }
 
@@ -152,7 +152,7 @@ ThreadID FlexCPU::ResourceFetchDecision::get_min_qid()
 
 	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
 	{
-        std::cout<<"tid: "<<tid<<" Issue queue: "<<(*map_requests_ptr)[tid].size()<<std::endl;
+        //TODO don't use cout std::cout<<"tid: "<<tid<<" Issue queue: "<<(*map_requests_ptr)[tid].size()<<std::endl;
 
         if(min_size > (*map_requests_ptr)[tid].size() && !this->map_requests[tid].empty())
 		{

@@ -403,10 +403,10 @@ FlexCPU::requestIssueTid(function<void()> callback_func,
 	});
 
 
-	for (ThreadID ii = 0; ii < threads.size(); ii++)
-	{
-		std::cout<<"TID : "<< ii <<" size :"<< issueThreadUnit.map_requests[ii].size()<<"\n";
-	}
+//	for (ThreadID ii = 0; ii < threads.size(); ii++)
+//	{
+//		std::cout<<"TID : "<< ii <<" size :"<< issueThreadUnit.map_requests[ii].size()<<"\n";
+//	} //TODO don't use cout
 
 	issueThreadUnit.schedule();
 }
