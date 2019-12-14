@@ -393,6 +393,10 @@ protected:
 
 			void push(hist_attr attr)
 			{
+				if (!history_table_.empty())
+				{
+					attr.set_delta_pc(history_table_.front().pc_);
+				}
 				while (history_table_.size() > t_size_)
 				{
 					history_table_.pop_back();
@@ -427,7 +431,7 @@ protected:
         HistoryTable hist_table;
 
         int dump_table = true; // for debug only
-        int dumping_counter = 50000;//for debug only
+        int dumping_counter = 10;//for debug only
         int table_counter = 0;//for debug only
 
 

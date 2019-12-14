@@ -125,8 +125,8 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(std::shared_ptr<
 	{
 		if (this->dumping_counter <= 0)
 		{
-			hist_table.dump_to_csv(simout.directory()+"/hist_tab_"+to_string(table_counter)+".csv");
-			dumping_counter = 100000;
+			hist_table.dump_to_csv(simout.directory()+"/hist_tab_ex_"+to_string(table_counter)+".csv");
+			dumping_counter = 100;
 			table_counter++;
 		}
 		dumping_counter--;
