@@ -414,10 +414,10 @@ protected:
 				std::ofstream myfile;
 				myfile.open(file_name);
 				std::list<hist_attr>::iterator it;
-				myfile<<"pc,dpc,m_inst"<<std::endl;
+				myfile<<"pc,dpc,m_inst,cname"<<std::endl;
 				for (it = history_table_.begin(); it != history_table_.end(); ++it)
 				{
-					myfile<<it->pc_<<","<<it->dpc_<<","<<it->machine_inst_<<std::endl;
+					myfile<<it->pc_<<","<<it->dpc_<<","<<it->machine_inst_<<","<<it->inst_name_<<std::endl;
 				}
 				myfile.close();
 			}
