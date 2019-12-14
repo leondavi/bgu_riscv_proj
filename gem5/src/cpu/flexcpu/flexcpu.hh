@@ -378,7 +378,7 @@ protected:
 			{
 
 			}
-			void set_delta_pc(Addr next_pc) { this->dpc_ = next_pc-pc_; }
+			void set_delta_pc(Addr next_pc) { this->dpc_ = next_pc > pc_ ? next_pc-pc_: pc_ - next_pc ; }
 
 		};
 
