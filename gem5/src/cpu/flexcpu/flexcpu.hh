@@ -35,6 +35,7 @@
 #include <list>
 #include <memory>
 #include <vector>
+#include <fstream>
 
 #include "cpu/base.hh"
 #include "cpu/flexcpu/flexcpu_thread.hh"
@@ -360,10 +361,77 @@ protected:
 
 	class ResourceFetchDecision : public ResourceThreadsManaged
 	{
+		struct hist_attr
+		{
+			Addr pc_;
+			TheISA::ExtMachInst machine_inst_;
+			uint64_t dpc_;//delta pc from next inst
+			std::string inst_name_;
+			Tick time_from_creation_;
+
+			hist_attr(std::shared_ptr<InflightInst> inst_ptr) :
+				pc_(inst_ptr->pcState().instAddr()),
+				machine_inst_(inst_ptr->staticInst()->machInst),
+				dpc_(0),
+				inst_name_(inst_ptr->staticInst()->getName()),
+				time_from_creation_(inst_ptr->getTimingRecord().creationTick)
+			{
+
+			}
+			void set_delta_pc(Addr next_pc) { this->dpc_ = next_pc-pc_; }
+
+		};
+
+		class HistoryTable
+		{
+			private:
+				uint32_t t_size_;
+			  	std::list<hist_attr> history_table_;
+
+			public:
+			HistoryTable(uint32_t t_size = 1000) : t_size_(t_size) {}
+
+			void push(hist_attr attr)
+			{
+				while (history_table_.size() > t_size_)
+				{
+					history_table_.pop_back();
+				}
+				history_table_.push_front(attr);
+			}
+
+			std::list<hist_attr>* get_history_table_ptr()
+			{
+				return &history_table_;
+			}
+
+			void dump_to_csv(std::string file_name)
+			{
+				std::ofstream myfile;
+				myfile.open(file_name);
+				std::list<hist_attr>::iterator it;
+				myfile<<"pc,dpc,m_inst"<<std::endl;
+				for (it = history_table_.begin(); it != history_table_.end(); ++it)
+				{
+					myfile<<it->pc_<<","<<it->dpc_<<","<<it->machine_inst_<<std::endl;
+				}
+				myfile.close();
+			}
+			uint32_t size() { return this->t_size_; }
+		};
+
     private:
         ResourceThreadsManaged* IssueUnit_ptr;
         Resource* ExecuteUnit_ptr;
         size_t max_instissues_per_thread;
+        HistoryTable hist_table;
+
+        int dump_table = true; // for debug only
+        int dumping_counter = 50000;//for debug only
+        int table_counter = 0;//for debug only
+
+
+
 	public:
 
         Stats::Scalar numBranchesTaken;
@@ -389,7 +457,7 @@ protected:
 
 		void attemptAllRequests();
 
-		~ResourceFetchDecision(){ };
+		~ResourceFetchDecision(){};
 
 		bool resourceAvailable(ThreadID tid);
 

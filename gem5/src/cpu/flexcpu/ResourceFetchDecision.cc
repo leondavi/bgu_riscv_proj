@@ -115,12 +115,38 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(std::shared_ptr<
 	{
 		numBranchesTaken++;
 	}
+	else //completed without taken branches
+	{
+		hist_table.push(hist_attr(inst_ptr));
+	}
 	numOfCompleted++;
+
+	if(dump_table)
+	{
+		if (this->dumping_counter <= 0)
+		{
+			hist_table.dump_to_csv(simout.directory()+"/hist_tab_"+to_string(table_counter)+".csv");
+			dumping_counter = 100000;
+			table_counter++;
+		}
+		dumping_counter--;
+	}
+
 	//----------------------------//
+
 
 	TheISA::PCState pc = inst_ptr->pcState();
 	StaticInstPtr cur_inst_ptr = inst_ptr->staticInst();
-	//std::cout<<"[ResourceFetchDecision] update received from exec unit: pc: "<<pc.instAddr()<<" taken: "<<branch_state<<std::endl;
+
+	Addr pc_val = inst_ptr->pcState().instAddr();
+	ExtMachInst machine_inst_val = inst_ptr->staticInst()->machInst;
+	std::string inst_name = inst_ptr->staticInst()->getName();
+	//Tick time_from_creation = inst_ptr->getTimingRecord().creationTick;
+
+	std::cout<<"[ResourceFetchDecision] update received from exec unit: pc: "<<pc_val<<
+			" inst mach: "<<machine_inst_val<<
+			" taken: "<<branch_state<<
+			" inst name: "<<inst_name<<std::endl;
 	return true;
 }
 
