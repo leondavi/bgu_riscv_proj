@@ -108,28 +108,40 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 	    }
 }
 
-bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(std::shared_ptr<InflightInst> inst_ptr, bool control,bool branch_state)
+bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std::shared_ptr<InflightInst> inst_ptr, bool control,bool branch_state)
 {
 	//------- Stats update -------//
+	hist_attr inst_attr(inst_ptr);
+	std::cout<<"------------------------\n"<<inst_attr.inst_name_<<std::endl;
+	std::cout<<"instr_attr_type: "<<inst_attr.get_inst_type()<<std::endl;
 	if(control && branch_state)
 	{
 		numBranchesTaken++;
 	}
 	else //completed without taken branches
 	{
-		hist_table.push(hist_attr(inst_ptr));
+//		hist_attr inst_attr(inst_ptr);
+//
+//	if((inst_attr.get_inst_type() == inst_attr.INST_TYPE_ELSE) ||
+//			(inst_attr.get_inst_type() == inst_attr.INST_TYPE_STORE)	)
+//	{
+//		std::cout<<"------------------------\n"<<inst_attr.inst_name_<<std::endl;
+//		int break_0 = 1;
+//		break_0++;
+//	}
+	hist_tables[tid].push(inst_attr);
 	}
 	numOfCompleted++;
 
-	if(dump_table)
+	if(dump_table_flag)
 	{
-		if (this->dumping_counter <= 0)
+		if (this->dumping_counter[tid] <= 0)
 		{
-			hist_table.dump_to_csv(simout.directory()+"/hist_tab_ex_"+to_string(table_counter)+".csv");
-			dumping_counter = 100;
-			table_counter++;
+			hist_tables[tid].dump_to_csv(simout.directory()+"/hist_tab_ex_"+to_string(tid)+"_"+to_string(table_counter[tid])+".csv");
+			dumping_counter[tid] = dump_interval;
+			table_counter[tid]++;
 		}
-		dumping_counter--;
+		dumping_counter[tid]--;
 	}
 
 	//----------------------------//

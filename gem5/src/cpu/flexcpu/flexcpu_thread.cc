@@ -766,7 +766,7 @@ FlexCPUThread::onExecutionCompleted(shared_ptr<InflightInst> inst_ptr,
     inf_pckg->send_packet_to_tracer();
 
     bool control_inst = inst_ptr->staticInst()->isControl();
-	_cpuPtr->get_FetchDecisionResource()->update_from_execution_unit(inst_ptr,control_inst,inst_ptr->pcState().branching());
+	_cpuPtr->get_FetchDecisionResource()->update_from_execution_unit(this->threadId(),inst_ptr,control_inst,inst_ptr->pcState().branching());
 
     if (inst_ptr->staticInst()->isControl()) {
         // We must have our next PC now, since this branch has just resolved
@@ -871,7 +871,7 @@ FlexCPUThread::onInstDataFetched(weak_ptr<InflightInst> inst,
     DPRINTF(FlexCPUThreadEvent, "onInstDataFetched(%#x)\n",
                                 TheISA::gtoh(fetch_data));
 
-    // Capure the PC state at the point of instruction retrieval.
+    // Capture the PC state at the point of instruction retrieval.
     TheISA::PCState pc = inst_ptr->pcState();
     Addr fetched_addr = (pc.instAddr() & BaseCPU::PCMask) + fetchOffset;
 

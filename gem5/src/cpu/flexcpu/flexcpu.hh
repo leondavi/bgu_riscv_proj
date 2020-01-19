@@ -363,23 +363,73 @@ protected:
 	{
 		struct hist_attr
 		{
+			enum {INST_TYPE_ELSE,INST_TYPE_LOAD,INST_TYPE_STORE,INST_TYPE_MULDIV,INST_TYPE_BRANCH};
 			Addr pc_;
 			TheISA::ExtMachInst machine_inst_;
 			uint64_t dpc_;//delta pc from next inst
 			std::string inst_name_;
 			Tick time_from_creation_;
+			bool is_compress;
 
 			hist_attr(std::shared_ptr<InflightInst> inst_ptr) :
 				pc_(inst_ptr->pcState().instAddr()),
 				machine_inst_(inst_ptr->staticInst()->machInst),
 				dpc_(0),
 				inst_name_(inst_ptr->staticInst()->getName()),
-				time_from_creation_(inst_ptr->getTimingRecord().creationTick)
+				time_from_creation_(inst_ptr->getTimingRecord().creationTick),
+				is_compress(false)
 			{
-
+				if(inst_name_.find("c_") != std::string::npos)
+				{
+					is_compress = true;
+				}
 			}
+
 			void set_delta_pc(Addr next_pc) { this->dpc_ = next_pc > pc_ ? next_pc-pc_: pc_ - next_pc ; }
 
+			uint32_t get_inst_type()
+			{
+				uint32_t res;
+				if(!is_compress)
+				{
+					uint64_t inst_bits = this->machine_inst_ & 0x7F;
+					switch (inst_bits)
+					{
+						case 3: {res = INST_TYPE_LOAD; break;}
+						case 35: {res = INST_TYPE_STORE; break;}
+						case 33: {res = INST_TYPE_MULDIV; break;}
+						default: {res = INST_TYPE_ELSE;}
+					}
+				}
+				else
+				{
+					uint64_t inst_bits_up = this->machine_inst_ & 0xE000;
+					uint64_t inst_bits_down = this->machine_inst_ & 0x3;
+					inst_bits_up = inst_bits_up >> 11;
+					uint64_t merged_bits = inst_bits_up | inst_bits_down;
+
+					switch (merged_bits)
+					{
+						case 4: {res = INST_TYPE_LOAD; break;}
+						case 8: {res = INST_TYPE_LOAD; break;}
+						case 9: {res = INST_TYPE_LOAD; break;}
+						case 12:{res = INST_TYPE_LOAD; break;}
+						case 13:{res = INST_TYPE_LOAD; break;}
+						case 20:{res = INST_TYPE_STORE; break;}
+						case 24:{res = INST_TYPE_STORE; break;}
+						case 28:{res = INST_TYPE_STORE; break;}
+						default: {res = INST_TYPE_ELSE;}
+					}
+//					switch (inst_bits)
+//					{
+//						case 3: {return INST_TYPE_LOAD;}
+//						case 35: {return INST_TYPE_STORE;}
+//						case 33: {return INST_TYPE_MULDIV;}
+//						default: {return INST_TYPE_ELSE;}
+//					}
+				}
+				return INST_TYPE_ELSE;
+			}
 		};
 
 		class HistoryTable
@@ -395,7 +445,7 @@ protected:
 			{
 				if (!history_table_.empty())
 				{
-					attr.set_delta_pc(history_table_.front().pc_);
+					history_table_.front().set_delta_pc(attr.pc_);
 				}
 				while (history_table_.size() > t_size_)
 				{
@@ -428,11 +478,12 @@ protected:
         ResourceThreadsManaged* IssueUnit_ptr;
         Resource* ExecuteUnit_ptr;
         size_t max_instissues_per_thread;
-        HistoryTable hist_table;
+        std::vector<HistoryTable> hist_tables; //table per each thread
 
-        int dump_table = true; // for debug only
-        int dumping_counter = 10;//for debug only
-        int table_counter = 0;//for debug only
+        bool dump_table_flag = false; // for debug only
+        std::vector<int> dumping_counter;//for debug only
+        std::vector<uint32_t> table_counter;//for debug only
+        const int dump_interval = 200;
 
 
 
@@ -450,7 +501,9 @@ protected:
 							ExecuteUnit_ptr(cpu->get_executeResource()),
 							max_instissues_per_thread(max_instissues_per_thread)
 		{
-
+			hist_tables.resize(cpu->numThreads);
+			dumping_counter.assign(cpu->numThreads,dump_interval);
+			table_counter.assign(cpu->numThreads,0);
 		};
 
 
@@ -465,7 +518,7 @@ protected:
 
 		bool resourceAvailable(ThreadID tid);
 
-		bool update_from_execution_unit(std::shared_ptr<InflightInst> inst_ptr,bool control = 0, bool branch_state = 0);
+		bool update_from_execution_unit(ThreadID tid,std::shared_ptr<InflightInst> inst_ptr,bool control = 0, bool branch_state = 0);
 
 		void regStats();
 
