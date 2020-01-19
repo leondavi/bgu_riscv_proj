@@ -111,24 +111,19 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std::shared_ptr<InflightInst> inst_ptr, bool control,bool branch_state)
 {
 	//------- Stats update -------//
-	hist_attr inst_attr(inst_ptr);
-	std::cout<<"------------------------\n"<<inst_attr.inst_name_<<std::endl;
-	std::cout<<"instr_attr_type: "<<inst_attr.get_inst_type()<<std::endl;
+
 	if(control && branch_state)
 	{
 		numBranchesTaken++;
 	}
 	else //completed without taken branches
 	{
-//		hist_attr inst_attr(inst_ptr);
-//
-//	if((inst_attr.get_inst_type() == inst_attr.INST_TYPE_ELSE) ||
-//			(inst_attr.get_inst_type() == inst_attr.INST_TYPE_STORE)	)
-//	{
-//		std::cout<<"------------------------\n"<<inst_attr.inst_name_<<std::endl;
-//		int break_0 = 1;
-//		break_0++;
-//	}
+		hist_attr inst_attr(inst_ptr);
+		switch(inst_attr.get_inst_type())
+		{
+			case inst_attr.INST_TYPE_LOAD: {this->numOfLoadInsts++; break;}
+			case inst_attr.INST_TYPE_STORE: {this->numOfStoreInsts++; break;}
+		}
 	hist_tables[tid].push(inst_attr);
 	}
 	numOfCompleted++;
@@ -173,6 +168,12 @@ void FlexCPU::ResourceFetchDecision::regStats()
 
 	this->numOfCompleted.name(name() + ".numOfCompleted")
 	    	        .desc("Number of completed instructions")
+	    	        ;
+	this->numOfLoadInsts.name(name() + ".numOfLoadInsts")
+	    	        .desc("Number of completed Load instructions")
+	    	        ;
+	this->numOfStoreInsts.name(name() + ".numOfStoreInsts")
+	    	        .desc("Number of completed store instructions")
 	    	        ;
 
 }

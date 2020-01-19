@@ -389,7 +389,7 @@ protected:
 
 			uint32_t get_inst_type()
 			{
-				uint32_t res;
+				uint32_t res = INST_TYPE_ELSE;
 				if(!is_compress)
 				{
 					uint64_t inst_bits = this->machine_inst_ & 0x7F;
@@ -428,7 +428,7 @@ protected:
 //						default: {return INST_TYPE_ELSE;}
 //					}
 				}
-				return INST_TYPE_ELSE;
+				return res;
 			}
 		};
 
@@ -490,6 +490,8 @@ protected:
 	public:
 
         Stats::Scalar numBranchesTaken;
+        Stats::Scalar numOfLoadInsts;
+        Stats::Scalar numOfStoreInsts;
         Stats::Scalar numOfCompleted;
 
 		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
