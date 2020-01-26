@@ -342,6 +342,9 @@ class InflightInst : public ExecContext,
     //       naturally implies earlier statuses have been met. (e.g. A complete
     //       memory instruction must have already had its effective address
     //       calculated)
+    inline bool isDecoded() const
+    { return status() >= Decoded; }
+
     inline bool isCommitted() const
     { return status() >= Committed; }
 

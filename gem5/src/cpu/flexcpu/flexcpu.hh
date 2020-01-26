@@ -464,10 +464,10 @@ protected:
 				std::ofstream myfile;
 				myfile.open(file_name);
 				std::list<hist_attr>::iterator it;
-				myfile<<"pc,dpc,m_inst,cname"<<std::endl;
+				myfile<<"pc,dpc,m_inst,inst_grp,cname"<<std::endl;
 				for (it = history_table_.begin(); it != history_table_.end(); ++it)
 				{
-					myfile<<it->pc_<<","<<it->dpc_<<","<<it->machine_inst_<<","<<it->inst_name_<<std::endl;
+					myfile<<it->pc_<<","<<it->dpc_<<","<<it->machine_inst_<<","<<it->get_inst_type()<<","<<it->inst_name_<<std::endl;
 				}
 				myfile.close();
 			}
@@ -479,11 +479,12 @@ protected:
         Resource* ExecuteUnit_ptr;
         size_t max_instissues_per_thread;
         std::vector<HistoryTable> hist_tables; //table per each thread
+        std::vector<HistoryTable> future_tables;
 
-        bool dump_table_flag = false; // for debug only
+        bool dump_table_flag = true; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
-        const int dump_interval = 200;
+        const int dump_interval = 100;
 
 
 
@@ -504,6 +505,7 @@ protected:
 							max_instissues_per_thread(max_instissues_per_thread)
 		{
 			hist_tables.resize(cpu->numThreads);
+			future_tables.resize(cpu->numThreads,HistoryTable(5));
 			dumping_counter.assign(cpu->numThreads,dump_interval);
 			table_counter.assign(cpu->numThreads,0);
 		};
@@ -527,6 +529,7 @@ protected:
 
 	private:
 
+		ThreadID threadid_by_autoencoder();
 		ThreadID get_min_qid();
 
 	};

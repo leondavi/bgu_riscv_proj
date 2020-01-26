@@ -73,7 +73,8 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 //		std::cout<<std::endl;
 //
 //	    std::cout<<"before!!!"<<std::endl;
-	    ThreadID chosen_tid = get_min_qid();//rand() % cpu->numThreads; //Here add the autoencoder
+
+	    ThreadID chosen_tid = threadid_by_autoencoder();//rand() % cpu->numThreads; //Here add the autoencoder
 //	    std::cout<<"min qid: "<<chosen_tid<<std::endl;
 
 
@@ -124,15 +125,18 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std
 			case inst_attr.INST_TYPE_LOAD: {this->numOfLoadInsts++; break;}
 			case inst_attr.INST_TYPE_STORE: {this->numOfStoreInsts++; break;}
 		}
-	hist_tables[tid].push(inst_attr);
+		hist_tables[tid].push(inst_attr);
 	}
 	numOfCompleted++;
 
+	tid = 0;
 	if(dump_table_flag)
 	{
 		if (this->dumping_counter[tid] <= 0)
 		{
 			hist_tables[tid].dump_to_csv(simout.directory()+"/hist_tab_ex_"+to_string(tid)+"_"+to_string(table_counter[tid])+".csv");
+			future_tables[tid].dump_to_csv(simout.directory()+"/future_tab_ex_"+to_string(tid)+"_"+to_string(table_counter[tid])+".csv");
+
 			dumping_counter[tid] = dump_interval;
 			table_counter[tid]++;
 		}
@@ -194,6 +198,37 @@ ThreadID FlexCPU::ResourceFetchDecision::get_min_qid()
 	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
 	{
         //TODO don't use cout std::cout<<"tid: "<<tid<<" Issue queue: "<<(*map_requests_ptr)[tid].size()<<std::endl;
+
+        if(min_size > (*map_requests_ptr)[tid].size() && !this->map_requests[tid].empty())
+		{
+			res = tid;
+            min_size = (*map_requests_ptr)[tid].size();
+		}
+	}
+
+	return res;
+}
+
+ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
+{
+	ThreadID res = InvalidThreadID;
+
+	std::unordered_map<ThreadID, std::list<thread_attr>>* map_requests_ptr = this->IssueUnit_ptr->get_map_requests();
+
+	int min_size = std::numeric_limits<int>::max();
+
+	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
+	{
+        //TODO don't use cout std::cout<<"tid: "<<tid<<" Issue queue: "<<(*map_requests_ptr)[tid].size()<<std::endl;
+
+		std::list<thread_attr>::iterator it;
+		for(it = (*map_requests_ptr)[tid].begin(); it != (*map_requests_ptr)[tid].end(); ++it)
+		{
+			if(it->inst->isDecoded())
+			{
+				future_tables[tid].push(hist_attr(it->inst));
+			}
+		}
 
         if(min_size > (*map_requests_ptr)[tid].size() && !this->map_requests[tid].empty())
 		{
