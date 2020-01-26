@@ -129,8 +129,7 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std
 	}
 	numOfCompleted++;
 
-	tid = 0;
-	if(dump_table_flag)
+	if(dump_table_flag && (tid==0))
 	{
 		if (this->dumping_counter[tid] <= 0)
 		{

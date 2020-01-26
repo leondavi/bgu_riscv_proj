@@ -398,6 +398,7 @@ protected:
 						case 3: {res = INST_TYPE_LOAD; break;}
 						case 35: {res = INST_TYPE_STORE; break;}
 						case 33: {res = INST_TYPE_MULDIV; break;}
+						case 99: {res = INST_TYPE_BRANCH; break;}
 						default: {res = INST_TYPE_ELSE;}
 					}
 				}
@@ -418,6 +419,10 @@ protected:
 						case 20:{res = INST_TYPE_STORE; break;}
 						case 24:{res = INST_TYPE_STORE; break;}
 						case 28:{res = INST_TYPE_STORE; break;}
+						case 21: {res = INST_TYPE_BRANCH; break;}
+						case 25: {res = INST_TYPE_BRANCH; break;}
+						case 29: {res = INST_TYPE_BRANCH; break;}
+
 						default: {res = INST_TYPE_ELSE;}
 					}
 //					switch (inst_bits)
@@ -484,7 +489,7 @@ protected:
         bool dump_table_flag = true; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
-        const int dump_interval = 100;
+        const int dump_interval = 100000;
 
 
 
