@@ -113,28 +113,29 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std
 {
 	//------- Stats update -------//
 
+	hist_attr inst_attr(inst_ptr);
 	if(control && branch_state)
 	{
+		inst_attr.set_branch_taken();
 		numBranchesTaken++;
 	}
-	else //completed without taken branches
+	else //not taken branch
 	{
-		hist_attr inst_attr(inst_ptr);
 		switch(inst_attr.get_inst_type())
 		{
 			case inst_attr.INST_TYPE_LOAD: {this->numOfLoadInsts++; break;}
 			case inst_attr.INST_TYPE_STORE: {this->numOfStoreInsts++; break;}
 		}
-		hist_tables[tid].push(inst_attr);
 	}
+	hist_tables[tid].push(inst_attr);
 	numOfCompleted++;
 
 	if(dump_table_flag && (tid==0))
 	{
 		if (this->dumping_counter[tid] <= 0)
 		{
-			hist_tables[tid].dump_to_csv(simout.directory()+"/hist_tab_ex_"+to_string(tid)+"_"+to_string(table_counter[tid])+".csv");
-			future_tables[tid].dump_to_csv(simout.directory()+"/future_tab_ex_"+to_string(tid)+"_"+to_string(table_counter[tid])+".csv");
+			hist_tables[tid].dump_to_csv(simout.directory()+"/histtab_tid_"+to_string(tid)+"_ctr_"+to_string(table_counter[tid])+".csv");
+			future_tables[tid].dump_to_csv(simout.directory()+"/futuretab_tid_"+to_string(tid)+"_ctr_"+to_string(table_counter[tid])+".csv");
 
 			dumping_counter[tid] = dump_interval;
 			table_counter[tid]++;

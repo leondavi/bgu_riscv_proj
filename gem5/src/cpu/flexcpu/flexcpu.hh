@@ -369,7 +369,9 @@ protected:
 			uint64_t dpc_;//delta pc from next inst
 			std::string inst_name_;
 			Tick time_from_creation_;
-			bool is_compress;
+			Tick tick_attr_was_written_;
+			bool is_compress_;
+			bool branch_taken_;
 
 			hist_attr(std::shared_ptr<InflightInst> inst_ptr) :
 				pc_(inst_ptr->pcState().instAddr()),
@@ -377,11 +379,21 @@ protected:
 				dpc_(0),
 				inst_name_(inst_ptr->staticInst()->getName()),
 				time_from_creation_(inst_ptr->getTimingRecord().creationTick),
-				is_compress(false)
+				tick_attr_was_written_(curTick()),
+				is_compress_(false),
+				branch_taken_(false)
 			{
 				if(inst_name_.find("c_") != std::string::npos)
 				{
-					is_compress = true;
+					is_compress_ = true;
+				}
+			}
+
+			void set_branch_taken()
+			{
+				if (get_inst_type() == INST_TYPE_BRANCH)
+				{
+					this->branch_taken_ = true;
 				}
 			}
 
@@ -390,7 +402,7 @@ protected:
 			uint32_t get_inst_type()
 			{
 				uint32_t res = INST_TYPE_ELSE;
-				if(!is_compress)
+				if(!is_compress_)
 				{
 					uint64_t inst_bits = this->machine_inst_ & 0x7F;
 					switch (inst_bits)
@@ -469,10 +481,13 @@ protected:
 				std::ofstream myfile;
 				myfile.open(file_name);
 				std::list<hist_attr>::iterator it;
-				myfile<<"pc,dpc,m_inst,inst_grp,cname"<<std::endl;
+				myfile<<"tick_rec,pc,dpc,m_inst,inst_grp,cname,br_taken"<<std::endl;
 				for (it = history_table_.begin(); it != history_table_.end(); ++it)
 				{
-					myfile<<it->pc_<<","<<it->dpc_<<","<<it->machine_inst_<<","<<it->get_inst_type()<<","<<it->inst_name_<<std::endl;
+					myfile<<it->tick_attr_was_written_<<","<<
+							it->pc_<<","<<it->dpc_<<","<<
+							it->machine_inst_<<","<<it->get_inst_type()<<","<<it->inst_name_;
+     				myfile<<","<<it->branch_taken_<<std::endl;
 				}
 				myfile.close();
 			}
@@ -489,7 +504,7 @@ protected:
         bool dump_table_flag = true; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
-        const int dump_interval = 100000;
+        const int dump_interval = 10000;
 
 
 
