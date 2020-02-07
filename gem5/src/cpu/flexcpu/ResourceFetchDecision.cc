@@ -111,9 +111,19 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 
 bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std::shared_ptr<InflightInst> inst_ptr, bool control,bool branch_state)
 {
-	//------- Stats update -------//
 
-	hist_attr inst_attr(inst_ptr);
+	//--- history table update ---//
+
+	Addr req_addr = inst_ptr->pcState().instAddr();
+	if(!map_requests[tid].empty())
+	{
+		thread_attr tid_attr = map_requests[tid].front();
+		req_addr = tid_attr.inst->pcState().instAddr();
+	}
+	hist_attr inst_attr(inst_ptr,req_addr);
+
+
+	//------- Stats update -------//
 	if(control && branch_state)
 	{
 		inst_attr.set_branch_taken();
@@ -226,7 +236,13 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 		{
 			if(it->inst->isDecoded())
 			{
-				future_tables[tid].push(hist_attr(it->inst));
+				Addr req_addr = it->inst->pcState().instAddr();
+				if(!map_requests[tid].empty())
+				{
+					thread_attr tid_attr = map_requests[tid].front();
+					req_addr = tid_attr.inst->pcState().instAddr();
+				}
+				future_tables[tid].push(hist_attr(it->inst,req_addr));
 			}
 		}
 

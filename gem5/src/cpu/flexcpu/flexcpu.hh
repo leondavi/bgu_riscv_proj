@@ -367,16 +367,20 @@ protected:
 			Addr pc_;
 			TheISA::ExtMachInst machine_inst_;
 			uint64_t dpc_;//delta pc from next inst
+			Addr pc_req_;
+			uint64_t dpc_req_;
 			std::string inst_name_;
 			Tick time_from_creation_;
 			Tick tick_attr_was_written_;
 			bool is_compress_;
 			bool branch_taken_;
 
-			hist_attr(std::shared_ptr<InflightInst> inst_ptr) :
+			hist_attr(std::shared_ptr<InflightInst> inst_ptr,Addr req_addr_) :
 				pc_(inst_ptr->pcState().instAddr()),
 				machine_inst_(inst_ptr->staticInst()->machInst),
 				dpc_(0),
+				pc_req_(req_addr_),
+				dpc_req_(0),
 				inst_name_(inst_ptr->staticInst()->getName()),
 				time_from_creation_(inst_ptr->getTimingRecord().creationTick),
 				tick_attr_was_written_(curTick()),
@@ -387,6 +391,7 @@ protected:
 				{
 					is_compress_ = true;
 				}
+				set_delta_pc_req();
 			}
 
 			void set_branch_taken()
@@ -397,6 +402,7 @@ protected:
 				}
 			}
 
+			void set_delta_pc_req() { this->dpc_req_ = pc_ > pc_req_ ? pc_-pc_req_: pc_req_ - pc_ ; }
 			void set_delta_pc(Addr next_pc) { this->dpc_ = next_pc > pc_ ? next_pc-pc_: pc_ - next_pc ; }
 
 			uint32_t get_inst_type()
@@ -481,11 +487,11 @@ protected:
 				std::ofstream myfile;
 				myfile.open(file_name);
 				std::list<hist_attr>::iterator it;
-				myfile<<"tick_rec,pc,dpc,m_inst,inst_grp,cname,br_taken,comp"<<std::endl;
+				myfile<<"tick_rec,pc,dpc,pc_req_,dpc_req,m_inst,inst_grp,cname,br_taken,comp"<<std::endl;
 				for (it = history_table_.begin(); it != history_table_.end(); ++it)
 				{
 					myfile<<it->tick_attr_was_written_<<","<<
-							it->pc_<<","<<it->dpc_<<","<<
+							it->pc_<<","<<it->dpc_<<","<<it->pc_req_<<","<<it->dpc_req_<<","<<
 							it->machine_inst_<<","<<it->get_inst_type()<<","<<it->inst_name_;
      				myfile<<","<<it->branch_taken_<<","<<it->is_compress_<<std::endl;
 				}
