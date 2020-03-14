@@ -1,5 +1,5 @@
-#CC = /opt/riscv/bin/riscv64-unknown-elf-c++
-CC = gcc
+CC = /opt/riscv/bin/riscv64-unknown-elf-c++ -march=rv64g
+#CC = gcc
 FLAGS = -D DEBUG
 
 patricia: patricia.c patricia_test.c

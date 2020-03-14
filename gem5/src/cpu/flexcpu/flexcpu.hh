@@ -510,7 +510,7 @@ protected:
         bool dump_table_flag = true; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
-        const int dump_interval = 10000;
+        const int dump_interval = 20000;
 
 
 

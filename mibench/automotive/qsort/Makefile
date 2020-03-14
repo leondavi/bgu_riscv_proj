@@ -1,7 +1,8 @@
 FILE1 = qsort_small.c
 FILE2 = qsort_large.c
 
-CC = /opt/riscv/bin/riscv64-unknown-elf-c++ -march=rv64g
+CC = /opt/riscv/bin/riscv32-unknown-elf-c++
+#CC = /opt/riscv/bin/riscv64-unknown-elf-c++ -march=rv64g
 #cc = gcc
 
 all: qsort_small qsort_large

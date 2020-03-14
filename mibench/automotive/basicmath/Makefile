@@ -1,7 +1,8 @@
 FILE1 = basicmath_small.c   rad2deg.c  cubic.c   isqrt.c
 FILE2 = basicmath_large.c   rad2deg.c  cubic.c   isqrt.c
 
-CC = /opt/riscv/bin/riscv64-unknown-elf-c++ 
+CC = /opt/riscv/bin/riscv32-unknown-elf-c++
+#CC = /opt/riscv/bin/riscv64-unknown-elf-c++ -march=rv64g 
 #CC = gcc
 
 all: basicmath_small basicmath_large

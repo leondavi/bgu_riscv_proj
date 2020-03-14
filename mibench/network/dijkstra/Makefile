@@ -1,4 +1,5 @@
-CC = /opt/riscv/bin/riscv64-unknown-elf-c++
+CC = /opt/riscv/bin/riscv32-unknown-elf-c++
+#CC = /opt/riscv/bin/riscv64-unknown-elf-c++ -march=rv64g
 #CC = gcc
 FLAGS = -D DEBUG
 
