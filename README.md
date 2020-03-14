@@ -9,7 +9,7 @@ riscv architecture for gem5
 4. Goto gem5 directory inside the repository and run ```scons build/RISCV/gem5.opt -j4```
 5. Build [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain).
    Choose Installation (Newlib), in order to support the embedded riscv gem5 machine. 
-   Configure the toolchain with --with-arch=rv64g --disable-multilib will remove support of compressed instructions.
+   Configure the toolchain with ```--with-arch=rv64g --disable-multilib``` will remove support of compressed instructions.
 6. Cross compile using riscv gcc or g++ using the following commands: ```/opt/riscv/bin/riscv64-unknown-elf-gcc-8.2.0```
    or ```/opt/riscv/bin/riscv64-unknown-elf-g++```
 7. Install six module of python using pip: ```sudo pip install six```
