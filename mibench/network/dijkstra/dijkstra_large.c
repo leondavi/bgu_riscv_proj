@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NUM_NODES                          100
+#define NUM_NODES                          1000
 #define NONE                               9999
 
 struct _NODE
