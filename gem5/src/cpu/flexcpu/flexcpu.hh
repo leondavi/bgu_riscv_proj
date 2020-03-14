@@ -487,13 +487,13 @@ protected:
 				std::ofstream myfile;
 				myfile.open(file_name);
 				std::list<hist_attr>::iterator it;
-				myfile<<"tick_rec,pc,dpc,pc_req_,dpc_req,m_inst,inst_grp,cname,br_taken,comp"<<std::endl;
+				myfile<<"tick_rec,pc,dpc,pc_req_,dpc_req,m_inst,inst_grp,cname,br_taken"<<std::endl;
 				for (it = history_table_.begin(); it != history_table_.end(); ++it)
 				{
 					myfile<<it->tick_attr_was_written_<<","<<
 							it->pc_<<","<<it->dpc_<<","<<it->pc_req_<<","<<it->dpc_req_<<","<<
 							it->machine_inst_<<","<<it->get_inst_type()<<","<<it->inst_name_;
-     				myfile<<","<<it->branch_taken_<<","<<it->is_compress_<<std::endl;
+     				myfile<<","<<it->branch_taken_<<std::endl;
 				}
 				myfile.close();
 			}
