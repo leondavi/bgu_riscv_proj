@@ -4,12 +4,12 @@
 # To use NIST's modified SHA of 7/11/94, define USE_MODIFIED_SHA
 
 #CC = gcc
-CC = /opt/riscv/bin/riscv64-unknown-elf-c++
+CC = /opt/riscv/bin/riscv64-unknown-elf-c++ -march=rv64g
 
 CFLAGS = -O3 -Wall
 
 sha:	sha_driver.o sha.o
-	$(CC) -o $@ sha_driver.o sha.o ${CFLAGS}
+	$(CC) ${CFLAGS} -o $@ sha_driver.o sha.o 
 #	strip $@
 
 clean:

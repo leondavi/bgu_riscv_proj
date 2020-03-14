@@ -23,7 +23,7 @@ void sha_init(SHA_INFO *);
 void sha_update(SHA_INFO *, BYTE *, int);
 void sha_final(SHA_INFO *);
 
-void sha_stream(SHA_INFO *, FILE *);
+void sha_stream(SHA_INFO *);
 void sha_print(SHA_INFO *);
 
 #endif /* SHA_H */
