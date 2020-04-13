@@ -140,7 +140,7 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std
 	hist_tables[tid].push(inst_attr);
 	numOfCompleted++;
 
-	if(dump_table_flag && (tid==0))
+	if(dump_table_flag && (tid==0) && (table_counter[tid] < 3000))
 	{
 		if (this->dumping_counter[tid] <= 0)
 		{
