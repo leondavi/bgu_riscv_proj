@@ -8,7 +8,7 @@
 #ifndef SRC_CPU_FLEXCPU_AERED_H_
 #define SRC_CPU_FLEXCPU_AERED_H_
 
-#include "../cppSANN/src/include/Model.h"
+#include "../cppSANN/src/Models/include/Model.h"
 
 #define RISCV_INST_LENGTH 32
 #define RISCV_INST_LENGTH_COMPRESSED 16
