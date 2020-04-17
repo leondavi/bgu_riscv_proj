@@ -24,6 +24,7 @@ enum PIPE_STAGES{E_FETCH,E_ISSUE,E_EXECUTE,TOTAL_PIPELINE_STAGES,NULL_STAGE};
 #include <fstream>
 #include <unistd.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <sstream>
 

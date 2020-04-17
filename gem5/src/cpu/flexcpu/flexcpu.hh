@@ -44,6 +44,8 @@
 #include "enums/ThreadPolicy.hh"
 #include "params/FlexCPU.hh"
 
+#include "AERED.h"
+
 class FlexCPUThread;
 /**
  * The CPU class represents a core, which contains hardware capable of running
@@ -361,6 +363,8 @@ protected:
 
 	class ResourceFetchDecision : public ResourceThreadsManaged
 	{
+		#define PREFETCH_WIN_SIZE 5
+
 		struct hist_attr
 		{
 			enum {INST_TYPE_ELSE,INST_TYPE_LOAD,INST_TYPE_STORE,INST_TYPE_MULDIV,INST_TYPE_BRANCH};
@@ -498,6 +502,7 @@ protected:
 				myfile.close();
 			}
 			uint32_t size() { return this->t_size_; }
+			bool empty() { return this->history_table_.empty(); }
 		};
 
     private:
@@ -531,7 +536,7 @@ protected:
 							max_instissues_per_thread(max_instissues_per_thread)
 		{
 			hist_tables.resize(cpu->numThreads);
-			future_tables.resize(cpu->numThreads,HistoryTable(5));
+			future_tables.resize(cpu->numThreads,HistoryTable(PREFETCH_WIN_SIZE));
 			dumping_counter.assign(cpu->numThreads,dump_interval);
 			table_counter.assign(cpu->numThreads,0);
 		};
