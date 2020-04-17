@@ -1,0 +1,17 @@
+# -*- mode:python -*-
+# Authors: David Leon
+
+Import('*')
+
+
+if 'FlexCPU' in env['CPU_MODELS']:
+    
+    print("[cppSANN] Build operation was called")
+
+    Source('Layer.cpp')
+    Source('Model.cpp')
+    Source('Weigths.cpp')
+    Source('propagation.cpp')
+    Source('ModelLoader.cpp')
+
+
