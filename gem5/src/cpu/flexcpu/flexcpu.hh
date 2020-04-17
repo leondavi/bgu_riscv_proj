@@ -367,7 +367,7 @@ protected:
 
 		struct hist_attr
 		{
-			enum {INST_TYPE_ELSE,INST_TYPE_LOAD,INST_TYPE_STORE,INST_TYPE_MULDIV,INST_TYPE_BRANCH};
+			enum {INST_TYPE_ELSE,INST_TYPE_LOAD,INST_TYPE_STORE,INST_TYPE_MULDIV,INST_TYPE_BRANCH,INST_GROUP_TYPES_TOTAL};
 			Addr pc_;
 			TheISA::ExtMachInst machine_inst_;
 			uint64_t dpc_;//delta pc from next inst
@@ -517,6 +517,8 @@ protected:
         std::vector<uint32_t> table_counter;//for debug only
         const int dump_interval = 500;
 
+        AERED aered_inst;
+
 
 
 	public:
@@ -539,6 +541,8 @@ protected:
 			future_tables.resize(cpu->numThreads,HistoryTable(PREFETCH_WIN_SIZE));
 			dumping_counter.assign(cpu->numThreads,dump_interval);
 			table_counter.assign(cpu->numThreads,0);
+			uint8_t aered_win_size = 4;
+			aered_inst = AERED(aered_win_size,hist_attr::INST_GROUP_TYPES_TOTAL);
 		};
 
 

@@ -23,3 +23,17 @@ void AERED::convert_inst_to_vec(uint32_t inst,VectorInst &out_inst, bool compres
 		out_inst(i) = bit_val;
 	}
 }
+
+void AERED::convert_group_type_to_vec(uint8_t inst_type,VectorXi &out_inst)
+{
+	out_inst = VectorXi::Zero(1,this->num_of_inst_groups_);
+	if(inst_type < this->num_of_inst_groups_)
+	{
+		out_inst(inst_type);
+	}
+	else
+	{
+		out_inst (0) = 1;
+	}
+}
+
