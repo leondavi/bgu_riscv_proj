@@ -13,14 +13,18 @@ AERED::~AERED() {
 }
 
 
-void AERED::convert_inst_to_vec(uint32_t inst,VectorInst &out_inst, bool compressed)
+void AERED::convert_inst_to_vec(uint32_t inst,VectorXd &out_inst,std::vector<uint> bits_to_skip, bool compressed)
 {
-	uint8_t bits = compressed ? RISCV_INST_LENGTH_COMPRESSED : RISCV_INST_LENGTH;
+	uint bits = compressed ? RISCV_INST_LENGTH_COMPRESSED : RISCV_INST_LENGTH;
+	bits -= bits_to_skip.size();
 
-	for (uint8_t i = 0 ; i<bits; i++)
+	for (uint i = 0, it=0 ; i<bits; i++)
 	{
 		bool bit_val = (inst >> i) & 0x1;
-		out_inst(i) = bit_val;
+		if (std::find(bits_to_skip.begin(), bits_to_skip.end(), i) == bits_to_skip.end())
+		{
+			out_inst(it++) = bit_val;
+		}
 	}
 }
 

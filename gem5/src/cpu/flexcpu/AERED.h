@@ -18,7 +18,7 @@
 
 #define AERED_LEARNING_RATE_VAL 1e-5
 
-typedef Eigen::Matrix<double,1,RISCV_INST_LENGTH> VectorInst;
+#define DEFAULT_BITS_TO_SKIP {16,17,18,19}
 
 class AERED {
 
@@ -60,7 +60,7 @@ public:
 
 	virtual ~AERED();
 
-	 static void convert_inst_to_vec(uint32_t inst,VectorInst &out_inst, bool compressed = false);
+	 static void convert_inst_to_vec(uint32_t inst,VectorXd &out_inst,std::vector<uint> bits_to_skip = DEFAULT_BITS_TO_SKIP, bool compressed = false);
 	 void convert_group_type_to_vec(uint8_t inst_type,VectorXd &out_inst);
 
 };

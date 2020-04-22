@@ -254,7 +254,7 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 
     	if (!future_tables[tid].empty())
     	{
-    		VectorInst inst_vec;
+    		VectorXd inst_vec;
     		std::string inst_name = future_tables[tid].get_history_table_ptr()->front().inst_name_;
     		AERED::convert_inst_to_vec((uint32_t)future_tables[tid].get_history_table_ptr()->front().machine_inst_,inst_vec);
     		std::cout<<"name: "<<inst_name<<std::endl;
