@@ -20,6 +20,8 @@
 
 #define DEFAULT_BITS_TO_SKIP {16,17,18,19}
 
+#define EPSILON_PC_DIST 4
+
 class AERED {
 
 private:
@@ -60,9 +62,13 @@ public:
 
 	virtual ~AERED();
 
-	 static void convert_inst_to_vec(uint32_t inst,VectorXd &out_inst,std::vector<uint> bits_to_skip = DEFAULT_BITS_TO_SKIP, bool compressed = false);
-	 void convert_group_type_to_vec(uint8_t inst_type,VectorXd &out_inst);
 
+	void generate_ae_sample(uint32_t inst,uint8_t inst_type,uint32_t former_pc, uint32_t pc, uint32_t req_pc);
+
+	void convert_inst_to_vec(uint32_t inst,VectorXd &out_inst,std::vector<uint> bits_to_skip = DEFAULT_BITS_TO_SKIP, bool compressed = false);
+	void convert_group_type_to_vec(uint8_t inst_type,VectorXd &out_inst);
+
+	void convert_dpc_dreqpc(uint32_t former_pc,uint32_t pc, uint32_t req_pc,VectorXd &pc_and_req_pc);
 };
 
 #endif /* SRC_CPU_FLEXCPU_AERED_H_ */
