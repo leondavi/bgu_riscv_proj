@@ -17,7 +17,7 @@ void AERED::convert_inst_to_vec(uint32_t inst,VectorXd &out_inst,std::vector<uin
 {
 	uint bits = compressed ? RISCV_INST_LENGTH_COMPRESSED : RISCV_INST_LENGTH;
 	bits -= bits_to_skip.size();
-	out_inst(bits);
+	out_inst = VectorXd(bits);
 
 	for (uint i = 0, it=0 ; i<bits; i++)
 	{
@@ -31,7 +31,7 @@ void AERED::convert_inst_to_vec(uint32_t inst,VectorXd &out_inst,std::vector<uin
 
 void AERED::convert_group_type_to_vec(uint8_t inst_type,VectorXd &out_inst)
 {
-	out_inst = VectorXd::Zero(1,this->num_of_inst_groups_);
+	out_inst = VectorXd::Zero(this->num_of_inst_groups_);
 	if(inst_type < this->num_of_inst_groups_)
 	{
 		out_inst(inst_type);
@@ -49,12 +49,16 @@ void AERED::generate_ae_sample(uint32_t inst,uint8_t inst_type,uint32_t former_p
 	convert_group_type_to_vec(inst_type,inst_type_v);
 	convert_dpc_dreqpc(former_pc,pc,req_pc,pc_deltas_v);
 
-	VectorXd sample_row(1,inst_v.size(),inst_type_v.size(),pc_deltas_v.size());
+	VectorXd sample_row(inst_v.size()+inst_type_v.size()+pc_deltas_v.size());
 	sample_row<<inst_v,inst_type_v,pc_deltas_v;
+
+	std::cout<<"generated row: \n"<<std::endl;
+	std::cout<<sample_row.transpose()<<std::endl;
 }
 
 void AERED::convert_dpc_dreqpc(uint32_t former_pc,uint32_t pc, uint32_t req_pc,VectorXd &pc_and_req_pc)
 {
-	pc_and_req_pc(2) << abs(former_pc-pc)>EPSILON_PC_DIST,abs(pc-req_pc) > (this->win_size_*EPSILON_PC_DIST);
+	pc_and_req_pc = VectorXd(2);
+	pc_and_req_pc << (double)(uabs(former_pc,pc)>EPSILON_PC_DIST),(double)(uabs(pc,req_pc) > (this->win_size_*EPSILON_PC_DIST));
 }
 

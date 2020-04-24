@@ -33,6 +33,7 @@
 
 #include <functional>
 #include <list>
+#include <deque>
 #include <memory>
 #include <vector>
 #include <fstream>
@@ -463,7 +464,7 @@ protected:
 		{
 			private:
 				uint32_t t_size_;
-			  	std::list<hist_attr> history_table_;
+			  	std::deque<hist_attr> history_table_;
 
 			public:
 			HistoryTable(uint32_t t_size = 1000) : t_size_(t_size) {}
@@ -481,7 +482,7 @@ protected:
 				history_table_.push_front(attr);
 			}
 
-			std::list<hist_attr>* get_history_table_ptr()
+			std::deque<hist_attr>* get_history_table_ptr()
 			{
 				return &history_table_;
 			}
@@ -490,7 +491,7 @@ protected:
 			{
 				std::ofstream myfile;
 				myfile.open(file_name);
-				std::list<hist_attr>::iterator it;
+				std::deque<hist_attr>::iterator it;
 				myfile<<"tick_rec,pc,dpc,pc_req_,dpc_req,m_inst,inst_grp,cname,br_taken"<<std::endl;
 				for (it = history_table_.begin(); it != history_table_.end(); ++it)
 				{

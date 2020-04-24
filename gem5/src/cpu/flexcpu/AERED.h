@@ -69,6 +69,9 @@ public:
 	void convert_group_type_to_vec(uint8_t inst_type,VectorXd &out_inst);
 
 	void convert_dpc_dreqpc(uint32_t former_pc,uint32_t pc, uint32_t req_pc,VectorXd &pc_and_req_pc);
+
+	template <class UINT>
+	static UINT uabs(UINT a, UINT b) { return std::max(a,b)-std::min(a,b); }
 };
 
 #endif /* SRC_CPU_FLEXCPU_AERED_H_ */

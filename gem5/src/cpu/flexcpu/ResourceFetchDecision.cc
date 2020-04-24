@@ -255,7 +255,12 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
     	if (!future_tables[tid].empty())
     	{
     		AERED aered_test();
-    		aered_inst.generate_ae_sample(0,0,0,0,0);
+    		if (!future_tables[tid].get_history_table_ptr()->empty())
+    		{
+    		 //hist_attr former_attr = future_tables[tid].get_history_table_ptr()->at(1);
+    		 hist_attr attr = future_tables[tid].get_history_table_ptr()->at(0);
+    		 aered_inst.generate_ae_sample(attr.machine_inst_,attr.get_inst_type(),0,attr.pc_,attr.pc_req_);
+    		}
 //    		VectorXd inst_vec;
 //    		std::string inst_name = future_tables[tid].get_history_table_ptr()->front().inst_name_;
 //    		AERED::convert_inst_to_vec((uint32_t)future_tables[tid].get_history_table_ptr()->front().machine_inst_,inst_vec);
