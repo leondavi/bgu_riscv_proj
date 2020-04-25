@@ -254,18 +254,13 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 
     	if (!future_tables[tid].empty())
     	{
-    		AERED aered_test();
-    		if (!future_tables[tid].get_history_table_ptr()->empty())
-    		{
-    		 //hist_attr former_attr = future_tables[tid].get_history_table_ptr()->at(1);
-    		 hist_attr attr = future_tables[tid].get_history_table_ptr()->at(0);
-    		 aered_inst.generate_ae_sample(attr.machine_inst_,attr.get_inst_type(),0,attr.pc_,attr.pc_req_);
-    		}
-//    		VectorXd inst_vec;
-//    		std::string inst_name = future_tables[tid].get_history_table_ptr()->front().inst_name_;
-//    		AERED::convert_inst_to_vec((uint32_t)future_tables[tid].get_history_table_ptr()->front().machine_inst_,inst_vec);
-//    		std::cout<<"name: "<<inst_name<<std::endl;
-//    		std::cout<<inst_vec<<std::endl;
+    		std::vector<AERED::aered_input> aered_input_vec;
+			generate_aered_win(tid,aered_inst_.win_size(),aered_input_vec);
+			bool pred_res;
+			double err_val;
+			pred_res = aered_inst_.predict(aered_input_vec,err_val);
+
+			std::cout<<"tid: "<<tid<<" pred_res: "<<pred_res<<" err_val: "<<err_val<<std::endl;
     	}
 
 
@@ -314,5 +309,7 @@ void FlexCPU::ResourceFetchDecision::generate_aered_win(ThreadID tid, uint win_s
 		inputs_to_ae[pushed_items] = AERED::aered_input(attr->machine_inst_,attr->get_inst_type(),former_pc,attr->pc_,attr->pc_req_);
 		pushed_items++;
 	}
+
+	out_input_to_ae = inputs_to_ae;
 }
 

@@ -42,15 +42,15 @@ void AERED::convert_group_type_to_vec(uint8_t inst_type,VectorXd &out_inst)
 	}
 }
 
-void AERED::generate_ae_input(std::vector<aered_input> &input,VectorXd &output)
+void AERED::generate_ae_input(const std::vector<aered_input> &input,MatrixXd &output)
 {
-	output = VectorXd();
-	VectorXd tmp;
-	VectorXd tmp_merge;
-	for (aered_input &sample : input)
+	output = MatrixXd();
+	MatrixXd tmp;
+	MatrixXd tmp_merge;
+	for (const aered_input &sample : input)
 	{
 		tmp = generate_ae_sample(sample.inst_,sample.inst_type_,sample.former_pc_,sample.pc_,sample.req_pc_);
-		tmp_merge = VectorXd(tmp.size()+output.size());
+		tmp_merge = MatrixXd(1,tmp.cols()+output.cols());
 		tmp_merge << tmp,output;
 		output = tmp_merge;
 	}
@@ -78,13 +78,24 @@ void AERED::convert_dpc_dreqpc(uint32_t former_pc,uint32_t pc, uint32_t req_pc,V
 	pc_and_req_pc << (double)(uabs(former_pc,pc)>EPSILON_PC_DIST),(double)(uabs(pc,req_pc) > (this->win_size_*EPSILON_PC_DIST));
 }
 
-double AERED::predict(std::vector<aered_input> &input)
+
+/**
+ * Predicts and returns an error
+ */
+bool AERED::predict(const std::vector<aered_input> &input,double &prediction_val)
 {
-	VectorXd ae_input;
+	MatrixXd ae_input;
+	VectorXd y_pred;
 	generate_ae_input(input,ae_input);
 
-	//this->ae_ptr_->predict()
+	std::cout<<"ae input:"<<ae_input<<std::endl;
 
-	return 0;
+	y_pred = this->ae_ptr_->predict(ae_input);
+
+	prediction_val = (ae_input-y_pred).array().pow(2).sum();
+
+	ae_detector_.update(prediction_val);
+
+	return ae_detector_.predict(prediction_val);
 }
 

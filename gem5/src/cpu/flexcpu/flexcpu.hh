@@ -513,12 +513,12 @@ protected:
         std::vector<HistoryTable> hist_tables; //table per each thread
         std::vector<HistoryTable> future_tables;
 
-        bool dump_table_flag = true; // for debug only
+        bool dump_table_flag = false; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
         const int dump_interval = 500;
 
-        AERED aered_inst;
+        AERED aered_inst_;
         std::vector<double> aered_rare_event_score_;
 
 
@@ -545,7 +545,7 @@ protected:
 			dumping_counter.assign(cpu->numThreads,dump_interval);
 			table_counter.assign(cpu->numThreads,0);
 			uint8_t aered_win_size = 4;
-			aered_inst = AERED(aered_win_size,hist_attr::INST_GROUP_TYPES_TOTAL);
+			aered_inst_ = AERED(aered_win_size,hist_attr::INST_GROUP_TYPES_TOTAL);
 			aered_rare_event_score_.resize(cpu->numThreads);
 		};
 
