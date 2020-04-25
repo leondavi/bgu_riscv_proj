@@ -274,3 +274,45 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 
 	return res;
 }
+
+void FlexCPU::ResourceFetchDecision::generate_aered_win(ThreadID tid, uint win_size,std::vector<AERED::aered_input> &out_input_to_ae)
+{
+	uint pushed_items = 0;
+	std::deque<hist_attr> *current_inst_table = future_tables[tid].get_history_table_ptr();
+	std::deque<hist_attr> *hist_inst_table = hist_tables[tid].get_history_table_ptr();
+	std::vector<AERED::aered_input> inputs_to_ae;
+	inputs_to_ae.resize(win_size);
+
+
+	for (uint i=0; (i<current_inst_table->size()) && (pushed_items<win_size); i++)
+	{
+		hist_attr *attr = &current_inst_table->at(i);
+		uint32_t former_pc = 0;
+		if(i+1<current_inst_table->size())
+		{
+			former_pc = current_inst_table->at(i+1).pc_;
+		}
+		else if (!hist_inst_table->empty())
+		{
+			former_pc = hist_inst_table->front().pc_;
+		}
+
+
+		inputs_to_ae[pushed_items] = AERED::aered_input(attr->machine_inst_,attr->get_inst_type(),former_pc,attr->pc_,attr->pc_req_);
+		pushed_items++;
+	}
+
+	for (uint i=0; (i<hist_inst_table->size()) && (pushed_items<win_size); i++)
+	{
+		hist_attr *attr = &hist_inst_table->at(i);
+		uint32_t former_pc = 0;
+		if(i+1<current_inst_table->size())
+		{
+			former_pc = hist_inst_table->at(i+1).pc_;
+		}
+
+		inputs_to_ae[pushed_items] = AERED::aered_input(attr->machine_inst_,attr->get_inst_type(),former_pc,attr->pc_,attr->pc_req_);
+		pushed_items++;
+	}
+}
+

@@ -519,6 +519,8 @@ protected:
         const int dump_interval = 500;
 
         AERED aered_inst;
+        std::vector<double> aered_rare_event_score_;
+
 
 
 
@@ -544,6 +546,7 @@ protected:
 			table_counter.assign(cpu->numThreads,0);
 			uint8_t aered_win_size = 4;
 			aered_inst = AERED(aered_win_size,hist_attr::INST_GROUP_TYPES_TOTAL);
+			aered_rare_event_score_.resize(cpu->numThreads);
 		};
 
 
@@ -567,6 +570,8 @@ protected:
 
 		ThreadID threadid_by_autoencoder();
 		ThreadID get_min_qid();
+
+		void generate_aered_win(ThreadID tid, uint win_size,std::vector<AERED::aered_input> &out_input_to_ae);
 
 	};
 

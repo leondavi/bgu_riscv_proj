@@ -42,7 +42,21 @@ void AERED::convert_group_type_to_vec(uint8_t inst_type,VectorXd &out_inst)
 	}
 }
 
-void AERED::generate_ae_sample(uint32_t inst,uint8_t inst_type,uint32_t former_pc, uint32_t pc, uint32_t req_pc)
+void AERED::generate_ae_input(std::vector<aered_input> &input,VectorXd &output)
+{
+	output = VectorXd();
+	VectorXd tmp;
+	VectorXd tmp_merge;
+	for (aered_input &sample : input)
+	{
+		tmp = generate_ae_sample(sample.inst_,sample.inst_type_,sample.former_pc_,sample.pc_,sample.req_pc_);
+		tmp_merge = VectorXd(tmp.size()+output.size());
+		tmp_merge << tmp,output;
+		output = tmp_merge;
+	}
+}
+
+VectorXd AERED::generate_ae_sample(uint32_t inst,uint8_t inst_type,uint32_t former_pc, uint32_t pc, uint32_t req_pc)
 {
 	VectorXd inst_v,inst_type_v,pc_deltas_v;
 	convert_inst_to_vec(inst,inst_v);
@@ -52,13 +66,25 @@ void AERED::generate_ae_sample(uint32_t inst,uint8_t inst_type,uint32_t former_p
 	VectorXd sample_row(inst_v.size()+inst_type_v.size()+pc_deltas_v.size());
 	sample_row<<inst_v,inst_type_v,pc_deltas_v;
 
-	std::cout<<"generated row: \n"<<std::endl;
-	std::cout<<sample_row.transpose()<<std::endl;
+	//std::cout<<"generated row: \n"<<std::endl;
+	//std::cout<<sample_row.transpose()<<std::endl;
+
+	return sample_row;
 }
 
 void AERED::convert_dpc_dreqpc(uint32_t former_pc,uint32_t pc, uint32_t req_pc,VectorXd &pc_and_req_pc)
 {
 	pc_and_req_pc = VectorXd(2);
 	pc_and_req_pc << (double)(uabs(former_pc,pc)>EPSILON_PC_DIST),(double)(uabs(pc,req_pc) > (this->win_size_*EPSILON_PC_DIST));
+}
+
+double AERED::predict(std::vector<aered_input> &input)
+{
+	VectorXd ae_input;
+	generate_ae_input(input,ae_input);
+
+	//this->ae_ptr_->predict()
+
+	return 0;
 }
 
