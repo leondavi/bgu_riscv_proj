@@ -50,8 +50,15 @@ void AERED::generate_ae_input(const std::vector<aered_input> &input,MatrixXd &ou
 	for (const aered_input &sample : input)
 	{
 		tmp = generate_ae_sample(sample.inst_,sample.inst_type_,sample.former_pc_,sample.pc_,sample.req_pc_);
-		tmp_merge = MatrixXd(1,tmp.cols()+output.cols());
-		tmp_merge << tmp,output;
+		if(output.cols()>0)
+		{
+		tmp_merge = MatrixXd(1,tmp.rows()+output.cols());
+		tmp_merge << tmp.transpose(),output;
+		}
+		else
+		{
+			tmp_merge = tmp.transpose();
+		}
 		output = tmp_merge;
 	}
 }
