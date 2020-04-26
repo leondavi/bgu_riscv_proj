@@ -221,11 +221,7 @@ ThreadID FlexCPU::ResourceFetchDecision::get_min_qid()
 
 ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 {
-	ThreadID res = InvalidThreadID;
-
 	std::unordered_map<ThreadID, std::list<thread_attr>>* map_requests_ptr = this->IssueUnit_ptr->get_map_requests();
-
-	int min_size = std::numeric_limits<int>::max();
 
 	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
 	{
@@ -246,30 +242,51 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 			}
 		}
 
-        if(min_size > (*map_requests_ptr)[tid].size() && !this->map_requests[tid].empty())
-		{
-			res = tid;
-            min_size = (*map_requests_ptr)[tid].size();
-		}
-
     	if (!future_tables[tid].empty())
     	{
-    		/* AERED PART
     		std::vector<AERED::aered_input> aered_input_vec;
 			generate_aered_win(tid,aered_inst_.win_size(),aered_input_vec);
 			bool pred_res;
 			double err_val;
 			pred_res = aered_inst_.predict(aered_input_vec,err_val);
 
-			std::cout<<"tid: "<<tid<<" pred_res: "<<pred_res<<" err_val: "<<err_val<<std::endl;
-    		*/
+			aered_rare_event_score_[tid] = pred_res;
+
+			//std::cout<<"tid: "<<tid<<" pred_res: "<<pred_res<<" err_val: "<<err_val<<std::endl;
     	}
 
 
 	}
 
 
-	return res;
+	//scheduling part
+	ThreadID lowest_anomaly_tid;
+	double lowest_anomaly_value = 100000;
+	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
+	{
+		double score = (-0.25*tid_ae_holding_cycles_[tid])+aered_rare_event_score_[tid];
+		if(score < lowest_anomaly_value)
+		{
+			lowest_anomaly_value = score;
+			lowest_anomaly_tid = tid;
+		}
+	}
+
+	tid_ae_holding_cycles_[lowest_anomaly_tid] = 0;
+
+	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
+	{
+		if((tid != lowest_anomaly_tid)&& (!future_tables[tid].empty()))
+		{
+			tid_ae_holding_cycles_[tid]++;
+		}
+		else if (!future_tables[tid].empty())
+		{
+			tid_ae_holding_cycles_[tid] = 0;
+		}
+	}
+
+	return lowest_anomaly_tid;
 }
 
 void FlexCPU::ResourceFetchDecision::generate_aered_win(ThreadID tid, uint win_size,std::vector<AERED::aered_input> &out_input_to_ae)

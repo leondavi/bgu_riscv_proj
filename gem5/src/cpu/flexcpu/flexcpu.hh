@@ -520,6 +520,7 @@ protected:
 
         AERED aered_inst_;
         std::vector<double> aered_rare_event_score_;
+        std::vector<uint> tid_ae_holding_cycles_;
 
 
 
@@ -547,6 +548,7 @@ protected:
 			uint8_t aered_win_size = 4;
 			aered_inst_ = AERED(aered_win_size,hist_attr::INST_GROUP_TYPES_TOTAL);
 			aered_rare_event_score_.resize(cpu->numThreads);
+			tid_ae_holding_cycles_.resize(cpu->numThreads);
 		};
 
 
