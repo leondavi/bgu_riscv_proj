@@ -71,6 +71,7 @@ VectorXd AERED::generate_ae_sample(uint32_t inst,uint8_t inst_type,uint32_t form
 	convert_dpc_dreqpc(former_pc,pc,req_pc,pc_deltas_v);
 
 	VectorXd sample_row(inst_v.size()+inst_type_v.size()+pc_deltas_v.size());
+	//{mi_b_0-mi_b_15,mi_b_20-mi_b_31,g_0-g_4,dpc_b,dpc_s,dpc_req_b,dpc_req_s}
 	sample_row<<inst_v,inst_type_v,pc_deltas_v;
 
 	//std::cout<<"generated row: \n"<<std::endl;
@@ -81,8 +82,10 @@ VectorXd AERED::generate_ae_sample(uint32_t inst,uint8_t inst_type,uint32_t form
 
 void AERED::convert_dpc_dreqpc(uint32_t former_pc,uint32_t pc, uint32_t req_pc,VectorXd &pc_and_req_pc)
 {
-	pc_and_req_pc = VectorXd(2);
-	pc_and_req_pc << (double)(uabs(former_pc,pc)>EPSILON_PC_DIST),(double)(uabs(pc,req_pc) > (this->win_size_*EPSILON_PC_DIST));
+	//{dpc_b,dpc_s,dpc_req_b,dpc_req_s}
+	pc_and_req_pc = VectorXd(4);
+	pc_and_req_pc << (double)(uabs(former_pc,pc)>EPSILON_PC_DIST),(double)(uabs(former_pc,pc)<=EPSILON_PC_DIST),
+			         (double)(uabs(pc,req_pc) > (this->win_size_*EPSILON_PC_DIST)),(double)(uabs(pc,req_pc) <= (this->win_size_*EPSILON_PC_DIST));
 }
 
 
@@ -92,14 +95,19 @@ void AERED::convert_dpc_dreqpc(uint32_t former_pc,uint32_t pc, uint32_t req_pc,V
 bool AERED::predict(const std::vector<aered_input> &input,double &prediction_val)
 {
 	MatrixXd ae_input;
-	VectorXd y_pred;
+	MatrixXd y_pred;
 	generate_ae_input(input,ae_input);
 
-	std::cout<<"ae input:"<<ae_input<<std::endl;
-
-	y_pred = this->ae_ptr_->predict(ae_input);
+	this->ae_ptr_->predict(ae_input,y_pred);
 
 	prediction_val = (ae_input-y_pred).array().pow(2).sum();
+
+	std::stringstream ss;
+	for (const aered_input &inst : input){
+		ss<<"g:-"<<(int)inst.inst_type_<<" ";
+	}
+	std::cout<<ss.str()<< "err val: "<<prediction_val<<std::endl;
+
 
 	ae_detector_.update(prediction_val);
 

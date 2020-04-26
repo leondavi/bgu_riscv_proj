@@ -15,10 +15,12 @@
 
 #define AERED_DEFAULT_WIN_SIZE 5
 #define AERED_DEFAULT_NUM_OF_INST_GROUPS 5
+#define AERED_DEFAULT_NUM_OF_DELTAS 4
 
 #define AERED_LEARNING_RATE_VAL 1e-5
 
 #define DEFAULT_BITS_TO_SKIP {16,17,18,19}
+#define TOTAL_BITS_TO_SKIP 4
 
 #define MOVING_AVG_PAST_ALPHA 0.1
 #define FALSE_ALARM_FACTOR 1.5 // higher means less False Alarm but can also decrease the true positive count
@@ -67,7 +69,7 @@ public:
 	AERED(uint win_size = AERED_DEFAULT_WIN_SIZE,uint num_of_inst_groups = AERED_DEFAULT_NUM_OF_INST_GROUPS) :
 		num_of_inst_groups_(num_of_inst_groups),win_size_(win_size)
 	{
-		num_of_features_ = RISCV_INST_LENGTH+num_of_inst_groups;
+		num_of_features_ = (RISCV_INST_LENGTH-TOTAL_BITS_TO_SKIP)+num_of_inst_groups+AERED_DEFAULT_NUM_OF_DELTAS;
 
 		layer_size_t input_size = win_size_*num_of_features_;
 		std::vector<layer_size_t> layers_sizes_vec = {input_size,input_size/2,input_size/4,input_size/2,input_size};

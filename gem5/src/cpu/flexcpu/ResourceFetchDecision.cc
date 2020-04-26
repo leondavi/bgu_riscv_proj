@@ -254,6 +254,7 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 
     	if (!future_tables[tid].empty())
     	{
+    		/* AERED PART
     		std::vector<AERED::aered_input> aered_input_vec;
 			generate_aered_win(tid,aered_inst_.win_size(),aered_input_vec);
 			bool pred_res;
@@ -261,6 +262,7 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 			pred_res = aered_inst_.predict(aered_input_vec,err_val);
 
 			std::cout<<"tid: "<<tid<<" pred_res: "<<pred_res<<" err_val: "<<err_val<<std::endl;
+    		*/
     	}
 
 
