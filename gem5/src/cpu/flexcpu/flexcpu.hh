@@ -33,6 +33,7 @@
 
 #include <functional>
 #include <list>
+#include <deque>
 #include <memory>
 #include <vector>
 #include <fstream>
@@ -463,7 +464,7 @@ protected:
 		{
 			private:
 				uint32_t t_size_;
-			  	std::list<hist_attr> history_table_;
+			  	std::deque<hist_attr> history_table_;
 
 			public:
 			HistoryTable(uint32_t t_size = 1000) : t_size_(t_size) {}
@@ -481,7 +482,7 @@ protected:
 				history_table_.push_front(attr);
 			}
 
-			std::list<hist_attr>* get_history_table_ptr()
+			std::deque<hist_attr>* get_history_table_ptr()
 			{
 				return &history_table_;
 			}
@@ -490,7 +491,7 @@ protected:
 			{
 				std::ofstream myfile;
 				myfile.open(file_name);
-				std::list<hist_attr>::iterator it;
+				std::deque<hist_attr>::iterator it;
 				myfile<<"tick_rec,pc,dpc,pc_req_,dpc_req,m_inst,inst_grp,cname,br_taken"<<std::endl;
 				for (it = history_table_.begin(); it != history_table_.end(); ++it)
 				{
@@ -512,12 +513,15 @@ protected:
         std::vector<HistoryTable> hist_tables; //table per each thread
         std::vector<HistoryTable> future_tables;
 
-        bool dump_table_flag = true; // for debug only
+        bool dump_table_flag = false; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
         const int dump_interval = 500;
 
-        AERED aered_inst;
+        AERED aered_inst_;
+        std::vector<double> aered_rare_event_score_;
+        std::vector<uint> tid_ae_holding_cycles_;
+
 
 
 
@@ -542,7 +546,9 @@ protected:
 			dumping_counter.assign(cpu->numThreads,dump_interval);
 			table_counter.assign(cpu->numThreads,0);
 			uint8_t aered_win_size = 4;
-			aered_inst = AERED(aered_win_size,hist_attr::INST_GROUP_TYPES_TOTAL);
+			aered_inst_ = AERED(aered_win_size,hist_attr::INST_GROUP_TYPES_TOTAL);
+			aered_rare_event_score_.resize(cpu->numThreads);
+			tid_ae_holding_cycles_.resize(cpu->numThreads);
 		};
 
 
@@ -566,6 +572,8 @@ protected:
 
 		ThreadID threadid_by_autoencoder();
 		ThreadID get_min_qid();
+
+		void generate_aered_win(ThreadID tid, uint win_size,std::vector<AERED::aered_input> &out_input_to_ae);
 
 	};
 

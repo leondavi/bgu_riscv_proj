@@ -221,11 +221,7 @@ ThreadID FlexCPU::ResourceFetchDecision::get_min_qid()
 
 ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 {
-	ThreadID res = InvalidThreadID;
-
 	std::unordered_map<ThreadID, std::list<thread_attr>>* map_requests_ptr = this->IssueUnit_ptr->get_map_requests();
-
-	int min_size = std::numeric_limits<int>::max();
 
 	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
 	{
@@ -246,24 +242,93 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 			}
 		}
 
-        if(min_size > (*map_requests_ptr)[tid].size() && !this->map_requests[tid].empty())
-		{
-			res = tid;
-            min_size = (*map_requests_ptr)[tid].size();
-		}
-
     	if (!future_tables[tid].empty())
     	{
-    		VectorXd inst_vec;
-    		std::string inst_name = future_tables[tid].get_history_table_ptr()->front().inst_name_;
-    		AERED::convert_inst_to_vec((uint32_t)future_tables[tid].get_history_table_ptr()->front().machine_inst_,inst_vec);
-    		std::cout<<"name: "<<inst_name<<std::endl;
-    		std::cout<<inst_vec<<std::endl;
+    		std::vector<AERED::aered_input> aered_input_vec;
+			generate_aered_win(tid,aered_inst_.win_size(),aered_input_vec);
+			bool pred_res;
+			double err_val;
+			pred_res = aered_inst_.predict(aered_input_vec,err_val);
+
+			aered_rare_event_score_[tid] = pred_res;
+
+			//std::cout<<"tid: "<<tid<<" pred_res: "<<pred_res<<" err_val: "<<err_val<<std::endl;
     	}
 
 
 	}
 
 
-	return res;
+	//scheduling part
+	ThreadID lowest_anomaly_tid;
+	double lowest_anomaly_value = 100000;
+	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
+	{
+		double score = (-0.25*tid_ae_holding_cycles_[tid])+aered_rare_event_score_[tid];
+		if(score < lowest_anomaly_value)
+		{
+			lowest_anomaly_value = score;
+			lowest_anomaly_tid = tid;
+		}
+	}
+
+	tid_ae_holding_cycles_[lowest_anomaly_tid] = 0;
+
+	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
+	{
+		if((tid != lowest_anomaly_tid)&& (!future_tables[tid].empty()))
+		{
+			tid_ae_holding_cycles_[tid]++;
+		}
+		else if (!future_tables[tid].empty())
+		{
+			tid_ae_holding_cycles_[tid] = 0;
+		}
+	}
+
+	return lowest_anomaly_tid;
 }
+
+void FlexCPU::ResourceFetchDecision::generate_aered_win(ThreadID tid, uint win_size,std::vector<AERED::aered_input> &out_input_to_ae)
+{
+	uint pushed_items = 0;
+	std::deque<hist_attr> *current_inst_table = future_tables[tid].get_history_table_ptr();
+	std::deque<hist_attr> *hist_inst_table = hist_tables[tid].get_history_table_ptr();
+	std::vector<AERED::aered_input> inputs_to_ae;
+	inputs_to_ae.resize(win_size);
+
+
+	for (uint i=0; (i<current_inst_table->size()) && (pushed_items<win_size); i++)
+	{
+		hist_attr *attr = &current_inst_table->at(i);
+		uint32_t former_pc = 0;
+		if(i+1<current_inst_table->size())
+		{
+			former_pc = current_inst_table->at(i+1).pc_;
+		}
+		else if (!hist_inst_table->empty())
+		{
+			former_pc = hist_inst_table->front().pc_;
+		}
+
+
+		inputs_to_ae[pushed_items] = AERED::aered_input(attr->machine_inst_,attr->get_inst_type(),former_pc,attr->pc_,attr->pc_req_);
+		pushed_items++;
+	}
+
+	for (uint i=0; (i<hist_inst_table->size()) && (pushed_items<win_size); i++)
+	{
+		hist_attr *attr = &hist_inst_table->at(i);
+		uint32_t former_pc = 0;
+		if(i+1<current_inst_table->size())
+		{
+			former_pc = hist_inst_table->at(i+1).pc_;
+		}
+
+		inputs_to_ae[pushed_items] = AERED::aered_input(attr->machine_inst_,attr->get_inst_type(),former_pc,attr->pc_,attr->pc_req_);
+		pushed_items++;
+	}
+
+	out_input_to_ae = inputs_to_ae;
+}
+
