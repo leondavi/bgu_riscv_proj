@@ -531,6 +531,9 @@ protected:
         Stats::Scalar numOfLoadInsts;
         Stats::Scalar numOfStoreInsts;
         Stats::Scalar numOfCompleted;
+        Stats::Scalar MinPCAddress;
+        Stats::Scalar MaxPCAddress;
+
 
 		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
 				std::string _name,size_t max_instissues_per_thread = 10, bool run_last = false) :
@@ -549,6 +552,8 @@ protected:
 			aered_inst_ = AERED(aered_win_size,hist_attr::INST_GROUP_TYPES_TOTAL);
 			aered_rare_event_score_.resize(cpu->numThreads);
 			tid_ae_holding_cycles_.resize(cpu->numThreads);
+			MinPCAddress = UINT_MAX;
+
 		};
 
 

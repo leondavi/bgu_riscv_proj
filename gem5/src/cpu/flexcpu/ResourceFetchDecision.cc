@@ -74,7 +74,7 @@ void FlexCPU::ResourceFetchDecision::attemptAllRequests()
 //
 //	    std::cout<<"before!!!"<<std::endl;
 
-	    ThreadID chosen_tid = threadid_by_autoencoder();//rand() % cpu->numThreads; //Here add the autoencoder
+	    ThreadID chosen_tid = rand() % cpu->numThreads;//threadid_by_autoencoder();//rand() % cpu->numThreads; //Here add the autoencoder
 //	    std::cout<<"min qid: "<<chosen_tid<<std::endl;
 
 
@@ -140,6 +140,19 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std
 	hist_tables[tid].push(inst_attr);
 	numOfCompleted++;
 
+	if (tid == 0)
+	{
+		if (inst_attr.pc_ >  this->MaxPCAddress.value())
+		{
+			this->MaxPCAddress = inst_attr.pc_;
+		}
+
+		if (inst_attr.pc_ <  this->MinPCAddress.value())
+		{
+			this->MinPCAddress = inst_attr.pc_;
+		}
+	}
+
 	if(dump_table_flag && (tid==0) && (table_counter[tid] < 3000))
 	{
 		if (this->dumping_counter[tid] <= 0)
@@ -189,6 +202,12 @@ void FlexCPU::ResourceFetchDecision::regStats()
 	this->numOfStoreInsts.name(name() + ".numOfStoreInsts")
 	    	        .desc("Number of completed store instructions")
 	    	        ;
+	this->MaxPCAddress.name(name() + ".MaxPCAddress")
+					.desc("Max PC address")
+	    	    	;
+	this->MinPCAddress.name(name() + ".MinPCAddress")
+					.desc("Min PC address")
+		    	    ;
 
 }
 
@@ -260,7 +279,7 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 
 
 	//scheduling part
-	ThreadID lowest_anomaly_tid;
+	ThreadID lowest_anomaly_tid = 0;
 	double lowest_anomaly_value = 100000;
 	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
 	{
