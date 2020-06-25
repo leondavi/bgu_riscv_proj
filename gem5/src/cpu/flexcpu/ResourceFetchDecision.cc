@@ -158,7 +158,7 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std
 		if (this->dumping_counter[tid] <= 0)
 		{
 			hist_tables[tid].dump_to_csv(simout.directory()+"/histtab_tid_"+to_string(tid)+"_ctr_"+to_string(table_counter[tid])+".csv");
-			future_tables[tid].dump_to_csv(simout.directory()+"/futuretab_tid_"+to_string(tid)+"_ctr_"+to_string(table_counter[tid])+".csv");
+			//future_tables[tid].dump_to_csv(simout.directory()+"/futuretab_tid_"+to_string(tid)+"_ctr_"+to_string(table_counter[tid])+".csv");
 
 			dumping_counter[tid] = dump_interval;
 			table_counter[tid]++;

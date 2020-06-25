@@ -501,6 +501,7 @@ protected:
      				myfile<<","<<it->branch_taken_<<std::endl;
 				}
 				myfile.close();
+				this->history_table_.clear();
 			}
 			uint32_t size() { return this->t_size_; }
 			bool empty() { return this->history_table_.empty(); }
@@ -513,10 +514,10 @@ protected:
         std::vector<HistoryTable> hist_tables; //table per each thread
         std::vector<HistoryTable> future_tables;
 
-        bool dump_table_flag = false; // for debug only
+        bool dump_table_flag = true; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
-        const int dump_interval = 500;
+        const int dump_interval = 100000;
 
         AERED aered_inst_;
         std::vector<double> aered_rare_event_score_;
@@ -544,7 +545,7 @@ protected:
 							ExecuteUnit_ptr(cpu->get_executeResource()),
 							max_instissues_per_thread(max_instissues_per_thread)
 		{
-			hist_tables.resize(cpu->numThreads);
+			hist_tables.resize(cpu->numThreads,100000);
 			future_tables.resize(cpu->numThreads,HistoryTable(PREFETCH_WIN_SIZE));
 			dumping_counter.assign(cpu->numThreads,dump_interval);
 			table_counter.assign(cpu->numThreads,0);
