@@ -37,6 +37,7 @@
 #include <memory>
 #include <vector>
 #include <fstream>
+#include <string>
 
 #include "cpu/base.hh"
 #include "cpu/flexcpu/flexcpu_thread.hh"
@@ -44,6 +45,7 @@
 #include "mem/packet.hh"
 #include "enums/ThreadPolicy.hh"
 #include "params/FlexCPU.hh"
+#include "base/output.hh"
 
 #include "AERED.h"
 
@@ -517,7 +519,7 @@ protected:
         bool dump_table_flag = true; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
-        const int dump_interval = 100000;
+        const int dump_interval = 1000000;
 
         AERED aered_inst_;
         std::vector<double> aered_rare_event_score_;
@@ -545,7 +547,7 @@ protected:
 							ExecuteUnit_ptr(cpu->get_executeResource()),
 							max_instissues_per_thread(max_instissues_per_thread)
 		{
-			hist_tables.resize(cpu->numThreads,100000);
+			hist_tables.resize(cpu->numThreads,1000000);
 			future_tables.resize(cpu->numThreads,HistoryTable(PREFETCH_WIN_SIZE));
 			dumping_counter.assign(cpu->numThreads,dump_interval);
 			table_counter.assign(cpu->numThreads,0);
@@ -565,7 +567,14 @@ protected:
 
 		void attemptAllRequests();
 
-		~ResourceFetchDecision(){};
+		~ResourceFetchDecision()
+		{
+			int tid = 0;
+			if (hist_tables[tid].size() > 0)
+			{
+				hist_tables[tid].dump_to_csv(simout.directory()+"/histtab_tid_"+std::to_string(tid)+"_ctr_"+std::to_string(table_counter[tid])+".csv");
+			}
+		}
 
 		bool resourceAvailable(ThreadID tid);
 

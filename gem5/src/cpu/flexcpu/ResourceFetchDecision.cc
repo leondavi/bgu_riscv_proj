@@ -13,6 +13,7 @@ using namespace std;
 using namespace TheISA;
 
 
+
 bool FlexCPU::ResourceFetchDecision::resourceAvailable(ThreadID tid)
 {
     if (cpu->_instPort.blocked() || (cpu->issueThreadUnit.get_queue_size_by_threadid(tid)>20)) {
