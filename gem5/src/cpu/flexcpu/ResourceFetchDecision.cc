@@ -9,6 +9,8 @@
 #include "debug/FlexCPUThreadEvent.hh"
 #include "debug/FlexCPUCoreEvent.hh"
 
+#define AE_ENABLE 0
+
 using namespace std;
 using namespace TheISA;
 
@@ -135,6 +137,7 @@ bool FlexCPU::ResourceFetchDecision::update_from_execution_unit(ThreadID tid,std
 		{
 			case inst_attr.INST_TYPE_LOAD: {this->numOfLoadInsts++; break;}
 			case inst_attr.INST_TYPE_STORE: {this->numOfStoreInsts++; break;}
+			case inst_attr.INST_TYPE_MULDIV: {this->numOfMulDivInsts++; break;}
 		}
 	}
 	hist_tables[tid].push(inst_attr);
@@ -189,6 +192,10 @@ void FlexCPU::ResourceFetchDecision::regStats()
 	this->numOfStoreInsts.name(name() + ".numOfStoreInsts")
 	    	        .desc("Number of completed store instructions")
 	    	        ;
+	this->numOfMulDivInsts.name(name() + ".numOfMulDivInsts")
+		    	        .desc("Number of completed mul/div instructions")
+		    	        ;
+
 
 }
 
@@ -244,6 +251,7 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 
     	if (!future_tables[tid].empty())
     	{
+#ifdef AE_ENABLE
     		std::vector<AERED::aered_input> aered_input_vec;
 			generate_aered_win(tid,aered_inst_.win_size(),aered_input_vec);
 			bool pred_res;
@@ -251,6 +259,7 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 			pred_res = aered_inst_.predict(aered_input_vec,err_val);
 
 			aered_rare_event_score_[tid] = pred_res;
+#endif
 
 			//std::cout<<"tid: "<<tid<<" pred_res: "<<pred_res<<" err_val: "<<err_val<<std::endl;
     	}
@@ -260,7 +269,7 @@ ThreadID FlexCPU::ResourceFetchDecision::threadid_by_autoencoder()
 
 
 	//scheduling part
-	ThreadID lowest_anomaly_tid;
+	ThreadID lowest_anomaly_tid = 0;
 	double lowest_anomaly_value = 100000;
 	for(ThreadID tid = 0; tid < this->cpu->numThreads; tid++ )
 	{

@@ -420,7 +420,15 @@ protected:
 					{
 						case 3: {res = INST_TYPE_LOAD; break;}
 						case 35: {res = INST_TYPE_STORE; break;}
-						case 33: {res = INST_TYPE_MULDIV; break;}
+						case 51:
+						{
+							uint64_t im_cond = (this->machine_inst_ >> 25) & 0x7F;
+							if (im_cond == 1)
+							{
+								res = INST_TYPE_MULDIV;
+							}
+							break;
+						}
 						case 99: {res = INST_TYPE_BRANCH; break;}
 						default: {res = INST_TYPE_ELSE;}
 					}
@@ -513,7 +521,7 @@ protected:
         std::vector<HistoryTable> hist_tables; //table per each thread
         std::vector<HistoryTable> future_tables;
 
-        bool dump_table_flag = false; // for debug only
+        bool dump_table_flag = true; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
         const int dump_interval = 500;
@@ -531,6 +539,7 @@ protected:
         Stats::Scalar numOfLoadInsts;
         Stats::Scalar numOfStoreInsts;
         Stats::Scalar numOfCompleted;
+        Stats::Scalar numOfMulDivInsts;
 
 		ResourceFetchDecision(FlexCPU *cpu, Cycles latency, int bandwidth,
 				std::string _name,size_t max_instissues_per_thread = 10, bool run_last = false) :
