@@ -429,6 +429,15 @@ protected:
 							}
 							break;
 						}
+						case 59:
+						{
+							uint64_t im_cond = (this->machine_inst_ >> 25) & 0x7F;
+							if (im_cond == 1)
+							{
+								res = INST_TYPE_MULDIV;
+							}
+							break;
+						}
 						case 99: {res = INST_TYPE_BRANCH; break;}
 						default: {res = INST_TYPE_ELSE;}
 					}
@@ -524,7 +533,7 @@ protected:
         bool dump_table_flag = true; // for debug only
         std::vector<int> dumping_counter;//for debug only
         std::vector<uint32_t> table_counter;//for debug only
-        const int dump_interval = 500;
+        const int dump_interval = 1000;
 
         AERED aered_inst_;
         std::vector<double> aered_rare_event_score_;
