@@ -98,7 +98,7 @@ bool AERED::predict(const std::vector<aered_input> &input,double &prediction_val
 	MatrixXd y_pred;
 	generate_ae_input(input,ae_input);
 
-	y_pred = this->ae_ptr_->predict(ae_input);
+	this->ae_ptr_->predict(ae_input,y_pred);
 
 	prediction_val = (ae_input-y_pred).array().pow(2).sum();
 
